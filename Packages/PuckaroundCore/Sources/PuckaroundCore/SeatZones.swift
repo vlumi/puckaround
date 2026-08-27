@@ -13,7 +13,7 @@ public struct SeatZones: Equatable, Sendable {
     /// The wall an edge sits on, as a segment — so a point beyond a corner is
     /// nearest the wall it is actually beside, not whichever infinite line it
     /// happens to line up with.
-    public func wall(of edge: Edge) -> (a: Vec2, b: Vec2) {
+    public func wall(of edge: Seat) -> (a: Vec2, b: Vec2) {
         switch edge {
         case .bottom: return (Vec2(bounds.minX, bounds.maxY), Vec2(bounds.maxX, bounds.maxY))
         case .top: return (Vec2(bounds.minX, bounds.minY), Vec2(bounds.maxX, bounds.minY))
@@ -23,7 +23,7 @@ public struct SeatZones: Equatable, Sendable {
     }
 
     /// Distance from `point` to an edge's wall.
-    public func distance(from point: Vec2, to edge: Edge) -> Double {
+    public func distance(from point: Vec2, to edge: Seat) -> Double {
         let (a, b) = wall(of: edge)
         return point.distance(toSegment: a, b)
     }

@@ -3,7 +3,10 @@ import XCTest
 @testable import PuckaroundCore
 
 final class SeatZonesTests: XCTestCase {
-    let table = Playfield.square
+    /// A square table, so every edge is the same distance from the centre.
+    let table = Playfield(
+        size: Vec2(120, 120), puckRadius: 4, malletRadius: 7, goalWidth: 36, restitution: 0.85,
+        drag: 0.4, maxSpeed: 400, restSpeed: 0.5)
     var four: SeatZones { SeatZones(lineup: Lineup(playerCount: 4)!, bounds: table.bounds) }
 
     func testOwnerIsTheNearestSeatedEdge() {

@@ -14,4 +14,4 @@ The `## vX.Y.Z` heading is written by the release lane too, whenever a release c
 
 ### Unreleased (next build)
 
-- **One puck, one table.** The prototyping sandbox: a puck slides on a walled table and any finger that sweeps across it sends it off at the finger's own speed. Two, three or four seats sit around the device, one per edge, each finger belonging to the seat it came down in; four seats can pair up into two teams. Serve puts the puck back at centre. Not a game yet — the table for finding one.
+- **Air hockey, one on one.** A puck on a walled table with a goal at each end and a mallet for each of the two players, dragged by the first finger down in their own half — the mallet follows the finger's movement, can touch the centre line but never cross it, and the puck bounces off it (a still mallet is a wall). Score by putting the puck through the other goal; the player scored on gets the puck; first to seven wins, and New game starts over. The other seats (three and four players) wait on a decision about where their goals would go.

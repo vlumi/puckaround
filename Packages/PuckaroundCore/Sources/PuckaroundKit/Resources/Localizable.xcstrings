@@ -1,16 +1,10 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "Free for all" : {
+    "New game" : {
 
     },
-    "Players: %lld" : {
-
-    },
-    "Serve" : {
-
-    },
-    "Teams" : {
+    "Player %lld wins" : {
 
     }
   },

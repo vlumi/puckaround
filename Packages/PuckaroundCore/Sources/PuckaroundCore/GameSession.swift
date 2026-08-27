@@ -54,7 +54,7 @@ public final class GameSession {
         rink.advance(inputs: inputs)
     }
 
-    public func serve() {
-        rink.serve()
+    public func newGame() {
+        rink.newGame()
     }
 }

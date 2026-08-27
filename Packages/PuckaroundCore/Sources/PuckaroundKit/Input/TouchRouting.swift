@@ -7,21 +7,21 @@ import UIKit
 /// Captures every simultaneous touch and streams id-tagged events — the
 /// shared-table input surface (SwiftUI gestures only track one touch).
 struct MultiTouchSurface: UIViewRepresentable {
-    let sandbox: Sandbox
+    let game: HockeyGame
 
     func makeUIView(context: Context) -> TouchCaptureView {
         let view = TouchCaptureView()
-        view.sandbox = sandbox
+        view.game = game
         return view
     }
 
     func updateUIView(_ view: TouchCaptureView, context: Context) {
-        view.sandbox = sandbox
+        view.game = game
     }
 }
 
 final class TouchCaptureView: UIView {
-    weak var sandbox: Sandbox?
+    weak var game: HockeyGame?
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -39,27 +39,25 @@ final class TouchCaptureView: UIView {
 
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         for touch in touches {
-            sandbox?.touchBegan(
-                id: touchID(touch), at: touch.location(in: self), time: touch.timestamp)
+            game?.touchBegan(id: touchID(touch), at: touch.location(in: self))
         }
     }
 
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
         for touch in touches {
-            sandbox?.touchMoved(
-                id: touchID(touch), at: touch.location(in: self), time: touch.timestamp)
+            game?.touchMoved(id: touchID(touch), at: touch.location(in: self))
         }
     }
 
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
         for touch in touches {
-            sandbox?.touchEnded(id: touchID(touch))
+            game?.touchEnded(id: touchID(touch))
         }
     }
 
     override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
         for touch in touches {
-            sandbox?.touchEnded(id: touchID(touch))
+            game?.touchEnded(id: touchID(touch))
         }
     }
 }
@@ -68,25 +66,24 @@ final class TouchCaptureView: UIView {
 /// The input surface over the table: real multitouch on iOS, a single-pointer
 /// fallback elsewhere so the macOS test build keeps compiling.
 struct InputSurface: View {
-    let sandbox: Sandbox
+    let game: HockeyGame
 
     var body: some View {
         #if os(iOS)
-        MultiTouchSurface(sandbox: sandbox)
+        MultiTouchSurface(game: game)
         #else
         Color.clear
             .contentShape(Rectangle())
             .gesture(
                 DragGesture(minimumDistance: 0)
                     .onChanged { value in
-                        let now = Date().timeIntervalSinceReferenceDate
                         // The first change begins the touch (a no-op afterwards
                         // for the same id); later ones just move it.
-                        sandbox.touchBegan(id: 0, at: value.startLocation, time: now)
-                        sandbox.touchMoved(id: 0, at: value.location, time: now)
+                        game.touchBegan(id: 0, at: value.startLocation)
+                        game.touchMoved(id: 0, at: value.location)
                     }
                     .onEnded { _ in
-                        sandbox.touchEnded(id: 0)
+                        game.touchEnded(id: 0)
                     }
             )
         #endif

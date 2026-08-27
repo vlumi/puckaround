@@ -5,25 +5,19 @@ import XCTest
 /// The sim's foundational promise: same seed + same inputs → same states,
 /// bit-for-bit. Replays stand on this.
 final class DeterminismTests: XCTestCase {
-    private func scripted(player: PlayerID, tick: Tick, in rink: Rink) -> SeatInput {
-        // Every seat swipes through the puck now and then, at a tick-dependent angle.
-        guard (tick + player.rawValue * 7) % 23 == 0 else { return .none }
-        let angle = Double(tick % 360) * .pi / 180 + Double(player.rawValue)
-        let c = rink.puck.position
-        return SeatInput(
-            swipe: Swipe(
-                from: c - Vec2(angle: angle) * 5, to: c + Vec2(angle: angle) * 5,
-                velocity: Vec2(angle: angle) * 150))
+    /// Both hands waving their mallets about in tick-dependent loops.
+    private func scripted(player: PlayerID, tick: Tick) -> SeatInput {
+        let phase = Double(tick) / 17 + Double(player.rawValue) * 2
+        return SeatInput(malletDrag: Vec2(sin(phase) * 3, cos(phase * 1.3) * 3))
     }
 
     private func run(seed: UInt64, ticks: Int) -> (rink: Rink, trail: [Vec2]) {
-        let lineup = Lineup(playerCount: 4)!
-        var rink = Rink(table: .standard(for: lineup), lineup: lineup, seed: seed)
+        var rink = Rink(table: .duel, lineup: .duel, seed: seed)
         var trail: [Vec2] = []
         for _ in 0..<ticks {
             var inputs: [PlayerID: SeatInput] = [:]
-            for player in lineup.players {
-                inputs[player] = scripted(player: player, tick: rink.tick, in: rink)
+            for player in rink.lineup.players {
+                inputs[player] = scripted(player: player, tick: rink.tick)
             }
             rink.advance(inputs: inputs)
             trail.append(rink.puck.position)
@@ -40,19 +34,27 @@ final class DeterminismTests: XCTestCase {
         }
         XCTAssertEqual(a.rink, b.rink)
         XCTAssertEqual(a.rink.tick, 1800)
+        XCTAssertNotEqual(a.trail.first, a.trail.last, "the script actually moved the puck")
     }
 
-    func testTheSeedDecidesTheServe() {
-        let a = Rink(table: .duel, lineup: .duel, seed: 1)
-        let b = Rink(table: .duel, lineup: .duel, seed: 2)
-        XCTAssertNotEqual(a.puck.velocity, b.puck.velocity)
+    func testTheSeedDecidesTheOpeningPossession() {
+        var first: Vec2?
+        var differed = false
+        for seed in 0..<10 {
+            let puck = Rink(table: .duel, lineup: .duel, seed: UInt64(seed)).puck.position
+            if let first, first != puck {
+                differed = true
+            }
+            first = first ?? puck
+        }
+        XCTAssertTrue(differed)
     }
 
-    func testServeIsReproducibleFromTheSeed() {
+    func testNewGameIsReproducibleFromTheSeed() {
         var a = Rink(table: .duel, lineup: .duel, seed: 5)
         var b = Rink(table: .duel, lineup: .duel, seed: 5)
-        a.serve()
-        b.serve()
+        a.newGame()
+        b.newGame()
         XCTAssertEqual(a, b)
     }
 }

@@ -1,14 +1,15 @@
 # Puck Around — agent & contributor guide
 
-A tabletop puck game for iPhone and iPad: two to four people around **one
-device**, batting a puck about with their fingers. Local multiplayer only — the
-device *is* the table. This file is how to *work on* the repo, for humans and AI
-agents alike.
+Air hockey for iPhone and iPad: two people around **one device**, a mallet
+each, a goal each; three and four seats designed for but not yet on the table.
+Local multiplayer only — the device *is* the table. This file is how to *work
+on* the repo, for humans and AI agents alike.
 
-**The repo is at the prototyping stage.** The first job is to find out what
-makes flicking a puck around fun on glass — the strike, the table, the seating —
-not to build a finished game. Don't build menus, modes, rulesets or persistence
-before the core feel is proven; [ROADMAP.md](ROADMAP.md) has the order.
+**The repo is at the prototyping stage.** 1v1 air hockey is built; the first
+job is to find out whether it feels good on glass — the mallet, the drag, the
+bounce — not to build a finished game around it. Don't build menus, modes or
+persistence before the core feel is proven; [ROADMAP.md](ROADMAP.md) has the
+order, and the *Settled* section there records what has been decided.
 
 Separate project from its siblings [Skid Jam](https://github.com/vlumi/skid) (a
 couch racer), [Donpa Squad](https://github.com/vlumi/donpa) (Minesweeper),
@@ -27,7 +28,7 @@ One place per concern — don't duplicate, link:
 | **What the system is** | [ARCHITECTURE.md](ARCHITECTURE.md) — the sim, the seats, the touch rule, and a fenced *Planned* chapter |
 | **How to work on it** | this file — conventions, toolchain, PR process |
 | **What's next, and when** | [ROADMAP.md](ROADMAP.md) |
-| **Why a design was chosen** | `docs/*-plan.md`, linked from ARCHITECTURE.md (none yet) |
+| **Why a design was chosen** | `docs/*-plan.md`, linked from ARCHITECTURE.md — [docs/air-hockey-plan.md](docs/air-hockey-plan.md) so far |
 | **How it ships** | [RELEASING.md](RELEASING.md) |
 | **What shipped** | [CHANGELOG.md](CHANGELOG.md) |
 
@@ -64,9 +65,9 @@ The load-bearing decisions and their rationale live in
 [ARCHITECTURE.md](ARCHITECTURE.md). The essentials:
 
 - **A control scheme is an input source, not a game mode.** Every seat's
-  action reaches the sim as a `SeatInput` value (today: a `Swipe` — a segment
-  the finger swept, with its velocity). Fingers, a future AI seat, anything —
-  all `ControlSource`s; the sim never knows which.
+  action reaches the sim as a `SeatInput` value (how far to move the mallet
+  this tick). Fingers, a future AI seat, anything — all `ControlSource`s; the
+  sim never knows which.
 - **The sim is pure and deterministic** — hand-written physics at a fixed
   timestep, seeded RNG, no `SKPhysicsBody`, no ambient randomness. Same seed +
   same inputs → same state, bit-for-bit. Replays are seed + inputs.
@@ -88,17 +89,17 @@ puckaround/
 ├── Sources/iOS/                    Thin @main app shell (+ generated Info.plist, entitlements)
 ├── Sources/Shared/                 The asset catalog (AppIcon) + an empty app-level String Catalog
 └── Packages/PuckaroundCore/        Swift package — all the code
-    ├── Sources/PuckaroundCore/     Pure logic: Vec2/Rect/SeededRNG, Lineup + seats, Playfield/Puck/Rink,
-    │                               SeatInput + ControlSource, SwipeControlSource, GameSession — tested,
-    │                               coverage-gated
+    ├── Sources/PuckaroundCore/     Pure logic: Vec2/Rect/SeededRNG, Lineup + seats, Playfield/Puck/Mallet,
+    │                               Rink (the air-hockey sim + Rules), SeatInput + ControlSource,
+    │                               MalletControlSource, GameSession — tested, coverage-gated
     ├── Sources/PuckaroundKit/      SwiftUI + UIKit, depends on Core; coverage-ignored
-    │   ├── App/                    GameView, Sandbox (the v0.1 table), Compat (iOS 16 wrappers)
+    │   ├── App/                    GameView, HockeyGame (one table of 1v1), Compat (iOS 16 wrappers)
     │   ├── Input/                  MultiTouchSurface — every finger, id-tagged, to the control source
     │   ├── Render/                 RinkRenderer (Canvas), SeatPalette
     │   ├── Icon/                   AppIconScene — the icon is drawn by the game's own code
     │   └── Resources/              Localizable.xcstrings (the Kit's strings)
     ├── Sources/PuckaroundIcon/     Dev tool: `make icon` renders the icon PNG (macOS-only)
-    └── Tests/PuckaroundCoreTests/  Grouped by domain (Math/, Seats/, Sim/, Input/, Session/, Render/)
+    └── Tests/PuckaroundCoreTests/  Grouped by domain (Math/, Seats/, Sim/, Input/, Session/, Render/; Support/ stages a rink)
 ```
 
 Both targets and the tests group **by domain, not by type**.
@@ -189,10 +190,11 @@ Branch off `main`, one focused change per PR (details in
   (SplitMix64); production seeds from `SystemRandomNumberGenerator`. The sim
   iterates seats in `Lineup` order, never dictionary order.
 - **World coordinates are y-down**, matching screen space, so rendering is one
-  scale and nothing flips. `Edge.bottom` is the bottom of the screen in
+  scale and nothing flips. `Seat.bottom` is the bottom of the screen in
   portrait.
-- **A touch belongs to the seat it began in for its whole life** — the one
-  rule that makes several fingers on one screen unambiguous.
+- **A touch belongs to the seat it began in for its whole life**, and **the
+  first finger down in a half drives its mallet** — the two rules that make
+  several fingers on one screen unambiguous.
 - Core geometry uses `Vec2`/`Rect` (no CoreGraphics in Core); the Kit bridges
   to `CGPoint`/`CGRect` at the edge.
 - `.vscode/` is gitignored and must not be pushed.
@@ -230,7 +232,7 @@ patterns, both in `PuckaroundKit/App/Compat.swift`:
   for files it hasn't indexed — these are **false**. The authoritative checks
   are `swift build` / `swift test` / `xcodebuild`.
 - The Canvas renderer closure is **not MainActor**: step the sim and build the
-  frame's plain-value `RinkScene` outside it (see `Sandbox.frame(at:)`), and
+  frame's plain-value `RinkScene` outside it (see `HockeyGame.frame(at:)`), and
   hand the closure copies. Nothing per-frame is `@Published` — the view redraws
   every frame via `TimelineView(.animation)` anyway, and publishing per-frame
   state would mutate observable state mid-view-update.

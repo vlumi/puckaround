@@ -52,12 +52,15 @@ final class GameSessionTests: XCTestCase {
         XCTAssertEqual(asked.map(\.1), [0, 0, 1, 1])
     }
 
-    func testServeResetsThePuck() {
-        let s = session()
+    func testNewGameStartsOver() {
+        let s = GameSession(rink: Rink(table: .duel, lineup: .duel, seed: 3)) { _, _ in
+            SeatInput(malletDrag: Vec2(1, 0))
+        }
         s.update(to: 0)
         s.update(to: 1)
-        XCTAssertNotEqual(s.rink.puck.position, s.rink.table.center)
-        s.serve()
-        XCTAssertEqual(s.rink.puck.position, s.rink.table.center)
+        let home = s.rink.table.malletZone(for: .bottom).center
+        XCTAssertNotEqual(s.rink.mallet(of: PlayerID(0)).position, home)
+        s.newGame()
+        XCTAssertEqual(s.rink.mallet(of: PlayerID(0)).position, home)
     }
 }

@@ -1,24 +1,13 @@
-/// A finger's movement over the table during one tick, in world units.
-public struct Swipe: Equatable, Codable, Sendable {
-    public var from: Vec2
-    public var to: Vec2
-    /// World units per second — what the puck inherits if the swipe hits it.
-    public var velocity: Vec2
-
-    public init(from: Vec2, to: Vec2, velocity: Vec2) {
-        self.from = from
-        self.to = to
-        self.velocity = velocity
-    }
-}
-
 /// What one seat did this tick, as data — nothing about fingers or screens.
-/// The sim decides what it meant (did the swipe hit the puck?).
 public struct SeatInput: Equatable, Codable, Sendable {
-    public var swipe: Swipe?
+    /// How far the seat wants its mallet moved this tick, in world units. A
+    /// delta rather than a position: the mallet follows the hand's MOVEMENT,
+    /// so a finger landing anywhere in the half drives it without a jump, and
+    /// the sim clamps the result to the seat's own half.
+    public var malletDrag: Vec2?
 
-    public init(swipe: Swipe? = nil) {
-        self.swipe = swipe
+    public init(malletDrag: Vec2? = nil) {
+        self.malletDrag = malletDrag
     }
 
     public static let none = SeatInput()

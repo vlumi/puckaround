@@ -44,6 +44,13 @@ enum RinkRenderer {
                 origin: point(r.origin),
                 size: CGSize(width: r.width * scale, height: r.height * scale))
         }
+
+        func disc(at center: CGPoint, radius: CGFloat) -> Path {
+            Path(
+                ellipseIn: CGRect(
+                    x: center.x - radius, y: center.y - radius, width: 2 * radius,
+                    height: 2 * radius))
+        }
     }
 
     static func draw(_ scene: RinkScene, in context: inout GraphicsContext, size: CGSize) {
@@ -51,50 +58,89 @@ enum RinkRenderer {
         let rect = scene.tableRect
         guard rect.width > 0 else { return }
         let projection = Projection(rect: rect, scale: rect.width / table.size.x)
-
-        // The ice.
-        let iceShape = Path(roundedRect: rect, cornerRadius: 6 * projection.scale)
-        context.fill(iceShape, with: .color(ice))
-
-        // Seat bands, in each seat's color, clipped to the ice.
         let lineup = scene.rink.lineup
-        let zones = SeatZones(lineup: lineup, bounds: table.bounds)
-        let depth = min(table.size.x, table.size.y) * 0.08
-        context.drawLayer { layer in
-            layer.clip(to: iceShape)
-            for player in lineup.players {
-                let band = projection.rect(zones.band(for: player, depth: depth))
-                layer.fill(
-                    Path(band),
-                    with: .color(SeatPalette.color(for: player, in: lineup).opacity(0.35)))
-            }
-        }
 
+        context.fill(Path(roundedRect: rect, cornerRadius: 6 * projection.scale), with: .color(ice))
         drawMarkings(for: table, projection: projection, in: &context)
+        for player in lineup.players {
+            let edge = lineup.seat(of: player)
+            let color = SeatPalette.color(for: player, in: lineup)
+            drawScore(
+                scene.rink.score(of: player), in: projection.rect(table.malletZone(for: edge)),
+                facing: edge, color: color, in: &context)
+            drawGoal(at: edge, on: table, projection: projection, in: &context)
+            drawMallet(
+                scene.rink.mallet(of: player), radius: table.malletRadius, color: color,
+                projection: projection, in: &context)
+        }
         drawPuck(scene.rink.puck, radius: table.puckRadius, projection: projection, in: &context)
     }
 
-    /// Centre ring and the midline across the table's long axis.
+    /// Centre ring and centre line.
     private static func drawMarkings(
         for table: Playfield, projection: Projection, in context: inout GraphicsContext
     ) {
         let centre = projection.point(table.center)
-        let ring = 10 * projection.scale
         let lineWidth = max(1, 0.6 * projection.scale)
         context.stroke(
-            Path(
-                ellipseIn: CGRect(
-                    x: centre.x - ring, y: centre.y - ring, width: 2 * ring, height: 2 * ring)),
-            with: .color(lines), lineWidth: lineWidth)
+            projection.disc(at: centre, radius: 10 * projection.scale), with: .color(lines),
+            lineWidth: lineWidth)
         var midline = Path()
-        if table.size.y >= table.size.x {
-            midline.move(to: CGPoint(x: projection.rect.minX, y: centre.y))
-            midline.addLine(to: CGPoint(x: projection.rect.maxX, y: centre.y))
-        } else {
-            midline.move(to: CGPoint(x: centre.x, y: projection.rect.minY))
-            midline.addLine(to: CGPoint(x: centre.x, y: projection.rect.maxY))
-        }
+        midline.move(to: CGPoint(x: projection.rect.minX, y: centre.y))
+        midline.addLine(to: CGPoint(x: projection.rect.maxX, y: centre.y))
         context.stroke(midline, with: .color(lines), lineWidth: lineWidth)
+    }
+
+    /// The goal mouth: a slot in the short wall, in the ground colour, so the
+    /// puck visibly leaves the ice through it.
+    private static func drawGoal(
+        at edge: Seat, on table: Playfield, projection: Projection,
+        in context: inout GraphicsContext
+    ) {
+        let width = table.goalWidth * projection.scale
+        let depth = 3 * projection.scale
+        let x = projection.rect.midX - width / 2
+        let y: CGFloat
+        switch edge {
+        case .top: y = projection.rect.minY - depth
+        case .bottom: y = projection.rect.maxY - depth
+        case .left, .right: return
+        }
+        context.fill(
+            Path(
+                roundedRect: CGRect(x: x, y: y, width: width, height: 2 * depth),
+                cornerRadius: depth / 2),
+            with: .color(ground))
+    }
+
+    /// A faint big numeral in the seat's half, turned to face its player.
+    private static func drawScore(
+        _ score: Int, in half: CGRect, facing edge: Seat, color: Color,
+        in context: inout GraphicsContext
+    ) {
+        var ctx = context
+        ctx.translateBy(x: half.midX, y: half.midY)
+        if edge == .top {
+            ctx.rotate(by: .degrees(180))
+        }
+        var text = ctx.resolve(
+            Text(verbatim: "\(score)").font(
+                .system(size: half.height * 0.4, weight: .black, design: .rounded)))
+        text.shading = .color(color.opacity(0.18))
+        ctx.draw(text, at: .zero, anchor: .center)
+    }
+
+    private static func drawMallet(
+        _ mallet: Mallet, radius: Double, color: Color, projection: Projection,
+        in context: inout GraphicsContext
+    ) {
+        let p = projection.point(mallet.position)
+        let r = radius * projection.scale
+        context.fill(projection.disc(at: p, radius: r), with: .color(color))
+        context.stroke(
+            projection.disc(at: p, radius: r), with: .color(puck.opacity(0.5)),
+            lineWidth: max(1, 0.5 * projection.scale))
+        context.fill(projection.disc(at: p, radius: r * 0.45), with: .color(puck.opacity(0.25)))
     }
 
     /// A dark disc with a small highlight so its motion reads.
@@ -103,14 +149,10 @@ enum RinkRenderer {
     ) {
         let p = projection.point(puck.position)
         let r = radius * projection.scale
+        context.fill(projection.disc(at: p, radius: r), with: .color(RinkRenderer.puck))
+        let highlight = CGPoint(x: p.x - r * 0.45, y: p.y - r * 0.45)
         context.fill(
-            Path(ellipseIn: CGRect(x: p.x - r, y: p.y - r, width: 2 * r, height: 2 * r)),
-            with: .color(RinkRenderer.puck))
-        let h = r * 0.35
-        context.fill(
-            Path(
-                ellipseIn: CGRect(
-                    x: p.x - r * 0.45 - h / 2, y: p.y - r * 0.45 - h / 2, width: h, height: h)),
+            projection.disc(at: highlight, radius: r * 0.175),
             with: .color(Color.white.opacity(0.25)))
     }
 }

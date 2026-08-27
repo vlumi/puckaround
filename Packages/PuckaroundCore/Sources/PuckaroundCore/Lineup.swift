@@ -1,7 +1,7 @@
 /// Which edge of the device a seat plays from. Every player sits at an edge of
 /// the shared screen, so this is both a seating position and which wall is
 /// "theirs". World space is y-down, so `bottom` is the bottom of the screen.
-public enum Edge: CaseIterable, Codable, Sendable {
+public enum Seat: CaseIterable, Codable, Sendable {
     case bottom
     case top
     case left
@@ -27,7 +27,7 @@ public enum Edge: CaseIterable, Codable, Sendable {
 public struct Lineup: Equatable, Codable, Sendable {
     public static let minPlayers = 2
     public static let maxPlayers = 4
-    static let seatOrder: [Edge] = [.bottom, .top, .left, .right]
+    static let seatOrder: [Seat] = [.bottom, .top, .left, .right]
 
     public let playerCount: Int
     /// Two teams of two. Only meaningful — and only allowed — with four players.
@@ -51,7 +51,7 @@ public struct Lineup: Equatable, Codable, Sendable {
         (0..<playerCount).contains(player.rawValue)
     }
 
-    public func seat(of player: PlayerID) -> Edge {
+    public func seat(of player: PlayerID) -> Seat {
         Lineup.seatOrder[player.rawValue]
     }
 
