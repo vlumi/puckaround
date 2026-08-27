@@ -115,11 +115,57 @@ public struct Rink: Equatable, Sendable {
         let distance = offset.length
         guard distance < reach else { return }
         let normal = distance > 0 ? offset * (1 / distance) : Vec2(0, -1)
-        puck.position = center + normal * reach
+        let clear = pushedClear(of: center, along: normal, reach: reach)
+        puck.position = clear.position
         let closing = (puck.velocity - malletVelocity).dot(normal)
         if closing < 0 {
             puck.velocity -= normal * ((1 + table.restitution) * closing)
         }
+        // Pinned against a wall: the wall takes the speed aimed into it, and the
+        // puck squirts out along the wall instead — toward the side it slid to.
+        if let wall = clear.wall {
+            let into = puck.velocity.dot(wall)
+            if into > 0 {
+                let along = (puck.position - center - wall * (puck.position - center).dot(wall))
+                    .normalized
+                puck.velocity = puck.velocity - wall * into + along * into
+            }
+        }
+    }
+
+    /// Where the puck goes to be clear of a mallet at `center`: straight out
+    /// along `normal` — unless that is through a wall. **A puck pinned against
+    /// a wall slides along it** until it is clear of the mallet, as a real one
+    /// squirts out sideways; `wall` is then that wall's outward normal. Pushing
+    /// it through the wall instead let the wall reflection mirror it back to
+    /// the mallet's far side, where it left backwards at speed — "the mallet
+    /// warped through the puck".
+    private func pushedClear(of center: Vec2, along normal: Vec2, reach: Double) -> (
+        position: Vec2, wall: Vec2?
+    ) {
+        let field = table.puckField
+        let free = center + normal * reach
+        guard !field.contains(free) else { return (free, nil) }
+        var target = field.clamping(free)
+        let d = target - center
+        let wall: Vec2
+        if target.x != free.x {
+            wall = Vec2(free.x > field.maxX ? 1 : -1, 0)
+        } else {
+            wall = Vec2(0, free.y > field.maxY ? 1 : -1)
+        }
+        guard d.lengthSquared < reach * reach else { return (target, wall) }
+        // Slide along the wall the clamp hit: solve the other coordinate so the
+        // distance is exactly `reach`, keeping the puck on the side it was on.
+        if wall.x != 0 {
+            let dy = max(0, reach * reach - d.x * d.x).squareRoot()
+            target.y = center.y + (d.y >= 0 ? dy : -dy)
+        } else {
+            let dx = max(0, reach * reach - d.y * d.y).squareRoot()
+            target.x = center.x + (d.x >= 0 ? dx : -dx)
+        }
+        // In a corner the slide may hit the other wall too; inside beats clear.
+        return (field.clamping(target), wall)
     }
 
     private mutating func stepPuck() {

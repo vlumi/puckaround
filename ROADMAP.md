@@ -53,6 +53,18 @@ The lane is in place (see [RELEASING.md](RELEASING.md)); what's missing is the f
 - [ ] Variants: bumpers on the table, two pucks, a moving goal.
 - [ ] Finnish/Japanese localization (String Catalog makes this translation-only).
 
+## Ideas to evaluate — *not scheduled*
+
+A parking lot for what could flesh the game out before 1.0. None of these is committed; each earns a milestone only if, tried on a device, it makes a game between two people better. Ordered roughly by how much they lean on what already exists.
+
+- [ ] **Pinball-style obstacles.** Bumpers on the ice — fixed discs (or pads) the puck bounces off, maybe with a kick. Cheapest of the lot: the mallet collision is already a kinematic circle, so a bumper is a mallet that never moves and adds speed. The design question is placement — a few table layouts to choose from, not an editor.
+- [ ] **Different shaped pucks.** A square or triangular puck that skitters unpredictably off walls and mallets. Physics work rather than content: the sim is circle–circle today, and a polygon puck needs rotation, edge contacts and a determinism-safe collision routine. Worth it only if the round puck gets boring.
+- [ ] **2v2 and four-way.** Parked with its own section above — the table shape and goal placement are the open question, and whether four hands fit round a phone.
+- [ ] **Tournaments.** A series of games across a session with standings — the thing that gives a two-minute game a reason to be played ten times. Skid's tournament model (fixed number of rounds, points table, persisted across quits) is the pattern to copy and adapt; it wants player cards under it first.
+- [ ] **Player cards.** Local profiles — a name and a colour, wins and losses, maybe a best streak — so results belong to a person rather than to a seat. Purely on-device (no accounts); Skid's profiles are the reference. The gate for tournaments and for anything that remembers who you are.
+- [ ] **Nearby multiplayer.** Two devices, each its own table half, over the local network — no server, no accounts. The sim was built for it: inputs are data and the state is deterministic, so either host-authoritative snapshots or lockstep over MultipeerConnectivity (as Skid does) is reachable without a rewrite. Changes the premise (one shared screen) enough that it needs its own decision before any code; listed here so it isn't forgotten, not because it is planned.
+- [ ] **Sound & haptics** are in *The couch* above, but belong on this list as the cheapest "feels finished" win: a click on every hit, a thud on a goal.
+
 ## Deliberately out of scope
 
-Per [ARCHITECTURE.md](ARCHITECTURE.md): no ads, no IAP, no accounts, no server, no leaderboards, no third-party runtime dependencies. **No Mac, watch or TV target, ever** — the game is one handheld screen shared by the people around it — and for the same reason networked play across devices is not planned.
+Per [ARCHITECTURE.md](ARCHITECTURE.md): no ads, no IAP, no accounts, no server, no leaderboards, no third-party runtime dependencies. **No Mac, watch or TV target, ever** — the game is one handheld screen shared by the people around it. Networked play across devices is an idea to evaluate (above), not a plan.

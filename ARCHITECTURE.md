@@ -121,5 +121,6 @@ HUD facing its player, side-by-side vs. face-to-face seating on iPad.
 
 No ads, no IAP, no accounts, no server, no leaderboards, no third-party runtime
 dependencies. **No Mac, watch or TV target — the premise is one handheld
-screen shared by the people around it.** Networked play across devices is not
-planned for the same reason.
+screen shared by the people around it.** Networked play across devices is an
+idea on the roadmap's evaluation list, not a plan; the sim's determinism keeps
+it reachable if it is ever wanted.

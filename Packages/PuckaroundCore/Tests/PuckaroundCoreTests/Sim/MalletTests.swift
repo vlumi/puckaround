@@ -94,6 +94,37 @@ final class MalletTests: XCTestCase {
         XCTAssertEqual(r.puck.velocity.x, 0, accuracy: 1e-9)
     }
 
+    /// The reported "warp": slam the puck into a wall fast enough and it came
+    /// out on the mallet's far side, moving backwards. The wall pushed it back
+    /// through the mallet; now it slides along the wall instead.
+    func testAPuckPinnedAgainstTheWallNeverPassesThroughTheMallet() {
+        var r = rink()
+        let wall = r.table.puckField.maxX
+        r.place(Puck(position: Vec2(wall - 2, 120)))
+        r.placeMallet(of: bottom, at: Vec2(wall - 30, 120))
+        for _ in 0..<10 {
+            r.advance(inputs: [bottom: SeatInput(malletDrag: Vec2(40, 0))])
+            XCTAssertGreaterThanOrEqual(
+                r.puck.position.x, r.mallet(of: bottom).position.x,
+                "the puck stays on the wall side of the mallet")
+            XCTAssertTrue(r.table.puckField.contains(r.puck.position))
+        }
+        // Squeezed between mallet and wall, it has slid out along the wall.
+        XCTAssertGreaterThan(abs(r.puck.position.y - 120), r.table.puckRadius)
+    }
+
+    /// The same squeeze in a corner keeps the puck inside the field.
+    func testACornerSqueezeKeepsThePuckOnTheTable() {
+        var r = rink()
+        let field = r.table.puckField
+        r.place(Puck(position: Vec2(field.maxX - 1, field.maxY - 1)))
+        r.placeMallet(of: bottom, at: Vec2(field.maxX - 20, field.maxY - 20))
+        for _ in 0..<10 {
+            r.advance(inputs: [bottom: SeatInput(malletDrag: Vec2(30, 30))])
+            XCTAssertTrue(field.contains(r.puck.position), "\(r.puck.position)")
+        }
+    }
+
     func testSeatsOutsideTheLineupAreIgnored() {
         var r = rink()
         let before = r
