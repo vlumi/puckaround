@@ -10,22 +10,37 @@ Guiding order: **the mallet is the game**, and **what comes early is whatever an
 
 ## Settled — *2026-08-27*
 
-**Air hockey, with mallets, plain 1v1 under the standard rules first.** The swipe-through strike model is gone; the reasons and the parked four-seat question are in [docs/air-hockey-plan.md](docs/air-hockey-plan.md). Still to test on a device: **movement-drag vs. direct placement** of the mallet (a one-line sim change), and team seating (partners across or adjacent), which only matters once four seats have a table.
+**Air hockey, with mallets, plain 1v1 under the standard rules first.** The swipe-through strike model is gone; the reasons and the parked four-seat question are in [docs/air-hockey-plan.md](docs/air-hockey-plan.md).
+
+**The mallet follows the finger's movement and never leaves the ice** (settled after the first build, on device). Direct placement under the finger was the alternative; it means lifting the mallet off the deck and putting it back, and putting it back can land it on top of the puck. Movement-drag has no such moment. Still open: team seating (partners across or adjacent), which only matters once four seats have a table.
 
 ## Air hockey 1v1 — *find the fun*
 
 The game is built and this milestone is about driving it on hardware: two thumbs on a phone, two hands on an iPad.
 
 - [ ] **Tune the table on device.** Drag, wall restitution, the speed cap, mallet and goal sizes are constants in `Playfield`; turn them into on-device dials (a tuning panel, the sibling projects' pattern) so feel gets settled by play rather than by editing numbers.
-- [ ] **Mallet drag A/B.** Movement-drag (built) against direct placement under the finger, on the same table.
 - [ ] **iPad sizing.** A portrait table on a 13-inch screen may want margins, or may want to be as big as it can; and a table held landscape needs a decision.
 - [ ] **A way out mid-game.** Nothing on screen faces one player only now — the score (in the corner by each goal, out of the mallet's way) and the WIN/LOSE verdict turn toward their seat, and the restart ring is symmetric — but a game in progress can only be finished by playing it. The idea: a dim button near the middle of the board that opens a menu (quit, settings), readable from both ends.
 
 ## The couch — *who is playing*
 
 - [ ] **The front door.** Who is at the table, then what to play; seat colors chosen by the players; a real setup step (player count, first-to-N).
-- [ ] **Sound & haptics**, procedural. One haptic engine per device is a constraint worth designing around: the device buzzes for everyone.
 - [ ] **A record of the session.** A running tally across games, so the last twenty minutes happened.
+
+## Feel — *sound & haptics*
+
+Not polish to leave for last: haptics are part of how a hit reads, so this comes right after the first build. Procedural, no assets, in the sibling projects' pattern — a deterministic event stream out of the sim, one synthesizer node for the sound, `UIFeedbackGenerator` for the taps.
+
+- [ ] **Events out of the sim** — mallet hit (with closing speed), wall bounce, goal, game over — as data the feedback layers consume; replays get them for free.
+- [ ] **Haptics**: a tap per hit scaled by speed, a softer one per wall bounce, a flourish on a goal. One engine per device is a constraint worth designing around: the device buzzes for everyone.
+- [ ] **Sound**: a click per hit, a duller one per wall, a horn on a goal. Ambient audio session, so the silent switch is honoured and the players' music keeps playing.
+
+## Puck variety — *shaped pucks*
+
+Promoted from the ideas list: the one addition that changes how the game plays rather than what is around it. A square or triangular puck skitters unpredictably off walls and mallets.
+
+- [ ] **Physics first.** The sim is circle–circle today; a polygon puck needs rotation, edge and vertex contacts against walls and mallets, and a collision routine that stays deterministic. Prove it on a square before designing more shapes.
+- [ ] **Choosing a puck** belongs to the setup step (see *The couch*), not to a mid-game control.
 
 ## Four players — *parked on a design question*
 
@@ -58,12 +73,11 @@ The lane is in place (see [RELEASING.md](RELEASING.md)); what's missing is the f
 A parking lot for what could flesh the game out before 1.0. None of these is committed; each earns a milestone only if, tried on a device, it makes a game between two people better. Ordered roughly by how much they lean on what already exists.
 
 - [ ] **Pinball-style obstacles.** Bumpers on the ice — fixed discs (or pads) the puck bounces off, maybe with a kick. Cheapest of the lot: the mallet collision is already a kinematic circle, so a bumper is a mallet that never moves and adds speed. The design question is placement — a few table layouts to choose from, not an editor.
-- [ ] **Different shaped pucks.** A square or triangular puck that skitters unpredictably off walls and mallets. Physics work rather than content: the sim is circle–circle today, and a polygon puck needs rotation, edge contacts and a determinism-safe collision routine. Worth it only if the round puck gets boring.
 - [ ] **2v2 and four-way.** Parked with its own section above — the table shape and goal placement are the open question, and whether four hands fit round a phone.
 - [ ] **Tournaments.** A series of games across a session with standings — the thing that gives a two-minute game a reason to be played ten times. Skid's tournament model (fixed number of rounds, points table, persisted across quits) is the pattern to copy and adapt; it wants player cards under it first.
 - [ ] **Player cards.** Local profiles — a name and a colour, wins and losses, maybe a best streak — so results belong to a person rather than to a seat. Purely on-device (no accounts); Skid's profiles are the reference. The gate for tournaments and for anything that remembers who you are.
 - [ ] **Nearby multiplayer.** Two devices, each its own table half, over the local network — no server, no accounts. The sim was built for it: inputs are data and the state is deterministic, so either host-authoritative snapshots or lockstep over MultipeerConnectivity (as Skid does) is reachable without a rewrite. Changes the premise (one shared screen) enough that it needs its own decision before any code; listed here so it isn't forgotten, not because it is planned.
-- [ ] **Sound & haptics** are in *The couch* above, but belong on this list as the cheapest "feels finished" win: a click on every hit, a thud on a goal.
+- [ ] **Multi-device tournaments.** Several tables in the same room, each a device, feeding one bracket — so a bigger group plays more than one game at a time. Recorded because it follows naturally from tournaments plus nearby play; judged *not important*: it is hard to see the game drawing crowds large enough to need it, and it costs a network layer the game otherwise doesn't have.
 
 ## Deliberately out of scope
 
