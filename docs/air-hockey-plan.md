@@ -24,8 +24,12 @@ bounces off; a still mallet is a wall, a moving one a strike.
 far the hand moved this tick, and the sim adds it to the mallet and clamps to
 the half. Two reasons: a finger landing anywhere in the half takes the mallet
 without teleporting it into the puck, and the finger never has to cover the
-mallet to use it — on a phone the mallet is under a thumb otherwise. Worth an
-A/B against direct placement on device; it is one line in the sim.
+mallet to use it — on a phone the mallet is under a thumb otherwise.
+
+*Settled after the first build, on device:* movement-drag stays, and the
+mallet **never leaves the ice**. Direct placement means lifting the mallet and
+putting it back, and putting it back can land it on top of the puck; the drag
+model has no such moment.
 
 **The first finger down in a half drives that mallet**; further fingers of
 the same seat are ignored until it lifts. Together with the rule that a touch
