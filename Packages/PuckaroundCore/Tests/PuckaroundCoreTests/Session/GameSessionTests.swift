@@ -53,14 +53,14 @@ final class GameSessionTests: XCTestCase {
     }
 
     func testNewGameStartsOver() {
-        let s = GameSession(rink: Rink(table: .duel, lineup: .duel, seed: 3)) { _, _ in
-            SeatInput(malletDrag: Vec2(1, 0))
-        }
+        let s = session()
         s.update(to: 0)
         s.update(to: 1)
-        let home = s.rink.table.malletZone(for: .bottom).center
-        XCTAssertNotEqual(s.rink.mallet(of: PlayerID(0)).position, home)
+        XCTAssertGreaterThan(s.rink.tick, 0)
+        let seedState = Rink(table: .duel, lineup: .duel, seed: 3)
         s.newGame()
-        XCTAssertEqual(s.rink.mallet(of: PlayerID(0)).position, home)
+        XCTAssertEqual(s.rink.score, [0, 0])
+        XCTAssertEqual(
+            s.rink.mallets, seedState.mallets, "nobody has moved, so the mallets are still home")
     }
 }

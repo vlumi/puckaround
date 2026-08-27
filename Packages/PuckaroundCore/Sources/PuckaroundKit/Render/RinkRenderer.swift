@@ -32,6 +32,7 @@ enum RinkRenderer {
 
     /// Screen-space helpers for one frame: world → screen is a translate + scale.
     private struct Projection {
+        let table: Playfield
         let rect: CGRect
         let scale: CGFloat
 
@@ -57,18 +58,18 @@ enum RinkRenderer {
         let table = scene.rink.table
         let rect = scene.tableRect
         guard rect.width > 0 else { return }
-        let projection = Projection(rect: rect, scale: rect.width / table.size.x)
+        let projection = Projection(table: table, rect: rect, scale: rect.width / table.size.x)
         let lineup = scene.rink.lineup
 
         context.fill(Path(roundedRect: rect, cornerRadius: 6 * projection.scale), with: .color(ice))
-        drawMarkings(for: table, projection: projection, in: &context)
+        drawMarkings(projection: projection, in: &context)
         for player in lineup.players {
             let edge = lineup.seat(of: player)
             let color = SeatPalette.color(for: player, in: lineup)
             drawScore(
-                scene.rink.score(of: player), in: projection.rect(table.malletZone(for: edge)),
-                facing: edge, color: color, in: &context)
-            drawGoal(at: edge, on: table, projection: projection, in: &context)
+                scene.rink.score(of: player), at: edge, color: color,
+                projection: projection, in: &context)
+            drawGoal(at: edge, projection: projection, in: &context)
             if case .finished(let winner) = scene.rink.phase {
                 drawVerdict(
                     won: winner == player, in: projection.rect(table.malletZone(for: edge)),
@@ -82,9 +83,8 @@ enum RinkRenderer {
     }
 
     /// Centre ring and centre line.
-    private static func drawMarkings(
-        for table: Playfield, projection: Projection, in context: inout GraphicsContext
-    ) {
+    private static func drawMarkings(projection: Projection, in context: inout GraphicsContext) {
+        let table = projection.table
         let centre = projection.point(table.center)
         let lineWidth = max(1, 0.6 * projection.scale)
         context.stroke(
@@ -99,9 +99,9 @@ enum RinkRenderer {
     /// The goal mouth: a slot in the short wall, in the ground colour, so the
     /// puck visibly leaves the ice through it.
     private static func drawGoal(
-        at edge: Seat, on table: Playfield, projection: Projection,
-        in context: inout GraphicsContext
+        at edge: Seat, projection: Projection, in context: inout GraphicsContext
     ) {
+        let table = projection.table
         let width = table.goalWidth * projection.scale
         let depth = 3 * projection.scale
         let x = projection.rect.midX - width / 2
@@ -118,20 +118,29 @@ enum RinkRenderer {
             with: .color(ground))
     }
 
-    /// A faint big numeral in the seat's half, turned to face its player.
+    /// The seat's score, in the corner beside its goal mouth — on the player's
+    /// LEFT, so it mirrors for the top seat — turned to face them. Out of the
+    /// middle of the half, where the mallet lives and was covering it.
     private static func drawScore(
-        _ score: Int, in half: CGRect, facing edge: Seat, color: Color,
+        _ score: Int, at edge: Seat, color: Color, projection: Projection,
         in context: inout GraphicsContext
     ) {
+        let table = projection.table
+        // The middle of the strip between the side wall and the goal post.
+        let beside = (table.size.x - table.goalWidth) / 4
+        let inset = table.malletRadius * 1.6
+        let spot =
+            edge == .top ? Vec2(table.size.x - beside, inset) : Vec2(beside, table.size.y - inset)
         var ctx = context
-        ctx.translateBy(x: half.midX, y: half.midY)
+        let at = projection.point(spot)
+        ctx.translateBy(x: at.x, y: at.y)
         if edge == .top {
             ctx.rotate(by: .degrees(180))
         }
         var text = ctx.resolve(
             Text(verbatim: "\(score)").font(
-                .system(size: half.height * 0.4, weight: .black, design: .rounded)))
-        text.shading = .color(color.opacity(0.18))
+                .system(size: 14 * projection.scale, weight: .black, design: .rounded)))
+        text.shading = .color(color.opacity(0.5))
         ctx.draw(text, at: .zero, anchor: .center)
     }
 

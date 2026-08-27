@@ -74,32 +74,46 @@ final class ScoringTests: XCTestCase {
         XCTAssertEqual(r3.score, [1, 0])
     }
 
-    func testFirstToTheLimitWinsAndTheGameFreezes() {
+    func testFirstToTheLimitWinsAndFreezesThePuckOnly() {
         var r = rink(rules: Rules(pointsToWin: 2))
         shoot(&r, at: .bottom, x: r.table.center.x)
         XCTAssertEqual(r.phase, .playing)
         shoot(&r, at: .bottom, x: r.table.center.x)
         XCTAssertEqual(r.phase, .finished(winner: top))
         XCTAssertEqual(r.puck.position, r.table.center)
-        let frozen = r
-        r.advance(inputs: [bottom: SeatInput(malletDrag: Vec2(5, 5))])
-        XCTAssertEqual(r.mallets, frozen.mallets, "nothing moves after the final goal")
-        XCTAssertEqual(r.tick, frozen.tick + 1, "but the clock still counts")
+        let finished = r
+        r.advance(inputs: [bottom: SeatInput(malletDrag: Vec2(5, -5))])
+        XCTAssertEqual(
+            r.mallet(of: bottom).position, finished.mallet(of: bottom).position + Vec2(5, -5),
+            "hands stay live")
+        XCTAssertEqual(r.puck, finished.puck, "the puck is done")
+        XCTAssertEqual(r.tick, finished.tick + 1)
     }
 
-    func testNewGameResetsEverythingButTheSeed() {
+    func testAFinishedGamesMalletCannotDisturbTheParkedPuck() {
+        var r = rink(rules: Rules(pointsToWin: 1))
+        shoot(&r, at: .bottom, x: r.table.center.x)
+        // Drive the bottom mallet up onto the centre line, right under the puck.
+        r.placeMallet(of: bottom, at: Vec2(r.table.center.x, r.table.center.y + 30))
+        for _ in 0..<10 {
+            r.advance(inputs: [bottom: SeatInput(malletDrag: Vec2(0, -5))])
+        }
+        XCTAssertEqual(r.mallet(of: bottom).position.y, r.table.center.y + r.table.malletRadius)
+        XCTAssertEqual(r.puck.position, r.table.center)
+        XCTAssertFalse(r.puck.isMoving)
+    }
+
+    func testNewGameResetsTheScoreAndPuckButLeavesTheMallets() {
         var r = rink(rules: Rules(pointsToWin: 1))
         shoot(&r, at: .bottom, x: r.table.center.x)
         XCTAssertEqual(r.phase, .finished(winner: top))
+        r.advance(inputs: [bottom: SeatInput(malletDrag: Vec2(3, -3))])
+        let hands = r.mallets
         r.newGame()
         XCTAssertEqual(r.score, [0, 0])
         XCTAssertEqual(r.phase, .playing)
         XCTAssertFalse(r.puck.isMoving)
-        for player in r.lineup.players {
-            XCTAssertEqual(
-                r.mallet(of: player).position,
-                r.table.malletZone(for: r.lineup.seat(of: player)).center)
-        }
+        XCTAssertEqual(r.mallets, hands, "the mallets are where the hands left them")
     }
 
     func testOpeningPossessionComesFromTheSeed() {

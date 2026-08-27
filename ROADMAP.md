@@ -19,11 +19,11 @@ The game is built and this milestone is about driving it on hardware: two thumbs
 - [ ] **Tune the table on device.** Drag, wall restitution, the speed cap, mallet and goal sizes are constants in `Playfield`; turn them into on-device dials (a tuning panel, the sibling projects' pattern) so feel gets settled by play rather than by editing numbers.
 - [ ] **Mallet drag A/B.** Movement-drag (built) against direct placement under the finger, on the same table.
 - [ ] **iPad sizing.** A portrait table on a 13-inch screen may want margins, or may want to be as big as it can; and a table held landscape needs a decision.
-- [ ] **Per-seat chrome facing its player.** The score and the WIN/LOSE verdict already turn toward their seat, and the restart ring is symmetric; the mid-game New game corner button still faces the bottom seat only.
+- [ ] **A way out mid-game.** Nothing on screen faces one player only now — the score (in the corner by each goal, out of the mallet's way) and the WIN/LOSE verdict turn toward their seat, and the restart ring is symmetric — but a game in progress can only be finished by playing it. The idea: a dim button near the middle of the board that opens a menu (quit, settings), readable from both ends.
 
 ## The couch — *who is playing*
 
-- [ ] **The front door.** Who is at the table, then what to play; seat colors chosen by the players; the HUD button becomes a real setup step (player count, first-to-N).
+- [ ] **The front door.** Who is at the table, then what to play; seat colors chosen by the players; a real setup step (player count, first-to-N).
 - [ ] **Sound & haptics**, procedural. One haptic engine per device is a constraint worth designing around: the device buzzes for everyone.
 - [ ] **A record of the session.** A running tally across games, so the last twenty minutes happened.
 

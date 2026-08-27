@@ -27,7 +27,6 @@ public struct GameView: View {
                         }
                     }
                 }
-                hud
             }
             .onAppear { game.layout(screen: geo.size) }
             .onChangeCompat(of: geo.size) { size in game.layout(screen: size) }
@@ -38,28 +37,11 @@ public struct GameView: View {
         .defersEdgeSwipes(true)
     }
 
-    /// Stand-in until the front door exists: a corner button to start over
-    /// mid-game. Faces the bottom seat only, which the front door will fix.
-    private var hud: some View {
-        VStack {
-            HStack {
-                Button {
-                    game.newGame()
-                } label: {
-                    Text("New game", bundle: .module)
-                }
-                .buttonStyle(.bordered)
-                Spacer()
-            }
-            .padding(12)
-            Spacer()
-        }
-    }
-
-    /// Sits on the centre line when the game is over. An icon rather than a
-    /// word, and a rotationally symmetric one, because it is read from both
-    /// ends of the table at once; the WIN / LOSE verdicts are drawn on the ice,
-    /// each facing its own player.
+    /// Sits on the centre line when the game is over — the only way to start
+    /// over, since a game in progress is finished by playing it. An icon rather
+    /// than a word, and a rotationally symmetric one, because it is read from
+    /// both ends of the table at once; the WIN / LOSE verdicts are drawn on the
+    /// ice, each facing its own player.
     private var restartButton: some View {
         Button {
             game.newGame()

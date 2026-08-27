@@ -56,14 +56,12 @@ public struct Rink: Equatable, Sendable {
     public func mallet(of player: PlayerID) -> Mallet { mallets[player.rawValue] }
     public func score(of player: PlayerID) -> Int { score[player.rawValue] }
 
-    /// Scores to zero, mallets home, and the opening possession decided by the
-    /// seed — the one place chance enters.
+    /// Scores to zero and the opening possession decided by the seed — the one
+    /// place chance enters. The mallets stay where the hands left them: they
+    /// were never out of play.
     public mutating func newGame() {
         score = lineup.players.map { _ in 0 }
         phase = .playing
-        mallets = lineup.players.map {
-            Mallet(position: table.malletZone(for: lineup.seat(of: $0)).center)
-        }
         let first = lineup.players[Int.random(in: 0..<lineup.playerCount, using: &rng)]
         serve(to: first)
     }
@@ -74,30 +72,37 @@ public struct Rink: Equatable, Sendable {
     }
 
     /// One tick: every mallet moves (striking the puck on its way), then the
-    /// puck moves. A finished game is frozen.
+    /// puck moves. A finished game freezes only the puck — the mallets are the
+    /// players' hands and stay live.
     public mutating func advance(inputs: [PlayerID: SeatInput]) {
         defer { tick += 1 }
-        guard phase == .playing else { return }
+        let playing = phase == .playing
         // Seats apply in lineup order, never dictionary order — the order hits
         // land in is part of the state.
         for (index, player) in lineup.players.enumerated() {
-            moveMallet(index, of: player, by: inputs[player]?.malletDrag ?? .zero)
+            moveMallet(index, of: player, by: inputs[player]?.malletDrag ?? .zero, strikes: playing)
         }
-        stepPuck()
+        if playing {
+            stepPuck()
+        }
     }
 
     /// The mallet goes where the hand says, clamped to its half, and is swept
     /// along its path in steps no longer than the puck's radius — so a fast
     /// hand can't pass through the puck between two positions.
-    private mutating func moveMallet(_ index: Int, of player: PlayerID, by drag: Vec2) {
+    private mutating func moveMallet(
+        _ index: Int, of player: PlayerID, by drag: Vec2, strikes: Bool
+    ) {
         let zone = table.malletZone(for: lineup.seat(of: player))
         let from = mallets[index].position
         let to = zone.clamping(from + drag)
         let velocity = (to - from) * (1 / Rink.dt)
-        let steps = max(1, Int(((to - from).length / table.puckRadius).rounded(.up)))
-        for step in 1...steps {
-            let at = from + (to - from) * (Double(step) / Double(steps))
-            collidePuck(withMalletAt: at, velocity: velocity)
+        if strikes {
+            let steps = max(1, Int(((to - from).length / table.puckRadius).rounded(.up)))
+            for step in 1...steps {
+                let at = from + (to - from) * (Double(step) / Double(steps))
+                collidePuck(withMalletAt: at, velocity: velocity)
+            }
         }
         mallets[index] = Mallet(position: to, velocity: velocity)
     }

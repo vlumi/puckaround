@@ -79,6 +79,9 @@ pushed clear along the contact normal and, if they were closing, bounces with
 the mallet's velocity added (`(1 + restitution)` of the closing speed). A fast
 hand is swept along its path in steps no longer than the puck's radius, so it
 cannot pass through the puck between two positions. A still mallet is a wall.
+**Mallets are the players' hands, so they are never frozen or reset**: a
+finished game parks only the puck, and a new game leaves the mallets where
+they were.
 
 ## Seats
 
