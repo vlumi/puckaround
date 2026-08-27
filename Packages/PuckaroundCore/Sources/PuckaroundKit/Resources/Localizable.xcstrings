@@ -1,10 +1,13 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "LOSE" : {
+
+    },
     "New game" : {
 
     },
-    "Player %lld wins" : {
+    "WIN" : {
 
     }
   },

@@ -9,18 +9,24 @@ public struct GameView: View {
     public var body: some View {
         GeometryReader { geo in
             ZStack {
-                // The whole frame lives inside the timeline closure so the win
-                // banner re-evaluates with the sim, without publishing anything.
+                // Everything that reacts to the sim lives inside the timeline
+                // closure, so it re-evaluates with the frame without publishing
+                // anything. Layered, not stacked: the ZStack matters.
                 TimelineView(.animation) { timeline in
                     let scene = game.frame(at: timeline.date.timeIntervalSinceReferenceDate)
-                    Canvas { context, size in
-                        RinkRenderer.draw(scene, in: &context, size: size)
-                    }
-                    if case .finished(let winner) = scene.rink.phase {
-                        winBanner(winner)
+                    ZStack {
+                        Canvas { context, size in
+                            RinkRenderer.draw(scene, in: &context, size: size)
+                        }
+                        InputSurface(game: game)
+                        // ABOVE the input surface, or the multitouch view eats
+                        // the tap and the button never fires.
+                        if case .finished = scene.rink.phase {
+                            restartButton
+                                .position(x: scene.tableRect.midX, y: scene.tableRect.midY)
+                        }
                     }
                 }
-                InputSurface(game: game)
                 hud
             }
             .onAppear { game.layout(screen: geo.size) }
@@ -32,7 +38,8 @@ public struct GameView: View {
         .defersEdgeSwipes(true)
     }
 
-    /// Stand-in until the front door exists: a corner button to start over.
+    /// Stand-in until the front door exists: a corner button to start over
+    /// mid-game. Faces the bottom seat only, which the front door will fix.
     private var hud: some View {
         VStack {
             HStack {
@@ -49,18 +56,20 @@ public struct GameView: View {
         }
     }
 
-    private func winBanner(_ winner: PlayerID) -> some View {
-        VStack(spacing: 16) {
-            Text("Player \(winner.rawValue + 1) wins", bundle: .module)
-                .font(.title.weight(.bold))
-            Button {
-                game.newGame()
-            } label: {
-                Text("New game", bundle: .module)
-            }
-            .buttonStyle(.borderedProminent)
+    /// Sits on the centre line when the game is over. An icon rather than a
+    /// word, and a rotationally symmetric one, because it is read from both
+    /// ends of the table at once; the WIN / LOSE verdicts are drawn on the ice,
+    /// each facing its own player.
+    private var restartButton: some View {
+        Button {
+            game.newGame()
+        } label: {
+            Image(systemName: "arrow.triangle.2.circlepath")
+                .font(.system(size: 34, weight: .bold))
+                .padding(22)
+                .background(Circle().fill(RinkRenderer.ground))
+                .foregroundStyle(RinkRenderer.ice)
         }
-        .padding(24)
-        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
+        .accessibilityLabel(Text("New game", bundle: .module))
     }
 }

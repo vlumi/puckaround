@@ -69,6 +69,11 @@ enum RinkRenderer {
                 scene.rink.score(of: player), in: projection.rect(table.malletZone(for: edge)),
                 facing: edge, color: color, in: &context)
             drawGoal(at: edge, on: table, projection: projection, in: &context)
+            if case .finished(let winner) = scene.rink.phase {
+                drawVerdict(
+                    won: winner == player, in: projection.rect(table.malletZone(for: edge)),
+                    facing: edge, color: color, in: &context)
+            }
             drawMallet(
                 scene.rink.mallet(of: player), radius: table.malletRadius, color: color,
                 projection: projection, in: &context)
@@ -127,6 +132,26 @@ enum RinkRenderer {
             Text(verbatim: "\(score)").font(
                 .system(size: half.height * 0.4, weight: .black, design: .rounded)))
         text.shading = .color(color.opacity(0.18))
+        ctx.draw(text, at: .zero, anchor: .center)
+    }
+
+    /// WIN or LOSE, on the seat's side of the centre line, turned to face its
+    /// player — so both verdicts read at once from opposite ends of the table.
+    private static func drawVerdict(
+        won: Bool, in half: CGRect, facing edge: Seat, color: Color,
+        in context: inout GraphicsContext
+    ) {
+        var ctx = context
+        let towardCentre = half.height * 0.22
+        let y = edge == .top ? half.maxY - towardCentre : half.minY + towardCentre
+        ctx.translateBy(x: half.midX, y: y)
+        if edge == .top {
+            ctx.rotate(by: .degrees(180))
+        }
+        let word = won ? Text("WIN", bundle: .module) : Text("LOSE", bundle: .module)
+        var text = ctx.resolve(
+            word.font(.system(size: half.height * 0.16, weight: .black, design: .rounded)))
+        text.shading = .color(color.opacity(won ? 0.9 : 0.45))
         ctx.draw(text, at: .zero, anchor: .center)
     }
 

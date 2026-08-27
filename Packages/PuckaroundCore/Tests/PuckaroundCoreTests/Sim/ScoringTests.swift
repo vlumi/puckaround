@@ -28,6 +28,18 @@ final class ScoringTests: XCTestCase {
         XCTAssertNotEqual(r.puck.position.y, r.table.center.y, "somebody has possession")
     }
 
+    func testAServedPuckIsClearOfTheMalletAtHome() {
+        let r = Rink(table: .duel, lineup: .duel, seed: 1)
+        let reach = r.table.puckRadius + r.table.malletRadius
+        for player in r.lineup.players {
+            let spot = r.table.serveSpot(for: r.lineup.seat(of: player))
+            let home = r.table.malletZone(for: r.lineup.seat(of: player)).center
+            XCTAssertGreaterThan(
+                spot.distance(to: home), reach, "a serve must not spawn inside the mallet")
+            XCTAssertNotEqual(spot.y, r.table.center.y)
+        }
+    }
+
     func testThePuckThroughTheTopGoalScoresForTheBottomSeat() {
         var r = rink()
         shoot(&r, at: .top, x: r.table.center.x)

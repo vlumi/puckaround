@@ -19,7 +19,7 @@ The game is built and this milestone is about driving it on hardware: two thumbs
 - [ ] **Tune the table on device.** Drag, wall restitution, the speed cap, mallet and goal sizes are constants in `Playfield`; turn them into on-device dials (a tuning panel, the sibling projects' pattern) so feel gets settled by play rather than by editing numbers.
 - [ ] **Mallet drag A/B.** Movement-drag (built) against direct placement under the finger, on the same table.
 - [ ] **iPad sizing.** A portrait table on a 13-inch screen may want margins, or may want to be as big as it can; and a table held landscape needs a decision.
-- [ ] **Per-seat chrome facing its player.** The score already turns toward its seat; the win banner and the New game button still face the bottom seat only.
+- [ ] **Per-seat chrome facing its player.** The score and the WIN/LOSE verdict already turn toward their seat, and the restart ring is symmetric; the mid-game New game corner button still faces the bottom seat only.
 
 ## The couch — *who is playing*
 
