@@ -1,0 +1,81 @@
+name: Puckaround
+
+options:
+  bundleIdPrefix: fi.misaki
+  # iOS 16 is the floor so an iPhone 8 (last supported: iOS 16) still runs it.
+  # Newer APIs go behind the wrappers in PuckaroundKit/App/Compat.swift.
+  deploymentTarget:
+    iOS: "16.0"
+  createIntermediateGroups: true
+  developmentLanguage: en
+
+packages:
+  PuckaroundCore:
+    path: Packages/PuckaroundCore
+
+targets:
+  Puckaround-iOS:
+    type: application
+    platform: iOS
+    sources:
+      - path: Sources/iOS
+      - path: Sources/Shared
+    entitlements:
+      path: Sources/iOS/Puckaround.entitlements
+    info:
+      path: Sources/iOS/Info.plist
+      properties:
+        CFBundleDisplayName: Puck Around
+        # Track the version build settings so MARKETING_VERSION is the single
+        # source of truth.
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        # No encryption → declare it so every TestFlight/App Store upload skips
+        # the export-compliance prompt.
+        ITSAppUsesNonExemptEncryption: false
+        # The games sub-category UTI, spelled as Apple lists it (`-games`).
+        LSApplicationCategoryType: public.app-category.arcade-games
+        # System-default launch screen (plain background) — the table fades in.
+        UILaunchScreen: {}
+        # All four orientations: a universal (iPhone + iPad) app must support
+        # them for iPad multitasking, or App Store validation rejects the
+        # build. The table letterboxes to fit whatever aspect it gets, and the
+        # players sit around the device anyway.
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+    settings:
+      base:
+        # Matches the App Store Connect record. Don't change it — an ASC bundle
+        # id can't be edited or reused once the record exists.
+        PRODUCT_BUNDLE_IDENTIFIER: fi.misaki.puckaround
+        # User-visible app/bundle name; without this it'd be the target name
+        # "Puckaround-iOS". The Xcode project + targets keep the short
+        # "Puckaround" name; only the product the player sees is "Puck Around".
+        PRODUCT_NAME: Puck Around
+        MARKETING_VERSION: "0.1.0"
+        # 0 = never released; the first `make release` cuts build 1.
+        CURRENT_PROJECT_VERSION: "0"
+        GENERATE_INFOPLIST_FILE: NO
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        # Team committed on purpose (it's not a secret): the release lane
+        # archives headlessly with automatic signing, and the generated
+        # project must carry the team for that to work.
+        DEVELOPMENT_TEAM: U84DT7P75P
+        CODE_SIGN_STYLE: Automatic
+    dependencies:
+      - package: PuckaroundCore
+        product: PuckaroundKit
+    # Stamp the git commit into the bundled Info.plist (GitCommitSHA) so every
+    # build self-identifies its source. Runs last, after the plist is copied
+    # into the product; fires on archive too. See Scripts/embed-commit-sha.sh.
+    postBuildScripts:
+      - script: "\"$SRCROOT/Scripts/embed-commit-sha.sh\""
+        name: Embed git commit SHA
+        basedOnDependencyAnalysis: false
+    # Explicit scheme so XcodeGen writes a SHARED scheme file — without it,
+    # `xcodebuild -scheme Puckaround-iOS` fails on a fresh checkout.
+    scheme:
+      configVariants: []
