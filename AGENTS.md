@@ -94,6 +94,7 @@ puckaround/
     │                               MalletControlSource, GameSession — tested, coverage-gated
     ├── Sources/PuckaroundKit/      SwiftUI + UIKit, depends on Core; coverage-ignored
     │   ├── App/                    GameView, HockeyGame (one table of 1v1), Compat (iOS 16 wrappers)
+    │   ├── Feedback/               Haptics + SoundEngine — procedural, off the sim's GameEvent stream
     │   ├── Input/                  MultiTouchSurface — every finger, id-tagged, to the control source
     │   ├── Render/                 RinkRenderer (Canvas), SeatPalette
     │   ├── Icon/                   AppIconScene — the icon is drawn by the game's own code

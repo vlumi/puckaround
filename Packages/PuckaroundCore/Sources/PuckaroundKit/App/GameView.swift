@@ -28,7 +28,10 @@ public struct GameView: View {
                     }
                 }
             }
-            .onAppear { game.layout(screen: geo.size) }
+            .onAppear {
+                game.layout(screen: geo.size)
+                game.begin()
+            }
             .onChangeCompat(of: geo.size) { size in game.layout(screen: size) }
         }
         .background(RinkRenderer.ground.ignoresSafeArea())

@@ -14,6 +14,7 @@ The `## vX.Y.Z` heading is written by the release lane too, whenever a release c
 
 ### Unreleased (next build)
 
+- **The table has a voice.** Every hit, wall bounce and goal now makes a sound and a haptic tap, scaled to how hard it was — a click off the mallet, a duller knock off the boards, a two-note horn on a goal, and a flourish when the game is won. The device buzzes for everyone at the table at once. Sound honours the silent switch and mixes with your music.
 - **A puck pinned against the wall squirts out along it** instead of passing through the mallet and shooting off backwards — the "mallet warps through the puck" seen when slamming it into the side.
 
 ### build 1 — 2026-08-27

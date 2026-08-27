@@ -72,6 +72,15 @@ middle — is a goal; anywhere else the wall bounces it.
 **Coordinates are y-down**, matching screen space: rendering is a pure scale
 and nothing flips. `Seat.bottom` is the bottom of the screen.
 
+**Feedback is a pure event stream.** Each tick fills `Rink.events` —
+`malletHit` (with closing speed), `wallBounce`, `goal`, `gameOver` — cleared at
+the top of the next `advance`, so it always describes only the latest step.
+The sim raises them and knows nothing more; `PuckaroundKit`'s `Haptics`
+(`UIFeedbackGenerator`) and `SoundEngine` (one `AVAudioSourceNode` synthesizing
+short percussive envelopes, no assets) consume them off the render frame. Being
+a pure function of the sim, the events are deterministic and a replay gets them
+for free.
+
 **Mallets are kinematic.** A mallet goes exactly where the hand's movement
 puts it, clamped to its own half (it may touch the centre line, never cross
 it), and is infinitely heavy as far as the puck is concerned: the puck is

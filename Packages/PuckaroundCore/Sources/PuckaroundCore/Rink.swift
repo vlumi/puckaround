@@ -1,5 +1,19 @@
 import Foundation
 
+/// Something worth a sound or a buzz, emitted by a tick. A pure function of
+/// the sim, so replays and (any future) networked play get them for free — the
+/// feedback layers consume them and the sim never imports AVFoundation or UIKit.
+public enum GameEvent: Equatable, Sendable {
+    /// A mallet struck the puck; `speed` is the closing speed of the hit.
+    case malletHit(PlayerID, speed: Double)
+    /// The puck bounced off a wall; `speed` is how fast it was going into it.
+    case wallBounce(speed: Double)
+    /// A goal went in against `conceder`, scored by `scorer`.
+    case goal(scorer: PlayerID, conceder: PlayerID)
+    /// The game just ended.
+    case gameOver(winner: PlayerID)
+}
+
 /// The rules that aren't geometry.
 public struct Rules: Equatable, Codable, Sendable {
     public var pointsToWin: Int
@@ -35,6 +49,9 @@ public struct Rink: Equatable, Sendable {
     public private(set) var score: [Int]
     public private(set) var phase: Phase = .playing
     public private(set) var tick: Tick = 0
+    /// What happened this tick — cleared at the start of each `advance`, so it
+    /// only ever describes the latest step. The feedback layers read it.
+    public private(set) var events: [GameEvent] = []
     private var rng: SeededRNG
 
     /// Only the duel is built: two seats, a goal each. `Lineup` models more
@@ -76,12 +93,15 @@ public struct Rink: Equatable, Sendable {
     /// players' hands and stay live.
     public mutating func advance(inputs: [PlayerID: SeatInput]) {
         defer { tick += 1 }
+        events.removeAll(keepingCapacity: true)
         let playing = phase == .playing
         // Seats apply in lineup order, never dictionary order — the order hits
         // land in is part of the state.
         for (index, player) in lineup.players.enumerated() {
             moveMallet(index, of: player, by: inputs[player]?.malletDrag ?? .zero, strikes: playing)
         }
+        // The puck may already be touching a resting mallet — but that is not a
+        // NEW hit, so it emits no event; only a closing contact during a move does.
         if playing {
             stepPuck()
         }
@@ -101,7 +121,7 @@ public struct Rink: Equatable, Sendable {
             let steps = max(1, Int(((to - from).length / table.puckRadius).rounded(.up)))
             for step in 1...steps {
                 let at = from + (to - from) * (Double(step) / Double(steps))
-                collidePuck(withMalletAt: at, velocity: velocity)
+                collidePuck(withMalletAt: at, velocity: velocity, by: player)
             }
         }
         mallets[index] = Mallet(position: to, velocity: velocity)
@@ -109,7 +129,9 @@ public struct Rink: Equatable, Sendable {
 
     /// Circle–circle against a kinematic mallet: push the puck clear, and if
     /// they were closing, bounce it off with the mallet's motion added.
-    private mutating func collidePuck(withMalletAt center: Vec2, velocity malletVelocity: Vec2) {
+    private mutating func collidePuck(
+        withMalletAt center: Vec2, velocity malletVelocity: Vec2, by player: PlayerID? = nil
+    ) {
         let reach = table.puckRadius + table.malletRadius
         let offset = puck.position - center
         let distance = offset.length
@@ -120,6 +142,9 @@ public struct Rink: Equatable, Sendable {
         let closing = (puck.velocity - malletVelocity).dot(normal)
         if closing < 0 {
             puck.velocity -= normal * ((1 + table.restitution) * closing)
+            if let player {
+                events.append(.malletHit(player, speed: -closing))
+            }
         }
         // Pinned against a wall: the wall takes the speed aimed into it, and the
         // puck squirts out along the wall instead — toward the side it slid to.
@@ -192,6 +217,7 @@ public struct Rink: Equatable, Sendable {
                 return
             }
             p.y = field.minY + (field.minY - p.y)
+            events.append(.wallBounce(speed: abs(v.y)))
             v.y = -v.y * table.restitution
         } else if p.y > field.maxY {
             if table.isInGoalMouth(x: p.x) {
@@ -199,13 +225,16 @@ public struct Rink: Equatable, Sendable {
                 return
             }
             p.y = field.maxY - (p.y - field.maxY)
+            events.append(.wallBounce(speed: abs(v.y)))
             v.y = -v.y * table.restitution
         }
         if p.x < field.minX {
             p.x = field.minX + (field.minX - p.x)
+            events.append(.wallBounce(speed: abs(v.x)))
             v.x = -v.x * table.restitution
         } else if p.x > field.maxX {
             p.x = field.maxX - (p.x - field.maxX)
+            events.append(.wallBounce(speed: abs(v.x)))
             v.x = -v.x * table.restitution
         }
         puck = Puck(position: field.clamping(p), velocity: v)
@@ -222,9 +251,11 @@ public struct Rink: Equatable, Sendable {
             let scorer = lineup.players.first(where: { $0 != conceder })
         else { return }
         score[scorer.rawValue] += 1
+        events.append(.goal(scorer: scorer, conceder: conceder))
         if score[scorer.rawValue] >= rules.pointsToWin {
             phase = .finished(winner: scorer)
             puck = Puck(position: table.center)
+            events.append(.gameOver(winner: scorer))
         } else {
             serve(to: conceder)
         }
