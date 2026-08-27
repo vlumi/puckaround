@@ -14,4 +14,6 @@ The `## vX.Y.Z` heading is written by the release lane too, whenever a release c
 
 ### Unreleased (next build)
 
+### build 1 — 2026-08-27
+
 - **Air hockey, one on one.** A puck on a walled table with a goal at each end and a mallet for each of the two players, dragged by the first finger down in their own half — the mallet follows the finger's movement, can touch the centre line but never cross it, and the puck bounces off it (a still mallet is a wall). Score by putting the puck through the other goal; the player scored on gets the puck; first to seven wins — each end of the table then reads WIN or LOSE the right way up for its own player, and a restart ring on the centre line starts over — the mallets stay live and where they are throughout, since they are the players' hands. Scores sit in the corner beside each goal, out of the mallet's way, each facing its player. The other seats (three and four players) wait on a decision about where their goals would go.
