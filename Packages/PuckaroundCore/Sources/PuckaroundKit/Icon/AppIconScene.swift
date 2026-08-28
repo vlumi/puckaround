@@ -66,19 +66,23 @@ public struct AppIconScene: View {
             goal(y: rink.minY, color: SeatPalette.magenta)
             goal(y: rink.maxY, color: SeatPalette.cyan)
 
-            // Two mallets, facing off — magenta top, cyan bottom, matching the goals.
+            // Two mallets, facing off — magenta top, cyan bottom, matching the
+            // goals. Set off-centre and NOT mirrored: the top one drawn back and
+            // to one side, the bottom one nearer the centre on the other, so the
+            // icon reads as a moment of play rather than a symmetric diagram.
             mallet(
-                CGPoint(x: size.width * 0.5, y: rink.minY + rink.height * 0.26), 96 * s,
+                CGPoint(x: size.width * 0.37, y: rink.minY + rink.height * 0.23), 96 * s,
                 SeatPalette.magenta, s: s, in: &context)
             mallet(
-                CGPoint(x: size.width * 0.5, y: rink.minY + rink.height * 0.74), 96 * s,
+                CGPoint(x: size.width * 0.61, y: rink.minY + rink.height * 0.63), 96 * s,
                 SeatPalette.cyan, s: s, in: &context)
 
-            // The white-hot puck, just off centre with a short trail toward it.
-            let puckAt = CGPoint(x: size.width * 0.5, y: mid - 40 * s)
+            // The white-hot puck, off centre toward the cyan mallet, trailing
+            // back toward the magenta one.
+            let puckAt = CGPoint(x: size.width * 0.53, y: mid - 26 * s)
             var streak = Path()
             streak.move(to: puckAt)
-            streak.addLine(to: CGPoint(x: puckAt.x + 130 * s, y: puckAt.y + 150 * s))
+            streak.addLine(to: CGPoint(x: puckAt.x - 150 * s, y: puckAt.y - 120 * s))
             var haze = context
             haze.addFilter(.blur(radius: 40 * s))
             haze.stroke(

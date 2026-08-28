@@ -104,13 +104,19 @@ final class MalletTests: XCTestCase {
         r.placeMallet(of: bottom, at: Vec2(wall - 30, 120))
         for _ in 0..<10 {
             r.advance(inputs: [bottom: SeatInput(malletDrag: Vec2(40, 0))])
-            XCTAssertGreaterThanOrEqual(
-                r.puck.position.x, r.mallet(of: bottom).position.x,
-                "the puck stays on the wall side of the mallet")
+            // Never punched clean through to the mallet's far (inner) side —
+            // it stays within a mallet's reach of the wall side, not flung to
+            // the centre — and never off the table.
+            XCTAssertGreaterThan(
+                r.puck.position.x, r.mallet(of: bottom).position.x - r.table.malletRadius,
+                "the puck never tunnels past the mallet")
             XCTAssertTrue(r.table.puckField.contains(r.puck.position))
         }
-        // Squeezed between mallet and wall, it has slid out along the wall.
-        XCTAssertGreaterThan(abs(r.puck.position.y - 120), r.table.puckRadius)
+        // It is not left pinned dead on the wall: the squeeze gives it a real
+        // inward nudge, so it comes off the boards and slides, never stuck.
+        XCTAssertLessThan(r.puck.position.x, wall - 1, "the puck is nudged off the wall")
+        XCTAssertGreaterThan(
+            abs(r.puck.position.y - 120), r.table.puckRadius, "and it slid along it")
     }
 
     /// The same squeeze in a corner keeps the puck inside the field.
