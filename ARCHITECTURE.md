@@ -65,12 +65,27 @@ mallet each, the player scored on gets the puck, first to seven
 centred in each short wall, plus the constants: puck and mallet radii, goal
 width, wall restitution, surface drag, a speed cap (so no hit can carry the
 puck through a wall in one tick), and a rest speed below which the puck stops
-instead of creeping on floating-point dust. A puck crossing a short wall
-**clear of both posts** — its centre within `goalWidth/2 − puckRadius` of the
-middle — is a goal; anywhere else the wall bounces it.
+instead of creeping on floating-point dust, and the `puckShape` (below). The
+short walls are **open across the mouth** (clear of both posts, `goalWidth/2 −
+puckRadius`): a puck lined up with the goal passes through, and a goal counts
+only once the **whole puck is past the line** (soccer rules — it flies fully in
+before warping back). Elsewhere the wall bounces it; a post bounces it too.
 
 **Coordinates are y-down**, matching screen space: rendering is a pure scale
 and nothing flips. `Seat.bottom` is the bottom of the screen.
+
+**The puck has a shape** (`PuckShape` on `Playfield` — `circle` by default, or
+a `polygon`; square and triangle ship). A polygon puck carries an `angle` and
+`angularVelocity`: it tumbles. Its wall collision (`PolygonCollision`,
+deterministic — vertices in fixed index order, ties broken by that order) is
+not a rigid impulse but a **feel model** chosen to play well, not to be exactly
+physical: the linear bounce is disc-like (speed preserved, never a launch off
+the wall), while the puck's **spin steers the outgoing direction off-axis** —
+which way and how much set by the spin's sign and speed and how off-centre the
+corner hit is. A corner catch also *starts* a little spin from rest; a flat
+face bounces clean. A glancing mallet hit puts english on it. Three dials tune
+the feel: `PolygonCollision.steerPerSpin`, `spinFromCorner`, `spinSpent`. The
+circle path is untouched, so the shipped round game is byte-identical.
 
 **The look is a neon cabinet, and single-theme by choice.** A dark violet-black
 ground, a glowing neutral rink (ice, grid, centre line, puck) that belongs to
@@ -134,10 +149,11 @@ and fourth goal go — one per wall on a square table, corners, a shared goal
 per team — and whether four hands fit round a phone at all are open; see
 [docs/air-hockey-plan.md](docs/air-hockey-plan.md).
 
-**The couch.** A front door that asks who is playing, seat colors, per-seat
-HUD facing its player, side-by-side vs. face-to-face seating on iPad.
-
-**Sound & haptics.** Procedural, no assets.
+**The couch's tail.** The front door shipped (title, first-to-N, puck pick,
+Play; the centre ring is the always-available menu; a rematch is the faceoff
+returning). Still planned: who is playing, seat colors, per-seat HUD facing its
+player, side-by-side vs. face-to-face seating on iPad — the parts that need
+more seats and profiles.
 
 ## Deliberately out of scope
 

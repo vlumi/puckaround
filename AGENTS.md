@@ -90,6 +90,7 @@ puckaround/
 ├── Sources/Shared/                 The asset catalog (AppIcon) + an empty app-level String Catalog
 └── Packages/PuckaroundCore/        Swift package — all the code
     ├── Sources/PuckaroundCore/     Pure logic: Vec2/Rect/SeededRNG, Lineup + seats, Playfield/Puck/Mallet,
+    │                               PuckShape + PolygonCollision (shaped pucks), Rink (+Rink+Physics),
     │                               Rink (the air-hockey sim + Rules), SeatInput + ControlSource,
     │                               MalletControlSource, GameSession — tested, coverage-gated
     ├── Sources/PuckaroundKit/      SwiftUI + UIKit, depends on Core; coverage-ignored

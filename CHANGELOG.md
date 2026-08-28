@@ -14,7 +14,7 @@ The `## vX.Y.Z` heading is written by the release lane too, whenever a release c
 
 ### Unreleased (next build)
 
-- **Pick your puck.** The front page now offers a round, square or triangular puck. The shaped ones tumble — they spin off the walls and your mallet, deflect at odd angles off a corner, and generally behave less predictably than the round one. A first taste of puck variety.
+- **Pick your puck.** The front page now offers a round, square or triangular puck. The shaped ones tumble — a corner catching the boards starts them spinning, and a spinning puck skews off the wall at an angle that depends on how it's turning, so a rally with a square or triangle is a scramble. The round puck plays exactly as before. A first taste of puck variety.
 - **A goal counts when the whole puck is over the line.** The puck now flies all the way into the goal before it warps back to centre, instead of vanishing the instant it touched the line — the same for every shape.
 - **A mallet can move through the centre again.** The centre-ring menu no longer swallows the touch that grabs or drives a mallet across the middle — a drag through the ring is play, only a tap opens the menu.
 
