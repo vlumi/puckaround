@@ -69,8 +69,12 @@ final class PuckPhysicsTests: XCTestCase {
             if r.finalWinner != nil {
                 break  // a goal ended the game → rematch faceoff, puck frozen
             }
-            XCTAssertTrue(
-                field.contains(r.puck.position), "escaped at tick \(tick): \(r.puck.position)")
+            // A puck heading into a goal is legitimately past the boards; only
+            // one NOT lined up with a mouth must stay inside.
+            if !r.table.isInGoalMouth(x: r.puck.position.x) {
+                XCTAssertTrue(
+                    field.contains(r.puck.position), "escaped at tick \(tick): \(r.puck.position)")
+            }
             XCTAssertLessThanOrEqual(r.puck.velocity.length, r.table.maxSpeed + 1e-9)
         }
         XCTAssertGreaterThan(goals, 0, "twenty seconds of random violence should find a goal")

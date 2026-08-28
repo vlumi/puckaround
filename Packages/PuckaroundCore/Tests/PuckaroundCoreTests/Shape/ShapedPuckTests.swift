@@ -27,7 +27,8 @@ final class ShapedPuckTests: XCTestCase {
 
     func testASquarePuckBouncesOffAWall() {
         var r = rink(squareTable)
-        r.place(Puck(position: Vec2(r.table.center.x, 20), velocity: Vec2(0, -200)))
+        // Off to the side of the goal mouth, so it bounces rather than scores.
+        r.place(Puck(position: Vec2(12, 20), velocity: Vec2(0, -200)))
         var bounced = false
         for _ in 0..<Rink.tickRate {
             r.advance(inputs: [:])

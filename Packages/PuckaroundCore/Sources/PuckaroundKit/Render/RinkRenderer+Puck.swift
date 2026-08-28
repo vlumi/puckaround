@@ -28,13 +28,15 @@ extension RinkRenderer {
         }
         let body = puckBodyPath(puck, radius: radius, shape: shape, projection: projection)
         glow(body, color: RinkRenderer.puck, blur: 5 * projection.scale, in: &context)
-        // A small off-centre highlight — on a polygon it rides the rotation, so
-        // the spin reads.
-        let spot = Vec2(-0.4, -0.4).rotated(by: puck.angle) * radius
-        context.fill(
-            projection.disc(
-                at: projection.point(puck.position + spot), radius: r * 0.22),
-            with: .color(.white))
+        // A circle needs a highlight to show it is moving at all; a polygon
+        // shows its spin by its own rotation, so it needs none (an offset dot
+        // just reads as a stray mark on the small shape).
+        if case .circle = shape {
+            context.fill(
+                projection.disc(
+                    at: CGPoint(x: p.x - r * 0.4, y: p.y - r * 0.4), radius: r * 0.22),
+                with: .color(.white))
+        }
     }
 
     /// The puck's outline on screen: a disc, or the rotated polygon.

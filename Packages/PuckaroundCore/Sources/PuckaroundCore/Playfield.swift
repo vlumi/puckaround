@@ -79,4 +79,10 @@ public struct Playfield: Equatable, Codable, Sendable {
     public func isInGoalMouth(x: Double) -> Bool {
         abs(x - center.x) <= goalWidth / 2 - puckRadius
     }
+
+    /// The y a puck centre must reach for the WHOLE puck to be past a short wall
+    /// — the goal line fully crossed (soccer rules), so it warps back only after
+    /// it is all the way in, not when its nose touches the line.
+    public var topGoalLine: Double { -puckRadius }
+    public var bottomGoalLine: Double { size.y + puckRadius }
 }
