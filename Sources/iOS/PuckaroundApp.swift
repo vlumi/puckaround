@@ -5,7 +5,7 @@ import SwiftUI
 struct PuckaroundApp: App {
     var body: some Scene {
         WindowGroup {
-            GameView()
+            AppRoot()
         }
     }
 }

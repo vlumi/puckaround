@@ -24,7 +24,7 @@ The game is built and this milestone is about driving it on hardware: two thumbs
 
 ## The couch — *who is playing*
 
-- [ ] **The front door.** Who is at the table, then what to play; seat colors chosen by the players; a real setup step (player count, first-to-N).
+- [x] **A front door (first cut).** A title screen with a first-to-N pick and Play, plus a way out of a game (a pause dot → resume / restart / quit, and a Menu button after a finish). Deliberately minimal for a 1v1-only game — **still to come as more seats and modes land**: who is at the table, player count, seat colours chosen by the players, and mode selection.
 - [ ] **A record of the session.** A running tally across games, so the last twenty minutes happened.
 
 ## Feel — *sound & haptics*
