@@ -14,6 +14,8 @@ The `## vX.Y.Z` heading is written by the release lane too, whenever a release c
 
 ### Unreleased (next build)
 
+### build 2 — 2026-08-28
+
 - **A front page.** The app opens to a title screen now — pick how many goals win (first to 3, 5, 7 or 11) and hit Play, rather than dropping straight onto the table.
 - **Play again is just another faceoff.** When a game ends, the result stays up and the faceoff comes straight back — both players ready up to rematch, and the score resets the moment it starts. No button to hunt for.
 - **The centre ring is the menu.** Tap the middle of the table any time — mid-game or between games — for Resume, Restart (a clean new game, nobody readied), or Quit to menu. One neutral control that belongs to neither player, so leaving never means going through a restart.
