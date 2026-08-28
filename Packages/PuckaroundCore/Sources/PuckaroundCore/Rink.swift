@@ -60,6 +60,11 @@ public struct Rink: Equatable, Sendable {
     /// What happened this tick — cleared at the start of each `advance`, so it
     /// only ever describes the latest step. The feedback layers read it.
     public private(set) var events: [GameEvent] = []
+    /// Reserved seam: seeded, deterministic randomness for a sim that has none
+    /// yet (the faceoff opening replaced the old random serve). The first
+    /// randomised event — a bumper kick, a puck-variety wobble — draws from
+    /// here. Note it participates in `Equatable`: two rinks differing only by
+    /// seed are unequal even before any draw.
     private var rng: SeededRNG
 
     /// Only the duel is built: two seats, a goal each. `Lineup` models more
@@ -132,8 +137,7 @@ public struct Rink: Equatable, Sendable {
     /// conceder's half. It moves AWAY from every opponent — a 1v1 opponent can't
     /// cross the centre line, so a puck heading into the conceder's own end is
     /// unreachable by anyone but them until it settles.
-    public mutating func serve(to player: PlayerID) {
-        // Toward the conceder's own goal — away from centre and every opponent.
+    private mutating func serve(to player: PlayerID) {
         let towardOwnGoal = -lineup.seat(of: player).inward
         puck = Puck(position: table.center, velocity: towardOwnGoal * table.serveSpeed)
     }
@@ -147,8 +151,8 @@ public struct Rink: Equatable, Sendable {
         let playing = phase == .playing
         // Seats apply in lineup order, never dictionary order — the order hits
         // land in is part of the state.
-        for (index, player) in lineup.players.enumerated() {
-            moveMallet(index, of: player, by: inputs[player]?.malletDrag ?? .zero, strikes: playing)
+        for player in lineup.players {
+            moveMallet(of: player, by: inputs[player]?.malletDrag ?? .zero, strikes: playing)
         }
         // The puck may already be touching a resting mallet — but that is not a
         // NEW hit, so it emits no event; only a closing contact during a move does.
@@ -165,14 +169,12 @@ public struct Rink: Equatable, Sendable {
     /// clamped OUT of the bubble, and a finger driven into the bubble leaves the
     /// mallet stranded at the rim rather than warping it to the puck's edge — so
     /// nobody can ride a finger onto the puck the instant the field drops.
-    private mutating func moveMallet(
-        _ index: Int, of player: PlayerID, by drag: Vec2, strikes: Bool
-    ) {
-        let zone = table.malletZone(for: lineup.seat(of: player))
-        let from = mallets[index].position
-        var to = zone.clamping(from + drag)
+    private mutating func moveMallet(of player: PlayerID, by drag: Vec2, strikes: Bool) {
+        let seat = lineup.seat(of: player)
+        let from = mallets[player.rawValue].position
+        var to = table.malletZone(for: seat).clamping(from + drag)
         if isFaceoff {
-            to = clampedOutOfBubble(to, seat: lineup.seat(of: player))
+            to = clampedOutOfBubble(to, seat: seat)
         }
         let velocity = (to - from) * (1 / Rink.dt)
         if strikes {
@@ -182,7 +184,7 @@ public struct Rink: Equatable, Sendable {
                 collidePuck(withMalletAt: at, velocity: velocity, by: player)
             }
         }
-        mallets[index] = Mallet(position: to, velocity: velocity)
+        mallets[player.rawValue] = Mallet(position: to, velocity: velocity)
     }
 
     /// The nearest point to `p` that keeps the mallet's rim clear of the faceoff

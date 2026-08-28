@@ -91,4 +91,11 @@ final class FaceoffTests: XCTestCase {
         XCTAssertNil(r.finalWinner)
         XCTAssertEqual(r.readySeats, [])
     }
+
+    func testNoReadySeatsOncePlaying() {
+        var r = rink()
+        r.startPlaying()
+        XCTAssertFalse(r.isFaceoff)
+        XCTAssertEqual(r.readySeats, [], "readySeats is empty during play")
+    }
 }

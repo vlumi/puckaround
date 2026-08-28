@@ -59,6 +59,25 @@ final class WallStickTests: XCTestCase {
         }
     }
 
+    /// The same escape works on a HORIZONTAL wall — the puck slides along the
+    /// bottom boards, not just the sides. (Placed off the goal mouth so a real
+    /// escape, not a goal, is what frees it.)
+    func testAContactFreesThePuckOffTheBottomWall() {
+        var r = rink()
+        let x = r.table.puckField.minX + 8  // clear of the centred goal mouth
+        r.place(Puck(position: Vec2(x, r.table.puckField.maxY)))
+        let reach = r.table.malletRadius + r.table.puckRadius
+        r.placeMallet(of: bottom, at: Vec2(x + 10, r.table.puckField.maxY - reach + 1))
+        var freed = false
+        for _ in 0..<8 {
+            r.advance(inputs: [bottom: SeatInput(malletDrag: Vec2(-4, 3))])
+            if r.puck.position.y < r.table.puckField.maxY - 1, r.puck.velocity.y < -1 {
+                freed = true
+            }
+        }
+        XCTAssertTrue(freed, "a contact must knock the puck off the bottom wall too")
+    }
+
     /// And it clears the wall within a beat when the mallet lets go — proving
     /// "moving along the wall" really does become "off the wall", not a
     /// permanent slide.
