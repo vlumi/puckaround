@@ -34,6 +34,7 @@ Not polish to leave for last: haptics are part of how a hit reads, so this comes
 - [ ] **Events out of the sim** — mallet hit (with closing speed), wall bounce, goal, game over — as data the feedback layers consume; replays get them for free.
 - [ ] **Haptics**: a tap per hit scaled by speed, a softer one per wall bounce, a flourish on a goal. One engine per device is a constraint worth designing around: the device buzzes for everyone.
 - [ ] **Sound**: a click per hit, a duller one per wall, a horn on a goal. Ambient audio session, so the silent switch is honoured and the players' music keeps playing.
+- [ ] **Pace levels.** A pick in setup for how fast the table plays — the puck's speed cap (and probably drag with it), a few presets from a gentle warm-up to a frantic one. `maxSpeed` is already a `Playfield` constant, so this is a value setup chooses, not a physics change. **Frame it as pace, not difficulty**: in a two-player game both players share the same table, so a faster cap raises the intensity for both equally — it is not an easier/harder opponent (the opponent is the other person). Real per-side difficulty only means something once there's an AI seat or a solo mode, and then it lives in *those*, not here. Belongs to the setup step (see *The couch*), never a mid-game control.
 
 ## Puck variety — *shaped pucks*
 
