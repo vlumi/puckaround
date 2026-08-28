@@ -14,6 +14,7 @@ The `## vX.Y.Z` heading is written by the release lane too, whenever a release c
 
 ### Unreleased (next build)
 
+- **Games start with a faceoff.** Instead of the puck landing in someone's half, it sits frozen in the middle behind a glowing force field, and each player's side shows "Ready?". Grab your mallet to ready up — the instant everyone has, the field drops and it's a scramble for the puck, hands already on. Nobody can nudge the puck early: your mallet can't cross into the force field. (After a goal it's still served to whoever conceded — the ceremony is just for the kickoff.)
 - **The puck can't get stuck on a wall any more.** A puck pinned in a corner or against the boards used to be unrescuable — no hit could reach it. Now the table peels it off the wall the moment nothing's holding it there, so a stuck puck frees itself.
 - **A neon-cabinet look.** The table glows now: a dark rink with a faint grid, a white-hot puck that trails when it's moving fast, and each player's colour — hot magenta, electric cyan — on their mallet, their goal and their score, so you can always tell whose is whose. The app icon is the same rink, shrunk. The glow eases off if you have Reduce Motion on.
 - **The table has a voice.** Every hit, wall bounce and goal now makes a sound and a haptic tap, scaled to how hard it was — a click off the mallet, a duller knock off the boards, a two-note horn on a goal, and a flourish when the game is won. The device buzzes for everyone at the table at once. Sound honours the silent switch and mixes with your music.

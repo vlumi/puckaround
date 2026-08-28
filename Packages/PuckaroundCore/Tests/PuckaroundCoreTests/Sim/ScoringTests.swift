@@ -9,35 +9,40 @@ final class ScoringTests: XCTestCase {
 
     private func rink(rules: Rules = .standard) -> Rink {
         var r = Rink(table: .duel, lineup: .duel, rules: rules, seed: 1)
+        r.startPlaying()
         r.park()
         return r
     }
 
-    /// Fires the puck at a short wall at `x`, from just inside it, and steps once.
+    /// Fires the puck at a short wall at `x`, from just inside it, and steps once
+    /// — which scores and serves in the same tick, so the served puck read after
+    /// this has already glided one step into the conceder's half.
     private func shoot(_ r: inout Rink, at edge: Seat, x: Double) {
         let y = edge == .top ? r.table.puckField.minY + 1 : r.table.puckField.maxY - 1
         r.place(Puck(position: Vec2(x, y), velocity: Vec2(0, edge == .top ? -300 : 300)))
         r.advance(inputs: [:])
     }
 
-    func testAGameOpensWithThePuckAtRestInOneHalf() {
+    func testAGameOpensWithAFaceoffAtCentre() {
         let r = Rink(table: .duel, lineup: .duel, seed: 1)
         XCTAssertEqual(r.score, [0, 0])
-        XCTAssertEqual(r.phase, .playing)
+        XCTAssertTrue(r.isFaceoff)
+        XCTAssertEqual(r.readySeats, [])
+        XCTAssertEqual(r.puck.position, r.table.center, "frozen at centre behind the field")
         XCTAssertFalse(r.puck.isMoving)
-        XCTAssertNotEqual(r.puck.position.y, r.table.center.y, "somebody has possession")
     }
 
-    func testAServedPuckIsClearOfTheMalletAtHome() {
-        let r = Rink(table: .duel, lineup: .duel, seed: 1)
-        let reach = r.table.puckRadius + r.table.malletRadius
-        for player in r.lineup.players {
-            let spot = r.table.serveSpot(for: r.lineup.seat(of: player))
-            let home = r.table.malletZone(for: r.lineup.seat(of: player)).center
-            XCTAssertGreaterThan(
-                spot.distance(to: home), reach, "a serve must not spawn inside the mallet")
-            XCTAssertNotEqual(spot.y, r.table.center.y)
-        }
+    func testAServeGlidesSlowlyIntoTheCondederOwnHalf() {
+        var r = rink(rules: Rules(pointsToWin: 5))
+        // Bottom concedes → served toward the bottom half, gliding that way and
+        // slowly (well under a struck puck's pace).
+        shoot(&r, at: .bottom, x: r.table.center.x)
+        XCTAssertGreaterThan(r.puck.velocity.y, 0, "gliding down into the conceder's half")
+        XCTAssertLessThan(r.puck.velocity.length, r.table.serveSpeed + 1, "a gentle serve")
+        // A step later it is further into the conceder's half, and no opponent
+        // (stuck on the far side of the centre line) could have reached it.
+        r.advance(inputs: [:])
+        XCTAssertGreaterThan(r.puck.position.y, r.table.center.y, "in the bottom half now")
     }
 
     func testThePuckThroughTheTopGoalScoresForTheBottomSeat() {
@@ -50,12 +55,12 @@ final class ScoringTests: XCTestCase {
     func testTheConcederGetsThePuck() {
         var r = rink()
         shoot(&r, at: .top, x: r.table.center.x)
-        XCTAssertEqual(r.puck.position, r.table.serveSpot(for: .top))
-        XCTAssertFalse(r.puck.isMoving)
-        XCTAssertLessThan(r.puck.position.y, r.table.center.y, "in the top half")
+        // Top conceded: the puck leaves centre gliding up into the top half.
+        XCTAssertEqual(r.puck.position, r.table.center)
+        XCTAssertLessThan(r.puck.velocity.y, 0, "heading into the top half")
         shoot(&r, at: .bottom, x: r.table.center.x)
         XCTAssertEqual(r.score, [1, 1])
-        XCTAssertEqual(r.puck.position, r.table.serveSpot(for: .bottom))
+        XCTAssertGreaterThan(r.puck.velocity.y, 0, "now heading into the bottom half")
     }
 
     func testThePostsAreWall() {
@@ -103,7 +108,7 @@ final class ScoringTests: XCTestCase {
         XCTAssertFalse(r.puck.isMoving)
     }
 
-    func testNewGameResetsTheScoreAndPuckButLeavesTheMallets() {
+    func testNewGameResetsTheScoreAndOpensAFaceoffButLeavesTheMallets() {
         var r = rink(rules: Rules(pointsToWin: 1))
         shoot(&r, at: .bottom, x: r.table.center.x)
         XCTAssertEqual(r.phase, .finished(winner: top))
@@ -111,16 +116,30 @@ final class ScoringTests: XCTestCase {
         let hands = r.mallets
         r.newGame()
         XCTAssertEqual(r.score, [0, 0])
-        XCTAssertEqual(r.phase, .playing)
+        XCTAssertTrue(r.isFaceoff, "a new game opens with a faceoff")
+        XCTAssertEqual(r.puck.position, r.table.center)
         XCTAssertFalse(r.puck.isMoving)
         XCTAssertEqual(r.mallets, hands, "the mallets are where the hands left them")
     }
 
-    func testOpeningPossessionComesFromTheSeed() {
-        var seen = Set<Double>()
-        for seed in 0..<20 {
-            seen.insert(Rink(table: .duel, lineup: .duel, seed: UInt64(seed)).puck.position.y)
-        }
-        XCTAssertEqual(seen.count, 2, "both halves get the opening puck across seeds")
+    func testReadyingBothSeatsStartsPlay() {
+        var r = Rink(table: .duel, lineup: .duel, seed: 1)
+        r.ready(bottom)
+        XCTAssertTrue(r.isFaceoff, "one seat readied is not enough")
+        XCTAssertEqual(r.readySeats, [bottom])
+        r.ready(top)
+        XCTAssertEqual(r.phase, .playing, "both readied → play begins")
+    }
+
+    func testReadyIsALatchWithNoTakeBacks() {
+        var r = Rink(table: .duel, lineup: .duel, seed: 1)
+        r.ready(bottom)
+        r.ready(bottom)  // idempotent
+        XCTAssertEqual(r.readySeats, [bottom])
+        // Once playing, readying does nothing.
+        r.ready(top)
+        XCTAssertEqual(r.phase, .playing)
+        r.ready(bottom)
+        XCTAssertEqual(r.phase, .playing)
     }
 }

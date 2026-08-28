@@ -9,6 +9,7 @@ final class MalletTests: XCTestCase {
 
     private func rink() -> Rink {
         var r = Rink(table: .duel, lineup: .duel, seed: 1)
+        r.startPlaying()
         r.park()
         r.place(Puck(position: r.table.center))
         return r

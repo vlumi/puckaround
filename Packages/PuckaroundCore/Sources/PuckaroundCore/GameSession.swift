@@ -54,6 +54,10 @@ public final class GameSession {
         rink.advance(inputs: inputs)
     }
 
+    public func ready(_ player: PlayerID) {
+        rink.ready(player)
+    }
+
     public func newGame() {
         rink.newGame()
     }

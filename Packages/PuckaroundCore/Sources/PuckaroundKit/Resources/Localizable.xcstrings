@@ -1,15 +1,10 @@
 {
-  "sourceLanguage" : "en",
-  "strings" : {
-    "LOSE" : {
-
-    },
-    "New game" : {
-
-    },
-    "WIN" : {
-
-    }
+  "sourceLanguage": "en",
+  "strings": {
+    "LOSE": {},
+    "New game": {},
+    "Ready?": {},
+    "WIN": {}
   },
-  "version" : "1.0"
+  "version": "1.0"
 }

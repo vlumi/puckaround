@@ -15,6 +15,7 @@ final class WallStickTests: XCTestCase {
 
     private func rink() -> Rink {
         var r = Rink(table: .duel, lineup: .duel, seed: 1)
+        r.startPlaying()
         r.park()
         return r
     }

@@ -9,6 +9,7 @@ final class PuckPhysicsTests: XCTestCase {
     /// far corners so nothing but the walls is in play.
     private func rink(puckAt position: Vec2, velocity: Vec2) -> Rink {
         var r = Rink(table: .duel, lineup: .duel, seed: 1)
+        r.startPlaying()
         r.park()
         r.place(Puck(position: position, velocity: velocity))
         return r

@@ -10,6 +10,7 @@ final class EventTests: XCTestCase {
 
     private func rink(rules: Rules = .standard) -> Rink {
         var r = Rink(table: .duel, lineup: .duel, rules: rules, seed: 1)
+        r.startPlaying()
         r.park()
         r.place(Puck(position: r.table.center))
         return r

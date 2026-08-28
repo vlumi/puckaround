@@ -20,4 +20,21 @@ extension Rink {
             placeMallet(of: player, at: Vec2(zone.minX, y))
         }
     }
+
+    /// Skip the faceoff: ready every seat so the rink is in play. Most sim tests
+    /// exercise play, not the opening ceremony (which has its own suite).
+    mutating func startPlaying() {
+        for player in lineup.players {
+            ready(player)
+        }
+    }
+
+    /// A rink already in play, mallets parked out of the way. The common
+    /// starting point for the physics/scoring suites.
+    static func inPlay(table: Playfield = .duel, seed: UInt64 = 1) -> Rink {
+        var r = Rink(table: table, lineup: .duel, seed: seed)
+        r.startPlaying()
+        r.park()
+        return r
+    }
 }
