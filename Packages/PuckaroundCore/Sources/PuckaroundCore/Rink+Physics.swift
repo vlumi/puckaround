@@ -256,7 +256,7 @@ extension Rink {
             let body = PolygonCollision.Body(
                 shape: table.puckShape, center: puck.position, angle: puck.angle,
                 radius: table.puckRadius, velocity: puck.velocity,
-                angularVelocity: puck.angularVelocity, inertiaFactor: table.puckShape.inertiaFactor)
+                angularVelocity: puck.angularVelocity)
             guard
                 let result = PolygonCollision.resolve(
                     body, wall: wall, restitution: table.restitution)

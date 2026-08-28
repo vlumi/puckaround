@@ -38,19 +38,45 @@ final class ShapedPuckTests: XCTestCase {
         XCTAssertTrue(r.table.puckField.insetBy(-1).contains(r.puck.position))
     }
 
-    func testACornerHitOnAWallImpartsSpin() {
+    func testSpinSteersTheBounceOffAxis() {
+        // A spinning puck's outgoing direction deflects to one side; the OTHER
+        // spin deflects it the other way — the erratic character of a shaped
+        // puck. A non-spinning one bounces straight (like a disc), so the two
+        // spun bounces must differ from each other.
+        func bounceDirection(spin: Double) -> Double {
+            var r = rink(squareTable)
+            // Tilted so a corner (not a flat face) meets the wall off-centre —
+            // that lever is what the spin steers against.
+            r.place(
+                Puck(
+                    position: Vec2(20, 20), velocity: Vec2(6, -160), angle: 0.35,
+                    angularVelocity: spin))
+            var out = r.puck.velocity
+            for _ in 0..<Rink.tickRate {
+                r.advance(inputs: [:])
+                if r.puck.velocity.y > 0 {
+                    out = r.puck.velocity
+                    break
+                }
+            }
+            return atan2(out.y, out.x)
+        }
+        let left = bounceDirection(spin: 12)
+        let right = bounceDirection(spin: -12)
+        XCTAssertNotEqual(left, right, accuracy: 0, "spin sign must steer the bounce")
+        XCTAssertGreaterThan(abs(left - right), 0.02, "and by a visible amount")
+    }
+
+    func testABounceKeepsMostOfTheSpin() {
+        // The bounce spends a little spin to steer, but doesn't dump it — a
+        // spinning puck keeps tumbling after hitting a wall.
         var r = rink(squareTable)
-        // Rotate the square 45° so a CORNER leads, and fire it at the top wall
-        // off to one side so the corner strikes asymmetrically.
-        r.place(
-            Puck(
-                position: Vec2(30, 20), velocity: Vec2(0, -220), angle: .pi / 4,
-                angularVelocity: 0))
+        r.place(Puck(position: Vec2(20, 20), velocity: Vec2(0, -160), angularVelocity: 10))
         for _ in 0..<Rink.tickRate {
             r.advance(inputs: [:])
-            if abs(r.puck.angularVelocity) > 0.01 { break }
+            if r.puck.velocity.y > 0 { break }
         }
-        XCTAssertGreaterThan(abs(r.puck.angularVelocity), 0.01, "a corner hit should spin it")
+        XCTAssertGreaterThan(abs(r.puck.angularVelocity), 4, "most of the spin carries through")
     }
 
     func testAGlancingMalletHitSpinsAShapedPuck() {

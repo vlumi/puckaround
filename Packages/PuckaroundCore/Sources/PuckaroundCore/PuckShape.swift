@@ -42,15 +42,4 @@ public enum PuckShape: Equatable, Codable, Sendable {
     /// about its centre is 1/3 of its half-diagonal² … we keep it simple and
     /// deterministic with a per-shape constant that reads well in play, not a
     /// physically exact integral.
-    /// Rotational inertia `I / (m·r²)` — a feel dial, not a physics constant.
-    /// LOWER makes the spin "lighter": a spinning corner gives up less of its
-    /// energy to the linear bounce (so the wall doesn't fling the puck), and the
-    /// puck keeps more of its spin. The tumble stays erratic; the bounce weighs
-    /// closer to the puck's own travel.
-    public var inertiaFactor: Double {
-        switch self {
-        case .circle: return 0.5
-        case .polygon: return 0.18
-        }
-    }
 }

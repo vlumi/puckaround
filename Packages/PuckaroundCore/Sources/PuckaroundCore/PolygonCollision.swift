@@ -1,14 +1,26 @@
 import Foundation
 
-/// Deterministic collision of a rigid polygon puck against an axis-aligned wall.
+/// Deterministic collision of a polygon puck against an axis-aligned wall.
 ///
-/// A polygon hits a wall at its deepest-penetrating VERTEX. Vertices are tested
-/// in fixed index order and ties broken by that order (never a float coin-flip),
-/// so the same state always resolves the same way — the sim's determinism
-/// contract. The response is a rigid-body impulse: it reflects the contact
-/// point's velocity (linear + rotational) about the wall normal, which both
-/// bounces the puck and spins it when the hit is off-centre.
+/// A polygon hits a wall at its deepest-penetrating VERTEX (vertices tested in
+/// fixed index order, ties broken by that order — never a float coin-flip, so
+/// the same state always resolves the same way).
+///
+/// **A spinning corner STEERS the bounce, it doesn't launch it.** With no spin
+/// a shaped puck bounces like a disc — reflected off the wall normal. When it
+/// IS spinning, the corner grabs the boards and skews the outgoing direction
+/// off-axis (which way depends on the spin's sign), spending some spin to do
+/// it. The bounce keeps the puck's speed (restitution only), so a spinning
+/// puck never rockets off the wall — the spin turns the path, it doesn't add
+/// momentum, and the spin resists dropping to zero rather than dumping at once.
 enum PolygonCollision {
+    /// Radians the outgoing velocity is steered per (rad/s of spin) × (corner
+    /// offset along the wall, in radii). A feel dial for how wild the deflection
+    /// gets; 0 makes a shaped puck bounce exactly like a disc.
+    static let steerPerSpin = 0.03
+    /// Fraction of the steer's spin the bounce spends (the rest carries on).
+    static let spinSpent = 0.35
+
     struct Result: Equatable {
         var velocity: Vec2
         var angularVelocity: Double
@@ -25,7 +37,7 @@ enum PolygonCollision {
         var limit: Double  // the field-edge coordinate on the normal's axis
     }
 
-    /// A polygon puck's full rigid-body state at collision time.
+    /// A polygon puck's state at collision time.
     struct Body {
         var shape: PuckShape
         var center: Vec2
@@ -33,24 +45,14 @@ enum PolygonCollision {
         var radius: Double
         var velocity: Vec2
         var angularVelocity: Double
-        /// `I / (m·r²)` — how much torque spins it.
-        var inertiaFactor: Double
     }
 
     /// Resolve `body` against one `wall`, or nil if it isn't penetrating.
-    /// `restitution` scales the bounce.
     static func resolve(_ body: Body, wall: Wall, restitution: Double) -> Result? {
-        let center = body.center
-        let radius = body.radius
-        let velocity = body.velocity
-        let angularVelocity = body.angularVelocity
-        let inertiaFactor = body.inertiaFactor
         let vertices = body.shape.worldVertices(
-            position: center, angle: body.angle, radius: radius)
+            position: body.center, angle: body.angle, radius: body.radius)
         guard !vertices.isEmpty else { return nil }
 
-        // The deepest penetration past the wall plane, at the first such vertex
-        // in index order (deterministic tie-break).
         var contact: (point: Vec2, depth: Double)?
         for vertex in vertices {
             let signed = vertex.dot(wall.normal) - wall.limit  // > 0 = outside the field
@@ -60,30 +62,32 @@ enum PolygonCollision {
         }
         guard let contact else { return nil }
 
-        // Contact-point velocity: linear plus the rotational term ω × r.
-        let arm = contact.point - center
-        let pointVelocity = velocity + arm.perpendicular * angularVelocity
-        let closing = pointVelocity.dot(wall.normal)  // > 0 = moving into the wall
-        // Push the vertex back to the wall plane along the normal.
         let positionShift = wall.normal * -contact.depth
+        let closing = body.velocity.dot(wall.normal)  // the puck's own approach
         guard closing > 0 else {
-            // Grazing / separating: just unpenetrate, no bounce.
+            // The centre is not heading into the wall — a glancing corner touch.
+            // Unpenetrate only.
             return Result(
-                velocity: velocity, angularVelocity: angularVelocity,
+                velocity: body.velocity, angularVelocity: body.angularVelocity,
                 positionShift: positionShift, impactSpeed: 0)
         }
 
-        // Rigid impulse along the normal. Effective mass includes the lever arm
-        // through the inertia factor (unit mass, so m = 1; I = inertiaFactor·r²).
-        let armCrossNormal = arm.cross(wall.normal)
-        let inertia = inertiaFactor * radius * radius
-        let denominator = 1 + (armCrossNormal * armCrossNormal) / inertia
-        let impulse = -(1 + restitution) * closing / denominator
+        // Disc-like reflection: mirror the wall-normal component, keep speed.
+        var outgoing = body.velocity - wall.normal * ((1 + restitution) * closing)
+
+        // Spin steers it: rotate the outgoing vector by an angle set by the spin
+        // and how far along the wall the corner sits (its lever). Sign from the
+        // spin, so opposite spins veer opposite ways.
+        let arm = contact.point - body.center
+        let lever = arm.dot(wall.normal.perpendicular) / body.radius
+        let steer = body.angularVelocity * lever * steerPerSpin
+        outgoing = outgoing.rotated(by: steer)
+
+        // Spending some spin to steer — it bleeds, it doesn't dump.
+        let angularVelocity = body.angularVelocity * (1 - spinSpent * abs(lever))
 
         return Result(
-            velocity: velocity + wall.normal * impulse,
-            angularVelocity: angularVelocity + armCrossNormal * impulse / inertia,
-            positionShift: positionShift,
-            impactSpeed: closing)
+            velocity: outgoing, angularVelocity: angularVelocity,
+            positionShift: positionShift, impactSpeed: closing)
     }
 }
