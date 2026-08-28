@@ -14,6 +14,8 @@ The `## vX.Y.Z` heading is written by the release lane too, whenever a release c
 
 ### Unreleased (next build)
 
+- **A mallet can move through the centre again.** The centre-ring menu no longer swallows the touch that grabs or drives a mallet across the middle — a drag through the ring is play, only a tap opens the menu.
+
 ### build 2 — 2026-08-28
 
 - **A front page.** The app opens to a title screen now — pick how many goals win (first to 3, 5, 7 or 11) and hit Play, rather than dropping straight onto the table.

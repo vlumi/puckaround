@@ -40,6 +40,7 @@ public struct GameView: View {
             .onAppear {
                 game.layout(screen: geo.size)
                 game.begin()
+                game.onMenuTap = { showingPause = true }
             }
             .onChangeCompat(of: geo.size) { size in game.layout(screen: size) }
         }
@@ -51,23 +52,14 @@ public struct GameView: View {
 
     @ViewBuilder
     private func overlay(for scene: RinkScene) -> some View {
-        let rect = scene.tableRect
         if showingPause {
             pauseMenu
-        } else {
-            // The centre ring IS the menu — always, whether playing or between
-            // games. The tap target matches the drawn ring (see the renderer's
-            // centre-ring radius), on the neutral centre spot under the puck, so
-            // it belongs to neither player.
-            let diameter =
-                2 * RinkRenderer.centreRingRadius * (rect.width / scene.rink.table.size.x)
-            Circle()
-                .fill(Color.white.opacity(0.001))
-                .frame(width: diameter, height: diameter)
-                .position(x: rect.midX, y: rect.midY)
-                .onTapGesture { showingPause = true }
-                .accessibilityLabel(Text("Menu", bundle: .module))
         }
+        // The centre ring IS the menu, but it is NOT a view on top of the table:
+        // an overlapping tap view would swallow the touches that grab and drive a
+        // mallet through the centre. Instead a centre-ring TAP is recognised
+        // inside the multitouch input path (`HockeyGame.onMenuTap`), so a drag
+        // through the ring stays ordinary play and only a tap opens the menu.
     }
 
     /// The menu behind the centre ring: resume, restart, or quit to the front

@@ -89,21 +89,66 @@ public final class HockeyGame: ObservableObject {
 
     // MARK: - Touches (screen points in, world points on)
 
+    /// Opens the centre-ring menu. The view sets this.
+    var onMenuTap: (() -> Void)?
+
+    /// A touch that began in the centre ring and hasn't moved yet — a pending
+    /// menu tap. It only becomes the menu if it ends without moving; the moment
+    /// it moves it is ordinary play (grab/drive a mallet), so a drag THROUGH the
+    /// ring never gets stolen by the menu.
+    private var pendingMenuTouch: (id: TouchID, at: CGPoint)?
+    /// How far a touch may drift and still count as a tap (screen points).
+    private static let tapSlop: CGFloat = 10
+
     func touchBegan(id: TouchID, at p: CGPoint) {
+        // A touch starting in the centre ring is a candidate menu tap — held
+        // back from the game until we know it's a tap, not the start of a drag.
+        if hitsCentreRing(p) {
+            pendingMenuTouch = (id, p)
+            return
+        }
+        startPlay(id: id, at: p)
+    }
+
+    func touchMoved(id: TouchID, at p: CGPoint) {
+        if let pending = pendingMenuTouch, pending.id == id {
+            // Moved far enough to be a drag, not a tap: it's play after all —
+            // hand it to the game from where it began, then continue.
+            if hypot(p.x - pending.at.x, p.y - pending.at.y) > HockeyGame.tapSlop {
+                pendingMenuTouch = nil
+                startPlay(id: id, at: pending.at)
+                controls.touchMoved(id: id, at: world(fromScreen: p))
+            }
+            return
+        }
+        controls.touchMoved(id: id, at: world(fromScreen: p))
+    }
+
+    func touchEnded(id: TouchID) {
+        if let pending = pendingMenuTouch, pending.id == id {
+            // Ended without moving: a tap on the centre ring → open the menu.
+            pendingMenuTouch = nil
+            onMenuTap?()
+            return
+        }
+        controls.touchEnded(id: id)
+    }
+
+    /// Begin an ordinary play touch: grab/drive a mallet, and — during a faceoff
+    /// — ready that seat, since grabbing the mallet IS declaring ready.
+    private func startPlay(id: TouchID, at p: CGPoint) {
         let world = world(fromScreen: p)
-        // During the faceoff, grabbing your mallet IS declaring yourself ready —
-        // one gesture, so your hand is on the mallet the instant the field drops.
         if session.rink.isFaceoff {
             session.ready(controls.zones.owner(of: world))
         }
         controls.touchBegan(id: id, at: world)
     }
 
-    func touchMoved(id: TouchID, at p: CGPoint) {
-        controls.touchMoved(id: id, at: world(fromScreen: p))
-    }
-
-    func touchEnded(id: TouchID) {
-        controls.touchEnded(id: id)
+    /// Whether a screen point lands within the centre-ring menu button.
+    private func hitsCentreRing(_ p: CGPoint) -> Bool {
+        guard tableRect.width > 0 else { return false }
+        let scale = tableRect.width / session.rink.table.size.x
+        let radius = RinkRenderer.centreRingRadius * scale
+        return hypot(p.x - tableRect.midX, p.y - tableRect.midY) <= radius
     }
 }
