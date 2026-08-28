@@ -67,6 +67,28 @@ final class ShapedPuckTests: XCTestCase {
         XCTAssertGreaterThan(abs(left - right), 0.02, "and by a visible amount")
     }
 
+    func testANonSpinningCornerHitStartsAlittleSpinButBouncesLikeADisc() {
+        // A flat-on hit: no spin starts, and the bounce is the disc reflection.
+        var flat = rink(squareTable)
+        flat.place(Puck(position: Vec2(20, 20), velocity: Vec2(0, -160)))
+        for _ in 0..<Rink.tickRate {
+            flat.advance(inputs: [:])
+            if flat.puck.velocity.y > 0 { break }
+        }
+        XCTAssertEqual(flat.puck.angularVelocity, 0, "a flat face starts no spin")
+        // A tilted corner hit from rest: it picks up SOME spin (the corner
+        // catches), but the outgoing direction is still close to the disc bounce.
+        var tilt = rink(squareTable)
+        tilt.place(Puck(position: Vec2(20, 20), velocity: Vec2(0, -160), angle: 0.35))
+        for _ in 0..<Rink.tickRate {
+            tilt.advance(inputs: [:])
+            if tilt.puck.velocity.y > 0 { break }
+        }
+        XCTAssertNotEqual(tilt.puck.angularVelocity, 0, "a corner catch starts a tumble")
+        // Both reflect a downward shot back upward at a disc-like angle.
+        XCTAssertGreaterThan(tilt.puck.velocity.y, 0, "still bounces off the wall")
+    }
+
     func testABounceKeepsMostOfTheSpin() {
         // The bounce spends a little spin to steer, but doesn't dump it — a
         // spinning puck keeps tumbling after hitting a wall.

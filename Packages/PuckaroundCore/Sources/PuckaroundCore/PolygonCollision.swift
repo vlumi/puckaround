@@ -20,6 +20,9 @@ enum PolygonCollision {
     static let steerPerSpin = 0.03
     /// Fraction of the steer's spin the bounce spends (the rest carries on).
     static let spinSpent = 0.35
+    /// How much spin a corner hit STARTS from rest, per (impact speed) × (corner
+    /// lever). A corner catching the boards begins a tumble even with no spin.
+    static let spinFromCorner = 0.03
 
     struct Result: Equatable {
         var velocity: Vec2
@@ -75,19 +78,25 @@ enum PolygonCollision {
         // Disc-like reflection: mirror the wall-normal component, keep speed.
         var outgoing = body.velocity - wall.normal * ((1 + restitution) * closing)
 
-        // Spin steers it: rotate the outgoing vector by an angle set by the spin
-        // and how far along the wall the corner sits (its lever). Sign from the
-        // spin, so opposite spins veer opposite ways.
+        // How far along the wall the contact corner sits, in radii — the lever
+        // both effects work through. Zero for a flat face (a clean bounce).
         let arm = contact.point - body.center
         let lever = arm.dot(wall.normal.perpendicular) / body.radius
-        let steer = body.angularVelocity * lever * steerPerSpin
-        outgoing = outgoing.rotated(by: steer)
 
-        // Spending some spin to steer — it bleeds, it doesn't dump.
-        let angularVelocity = body.angularVelocity * (1 - spinSpent * abs(lever))
+        // Spin STEERS the outgoing direction: rotate it by an angle scaled by
+        // the spin speed and the lever. Sign from the spin, so opposite spins
+        // veer opposite ways; more spin, more deflection.
+        outgoing = outgoing.rotated(by: body.angularVelocity * lever * steerPerSpin)
+
+        // A corner hit also STARTS a spin even from rest: the wall catches the
+        // off-centre corner and torques it, scaled by how hard it hit. The
+        // linear bounce above stays disc-like; this only adds tumble.
+        let started = -closing * lever * spinFromCorner
+        // …and the incoming spin bleeds a little for the steering it did.
+        let carried = body.angularVelocity * (1 - spinSpent * abs(lever))
 
         return Result(
-            velocity: outgoing, angularVelocity: angularVelocity,
+            velocity: outgoing, angularVelocity: carried + started,
             positionShift: positionShift, impactSpeed: closing)
     }
 }
