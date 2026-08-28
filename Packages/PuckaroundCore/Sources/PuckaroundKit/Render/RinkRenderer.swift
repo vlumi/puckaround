@@ -31,6 +31,10 @@ enum RinkRenderer {
     /// The puck: white-hot, so it reads against every seat colour and the ice.
     static let puck = Color(red: 0.97, green: 0.96, blue: 1.0)
 
+    /// The centre ring's radius in world units — the menu button. Shared so the
+    /// touch target (in the view) matches the drawn ring exactly.
+    static let centreRingRadius: Double = 16
+
     /// The table letterboxed into the screen: as big as its aspect allows
     /// inside `margin`, centred.
     static func fittedTableRect(tableSize: Vec2, in screen: CGSize, margin: CGFloat = 12) -> CGRect
@@ -179,7 +183,7 @@ enum RinkRenderer {
         // rink — so it runs edge → ring on each side and leaves the ring's
         // interior clean for the puck and the menu glyph.
         let centre = projection.point(projection.table.center)
-        let ringRadius = 16 * projection.scale
+        let ringRadius = centreRingRadius * projection.scale
         var midline = Path()
         midline.move(to: CGPoint(x: rect.minX, y: centre.y))
         midline.addLine(to: CGPoint(x: centre.x - ringRadius, y: centre.y))

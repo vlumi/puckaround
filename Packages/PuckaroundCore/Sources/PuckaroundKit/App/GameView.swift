@@ -56,27 +56,32 @@ public struct GameView: View {
             pauseMenu
         } else {
             // The centre ring IS the menu — always, whether playing or between
-            // games. An invisible tap target on the neutral centre spot, under
-            // the puck, so it belongs to neither player and needs no chrome of
-            // its own. Playing again is the faceoff (ready up), not a button, so
-            // the menu only offers Resume + Quit.
+            // games. The tap target matches the drawn ring (see the renderer's
+            // centre-ring radius), on the neutral centre spot under the puck, so
+            // it belongs to neither player.
+            let diameter =
+                2 * RinkRenderer.centreRingRadius * (rect.width / scene.rink.table.size.x)
             Circle()
                 .fill(Color.white.opacity(0.001))
-                .frame(width: 96, height: 96)
+                .frame(width: diameter, height: diameter)
                 .position(x: rect.midX, y: rect.midY)
                 .onTapGesture { showingPause = true }
                 .accessibilityLabel(Text("Menu", bundle: .module))
         }
     }
 
-    /// The menu behind the centre ring: resume, or quit to the front door.
-    /// There is no "restart" — after a game the faceoff returns and readying up
-    /// IS the rematch, so quitting never has to go through a restart.
+    /// The menu behind the centre ring: resume, restart, or quit to the front
+    /// door. Restart scraps the current game for a fresh one — a new opening
+    /// faceoff, score at zero, nobody readied — reachable from anywhere.
     private var pauseMenu: some View {
         ZStack {
             Color.black.opacity(0.6).ignoresSafeArea().onTapGesture { showingPause = false }
             VStack(spacing: 14) {
                 NeonButton(title: "Resume", tint: Neon.cyan) { showingPause = false }
+                NeonButton(title: "Restart") {
+                    game.newGame()
+                    showingPause = false
+                }
                 NeonButton(title: "Quit to menu", tint: Neon.magenta, action: onExit)
             }
             .frame(maxWidth: 260)
