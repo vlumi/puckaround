@@ -66,7 +66,8 @@ public final class HockeyGame: ObservableObject {
 
     /// Steps the sim to `time` and returns the frame to draw — plain values,
     /// because the Canvas renderer closure is not MainActor.
-    func frame(at time: TimeInterval) -> RinkScene {
+    /// `reducedMotion` comes from the environment; the view passes it in.
+    func frame(at time: TimeInterval, reducedMotion: Bool) -> RinkScene {
         session.update(to: time)
         // Fire feedback for every tick actually stepped this frame. `events`
         // holds only the LATEST tick's, so a frame that stepped several would
@@ -77,7 +78,8 @@ public final class HockeyGame: ObservableObject {
             sound.play(session.rink.events)
             lastFedTick = session.rink.tick
         }
-        return RinkScene(rink: session.rink, tableRect: tableRect)
+        return RinkScene(
+            rink: session.rink, tableRect: tableRect, reducedMotion: reducedMotion, time: time)
     }
 
     // MARK: - Touches (screen points in, world points on)

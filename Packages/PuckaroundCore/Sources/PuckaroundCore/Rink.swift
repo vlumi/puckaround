@@ -146,8 +146,12 @@ public struct Rink: Equatable, Sendable {
                 events.append(.malletHit(player, speed: -closing))
             }
         }
-        // Pinned against a wall: the wall takes the speed aimed into it, and the
-        // puck squirts out along the wall instead — toward the side it slid to.
+        // Pinned against a wall: kill the speed aimed into it (the wall takes
+        // it) and let it slide out ALONG the wall instead, so a hard slam
+        // doesn't tunnel back through to the mallet's far side. Freeing a puck
+        // that ends up STUCK on the wall is handled in `stepPuck`, once nothing
+        // is holding it — a player can't get a mallet between puck and wall, so
+        // the sim must peel it off itself.
         if let wall = clear.wall {
             let into = puck.velocity.dot(wall)
             if into > 0 {
@@ -156,6 +160,32 @@ public struct Rink: Equatable, Sendable {
                 puck.velocity = puck.velocity - wall * into + along * into
             }
         }
+    }
+
+    /// Peel a stuck puck off a wall. A puck resting on a wall with no speed off
+    /// it — glued there, or only sliding along — can never be freed by a mallet
+    /// (a player can't reach between it and the boards), so the sim does it:
+    /// once no mallet is touching the puck, give it a brisk shove inward, enough
+    /// to clear its own radius before drag eats it. Called at the end of a tick,
+    /// so a mallet actively holding the puck against the wall keeps it there and
+    /// it pops free the instant the mallet lifts.
+    private mutating func freeStuckPuckFromWall() {
+        let field = table.puckField
+        var inward = Vec2.zero
+        if puck.position.x <= field.minX + 1e-6 { inward.x = 1 }
+        if puck.position.x >= field.maxX - 1e-6 { inward.x = -1 }
+        if puck.position.y <= field.minY + 1e-6 { inward.y = 1 }
+        if puck.position.y >= field.maxY - 1e-6 { inward.y = -1 }
+        guard inward != .zero else { return }
+        let escapeSpeed = table.puckRadius * 2
+        guard puck.velocity.dot(inward) < escapeSpeed else { return }
+        // Held by a mallet still overlapping it? Leave it — it pops free next
+        // tick once the mallet moves off.
+        let reach = table.puckRadius + table.malletRadius
+        if mallets.contains(where: { puck.position.distance(to: $0.position) < reach }) { return }
+        puck.position += inward * (table.puckRadius * 0.5)
+        puck.velocity += inward * (escapeSpeed - puck.velocity.dot(inward))
+        puck.position = field.clamping(puck.position)
     }
 
     /// Where the puck goes to be clear of a mallet at `center`: straight out
@@ -243,6 +273,9 @@ public struct Rink: Equatable, Sendable {
         for mallet in mallets {
             collidePuck(withMalletAt: mallet.position, velocity: mallet.velocity)
         }
+        // …and if it ended the tick stuck against a wall with nothing holding
+        // it, peel it off — a mallet can never reach between puck and boards.
+        freeStuckPuckFromWall()
     }
 
     /// The other seat scores; the conceder gets the puck, or the game ends.

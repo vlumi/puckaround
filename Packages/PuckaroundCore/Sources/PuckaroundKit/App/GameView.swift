@@ -3,6 +3,7 @@ import SwiftUI
 
 public struct GameView: View {
     @StateObject private var game = HockeyGame()
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     public init() {}
 
@@ -13,7 +14,9 @@ public struct GameView: View {
                 // closure, so it re-evaluates with the frame without publishing
                 // anything. Layered, not stacked: the ZStack matters.
                 TimelineView(.animation) { timeline in
-                    let scene = game.frame(at: timeline.date.timeIntervalSinceReferenceDate)
+                    let scene = game.frame(
+                        at: timeline.date.timeIntervalSinceReferenceDate,
+                        reducedMotion: reduceMotion)
                     ZStack {
                         Canvas { context, size in
                             RinkRenderer.draw(scene, in: &context, size: size)
@@ -50,10 +53,16 @@ public struct GameView: View {
             game.newGame()
         } label: {
             Image(systemName: "arrow.triangle.2.circlepath")
-                .font(.system(size: 34, weight: .bold))
-                .padding(22)
-                .background(Circle().fill(RinkRenderer.ground))
-                .foregroundStyle(RinkRenderer.ice)
+                .font(.system(size: 30, weight: .bold))
+                .foregroundStyle(RinkRenderer.line)
+                .shadow(color: RinkRenderer.line.opacity(0.8), radius: 8)
+                .frame(width: 78, height: 78)
+                .background(
+                    Circle()
+                        .fill(RinkRenderer.ice.opacity(0.9))
+                        .overlay(
+                            Circle().strokeBorder(RinkRenderer.line, lineWidth: 2)
+                                .shadow(color: RinkRenderer.line.opacity(0.7), radius: 6)))
         }
         .accessibilityLabel(Text("New game", bundle: .module))
     }

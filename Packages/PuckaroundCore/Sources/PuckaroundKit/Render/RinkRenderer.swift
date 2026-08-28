@@ -8,13 +8,28 @@ struct RinkScene {
     /// Where the table is placed on screen — the one primitive the renderer and
     /// the touch mapping both key off.
     var tableRect: CGRect
+    /// Decorative motion (the scanline breath, a longer puck trail) is off when
+    /// the viewer asks for reduced motion. The game itself still moves.
+    var reducedMotion = false
+    /// A rising time base for ambient effects; the view feeds it the frame time.
+    var time: Double = 0
 }
 
+/// **Neon cabinet.** A dark playfield that glows: a neutral rink (ice, grid,
+/// centre line, puck) that belongs to no seat, and the two players' colours on
+/// exactly the three things that are theirs — mallet, goal, score. Glow is
+/// additive over a solid core, so a hard puck and a readable score survive the
+/// bloom. All procedural; no assets. Being a committed dark look, it has no
+/// light variant.
 enum RinkRenderer {
-    static let ground = Color(red: 0.09, green: 0.10, blue: 0.14)
-    static let ice = Color(red: 0.93, green: 0.94, blue: 0.96)
-    static let lines = Color(red: 0.55, green: 0.62, blue: 0.75)
-    static let puck = Color(red: 0.08, green: 0.08, blue: 0.10)
+    /// The cabinet the table sits in — a near-black with a faint violet bias.
+    static let ground = Color(red: 0.039, green: 0.024, blue: 0.071)
+    /// The ice: a dark neutral playfield, not white — the glow does the lifting.
+    static let ice = Color(red: 0.071, green: 0.043, blue: 0.122)
+    /// Rink furniture: grid, centre line, ring. A cool neutral owned by nobody.
+    static let line = Color(red: 0.60, green: 0.72, blue: 0.95)
+    /// The puck: white-hot, so it reads against every seat colour and the ice.
+    static let puck = Color(red: 0.97, green: 0.96, blue: 1.0)
 
     /// The table letterboxed into the screen: as big as its aspect allows
     /// inside `margin`, centred.
@@ -54,6 +69,28 @@ enum RinkRenderer {
         }
     }
 
+    /// A glowing fill: the shape drawn once blurred (the bloom) and once solid
+    /// (the core), so the colour stays legible while still emitting.
+    private static func glow(
+        _ path: Path, color: Color, blur: CGFloat, core: Double = 1,
+        in context: inout GraphicsContext
+    ) {
+        var haze = context
+        haze.addFilter(.blur(radius: blur))
+        haze.fill(path, with: .color(color.opacity(0.9)))
+        context.fill(path, with: .color(color.opacity(core)))
+    }
+
+    private static func glowStroke(
+        _ path: Path, color: Color, lineWidth: CGFloat, blur: CGFloat,
+        in context: inout GraphicsContext
+    ) {
+        var haze = context
+        haze.addFilter(.blur(radius: blur))
+        haze.stroke(path, with: .color(color.opacity(0.85)), lineWidth: lineWidth)
+        context.stroke(path, with: .color(color), lineWidth: lineWidth)
+    }
+
     static func draw(_ scene: RinkScene, in context: inout GraphicsContext, size: CGSize) {
         let table = scene.rink.table
         let rect = scene.tableRect
@@ -61,15 +98,14 @@ enum RinkRenderer {
         let projection = Projection(table: table, rect: rect, scale: rect.width / table.size.x)
         let lineup = scene.rink.lineup
 
-        context.fill(Path(roundedRect: rect, cornerRadius: 6 * projection.scale), with: .color(ice))
-        drawMarkings(projection: projection, in: &context)
+        drawRink(projection: projection, in: &context)
         for player in lineup.players {
             let edge = lineup.seat(of: player)
             let color = SeatPalette.color(for: player, in: lineup)
             drawScore(
                 scene.rink.score(of: player), at: edge, color: color,
                 projection: projection, in: &context)
-            drawGoal(at: edge, projection: projection, in: &context)
+            drawGoal(at: edge, color: color, projection: projection, in: &context)
             if case .finished(let winner) = scene.rink.phase {
                 drawVerdict(
                     won: winner == player, in: projection.rect(table.malletZone(for: edge)),
@@ -80,47 +116,79 @@ enum RinkRenderer {
                 projection: projection, in: &context)
         }
         drawPuck(scene.rink.puck, radius: table.puckRadius, projection: projection, in: &context)
+        if !scene.reducedMotion {
+            drawScanline(rect: rect, time: scene.time, in: &context)
+        }
     }
 
-    /// Centre ring and centre line.
-    private static func drawMarkings(projection: Projection, in context: inout GraphicsContext) {
-        let table = projection.table
-        let centre = projection.point(table.center)
-        let lineWidth = max(1, 0.6 * projection.scale)
-        context.stroke(
-            projection.disc(at: centre, radius: 10 * projection.scale), with: .color(lines),
-            lineWidth: lineWidth)
+    /// The ice, a faint neutral grid clipped to it, and a glowing border +
+    /// centre line — all neutral, so the rink belongs to no player.
+    private static func drawRink(projection: Projection, in context: inout GraphicsContext) {
+        let rect = projection.rect
+        let corner = 8 * projection.scale
+        let iceShape = Path(roundedRect: rect, cornerRadius: corner)
+        context.fill(iceShape, with: .color(ice))
+
+        context.drawLayer { layer in
+            layer.clip(to: iceShape)
+            let step = 8 * projection.scale
+            var grid = Path()
+            var x = rect.minX
+            while x <= rect.maxX {
+                grid.move(to: CGPoint(x: x, y: rect.minY))
+                grid.addLine(to: CGPoint(x: x, y: rect.maxY))
+                x += step
+            }
+            var y = rect.minY
+            while y <= rect.maxY {
+                grid.move(to: CGPoint(x: rect.minX, y: y))
+                grid.addLine(to: CGPoint(x: rect.maxX, y: y))
+                y += step
+            }
+            layer.stroke(grid, with: .color(line.opacity(0.10)), lineWidth: 1)
+        }
+
+        glowStroke(
+            iceShape, color: line.opacity(0.9), lineWidth: max(1.5, 1.4 * projection.scale),
+            blur: 4 * projection.scale, in: &context)
+
+        let centre = projection.point(projection.table.center)
         var midline = Path()
-        midline.move(to: CGPoint(x: projection.rect.minX, y: centre.y))
-        midline.addLine(to: CGPoint(x: projection.rect.maxX, y: centre.y))
-        context.stroke(midline, with: .color(lines), lineWidth: lineWidth)
+        midline.move(to: CGPoint(x: rect.minX, y: centre.y))
+        midline.addLine(to: CGPoint(x: rect.maxX, y: centre.y))
+        let ring = projection.disc(at: centre, radius: 10 * projection.scale)
+        glowStroke(
+            midline, color: line.opacity(0.55), lineWidth: max(1, 0.8 * projection.scale),
+            blur: 3 * projection.scale, in: &context)
+        glowStroke(
+            ring, color: line.opacity(0.55), lineWidth: max(1, 0.8 * projection.scale),
+            blur: 3 * projection.scale, in: &context)
     }
 
-    /// The goal mouth: a slot in the short wall, in the ground colour, so the
-    /// puck visibly leaves the ice through it.
+    /// The goal mouth: a glowing bar in the seat's own colour, set into its
+    /// short wall — one of the three things that colour owns.
     private static func drawGoal(
-        at edge: Seat, projection: Projection, in context: inout GraphicsContext
+        at edge: Seat, color: Color, projection: Projection, in context: inout GraphicsContext
     ) {
         let table = projection.table
         let width = table.goalWidth * projection.scale
-        let depth = 3 * projection.scale
         let x = projection.rect.midX - width / 2
         let y: CGFloat
         switch edge {
-        case .top: y = projection.rect.minY - depth
-        case .bottom: y = projection.rect.maxY - depth
+        case .top: y = projection.rect.minY
+        case .bottom: y = projection.rect.maxY
         case .left, .right: return
         }
-        context.fill(
-            Path(
-                roundedRect: CGRect(x: x, y: y, width: width, height: 2 * depth),
-                cornerRadius: depth / 2),
-            with: .color(ground))
+        var bar = Path()
+        bar.move(to: CGPoint(x: x, y: y))
+        bar.addLine(to: CGPoint(x: x + width, y: y))
+        glowStroke(
+            bar, color: color, lineWidth: max(3, 2.4 * projection.scale),
+            blur: 5 * projection.scale, in: &context)
     }
 
-    /// The seat's score, in the corner beside its goal mouth — on the player's
-    /// LEFT, so it mirrors for the top seat — turned to face them. Out of the
-    /// middle of the half, where the mallet lives and was covering it.
+    /// The seat's score, in the corner beside its goal, turned to face its
+    /// player — a bright core over a glow, so a glanced number stays legible.
     private static func drawScore(
         _ score: Int, at edge: Seat, color: Color, projection: Projection,
         in context: inout GraphicsContext
@@ -137,11 +205,21 @@ enum RinkRenderer {
         if edge == .top {
             ctx.rotate(by: .degrees(180))
         }
-        var text = ctx.resolve(
+        let text = ctx.resolve(
             Text(verbatim: "\(score)").font(
-                .system(size: 14 * projection.scale, weight: .black, design: .rounded)))
-        text.shading = .color(color.opacity(0.5))
-        ctx.draw(text, at: .zero, anchor: .center)
+                .system(size: 15 * projection.scale, weight: .black, design: .rounded)))
+        var haze = ctx
+        haze.addFilter(.blur(radius: 4 * projection.scale))
+        haze.draw(coloured(text, color.opacity(0.9)), at: .zero, anchor: .center)
+        ctx.draw(coloured(text, color), at: .zero, anchor: .center)
+    }
+
+    private static func coloured(
+        _ text: GraphicsContext.ResolvedText, _ color: Color
+    ) -> GraphicsContext.ResolvedText {
+        var copy = text
+        copy.shading = .color(color)
+        return copy
     }
 
     /// WIN or LOSE, on the seat's side of the centre line, turned to face its
@@ -158,35 +236,86 @@ enum RinkRenderer {
             ctx.rotate(by: .degrees(180))
         }
         let word = won ? Text("WIN", bundle: .module) : Text("LOSE", bundle: .module)
-        var text = ctx.resolve(
+        let text = ctx.resolve(
             word.font(.system(size: half.height * 0.16, weight: .black, design: .rounded)))
-        text.shading = .color(color.opacity(won ? 0.9 : 0.45))
-        ctx.draw(text, at: .zero, anchor: .center)
+        let shade = won ? color : line.opacity(0.6)
+        if won {
+            var haze = ctx
+            haze.addFilter(.blur(radius: half.height * 0.02))
+            haze.draw(coloured(text, shade.opacity(0.9)), at: .zero, anchor: .center)
+        }
+        ctx.draw(coloured(text, shade), at: .zero, anchor: .center)
     }
 
+    /// The mallet: a glowing ring in the seat's colour with a dark hollow, so
+    /// it reads as a striker rather than a solid disc, and its colour is
+    /// unmistakably that player's.
     private static func drawMallet(
         _ mallet: Mallet, radius: Double, color: Color, projection: Projection,
         in context: inout GraphicsContext
     ) {
         let p = projection.point(mallet.position)
         let r = radius * projection.scale
-        context.fill(projection.disc(at: p, radius: r), with: .color(color))
+        glow(
+            projection.disc(at: p, radius: r), color: color, blur: 6 * projection.scale, core: 1,
+            in: &context)
+        context.fill(projection.disc(at: p, radius: r * 0.5), with: .color(ground.opacity(0.85)))
         context.stroke(
-            projection.disc(at: p, radius: r), with: .color(puck.opacity(0.5)),
-            lineWidth: max(1, 0.5 * projection.scale))
-        context.fill(projection.disc(at: p, radius: r * 0.45), with: .color(puck.opacity(0.25)))
+            projection.disc(at: p, radius: r * 0.5), with: .color(color.opacity(0.6)),
+            lineWidth: max(1, 0.4 * projection.scale))
     }
 
-    /// A dark disc with a small highlight so its motion reads.
+    /// The puck: a white-hot core with a bloom, trailing a streak whose length
+    /// grows with speed — a slow drift barely trails, a hard shot smears. The
+    /// trail is decorative, so reduced motion shortens it to almost nothing.
     private static func drawPuck(
         _ puck: Puck, radius: Double, projection: Projection, in context: inout GraphicsContext
     ) {
         let p = projection.point(puck.position)
         let r = radius * projection.scale
-        context.fill(projection.disc(at: p, radius: r), with: .color(RinkRenderer.puck))
-        let highlight = CGPoint(x: p.x - r * 0.45, y: p.y - r * 0.45)
+        let speed = puck.velocity.length
+        // Trail only earns its place at pace: near-zero slow, a few puck-lengths fast.
+        let trailLength = min(6, speed / 60) * r
+        if trailLength > r * 0.5 {
+            let dir = puck.velocity.normalized
+            let tail = CGPoint(x: p.x - dir.x * trailLength, y: p.y - dir.y * trailLength)
+            var streak = Path()
+            streak.move(to: p)
+            streak.addLine(to: tail)
+            var haze = context
+            haze.addFilter(.blur(radius: r * 0.6))
+            haze.stroke(
+                streak, with: .color(RinkRenderer.puck.opacity(0.35)),
+                style: StrokeStyle(lineWidth: r * 1.2, lineCap: .round))
+        }
+        glow(
+            projection.disc(at: p, radius: r), color: RinkRenderer.puck, blur: 5 * projection.scale,
+            in: &context)
         context.fill(
-            projection.disc(at: highlight, radius: r * 0.175),
-            with: .color(Color.white.opacity(0.25)))
+            projection.disc(at: CGPoint(x: p.x - r * 0.4, y: p.y - r * 0.4), radius: r * 0.22),
+            with: .color(.white))
+    }
+
+    /// A slow CRT breath over the ice — pure decoration, so it never draws under
+    /// reduced motion (the caller gates it).
+    private static func drawScanline(
+        rect: CGRect, time: Double, in context: inout GraphicsContext
+    ) {
+        context.drawLayer { layer in
+            layer.clip(to: Path(roundedRect: rect, cornerRadius: 8))
+            layer.blendMode = .overlay
+            let bandHeight = rect.height * 0.22
+            let travel = rect.height + bandHeight
+            let y =
+                rect.minY - bandHeight + CGFloat(time.truncatingRemainder(dividingBy: 4) / 4)
+                * travel
+            let band = CGRect(x: rect.minX, y: y, width: rect.width, height: bandHeight)
+            layer.fill(
+                Path(band),
+                with: .linearGradient(
+                    Gradient(colors: [.clear, .white.opacity(0.06), .clear]),
+                    startPoint: CGPoint(x: 0, y: band.minY),
+                    endPoint: CGPoint(x: 0, y: band.maxY)))
+        }
     }
 }
