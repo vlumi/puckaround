@@ -78,10 +78,12 @@ final class FaceoffTests: XCTestCase {
         var r = Rink(table: .duel, lineup: .duel, rules: Rules(pointsToWin: 1), seed: 1)
         r.startPlaying()
         r.park()
-        // End the game.
-        let y = r.table.puckField.maxY - 1
-        r.place(Puck(position: Vec2(r.table.center.x, y), velocity: Vec2(0, 300)))
-        r.advance(inputs: [:])
+        // End the game: drive the puck fully through the bottom goal.
+        r.place(
+            Puck(
+                position: Vec2(r.table.center.x, r.table.puckField.maxY - 1), velocity: Vec2(0, 300)
+            ))
+        for _ in 0..<6 where !r.isFaceoff { r.advance(inputs: [:]) }
         // A win opens a rematch faceoff remembering the winner…
         XCTAssertTrue(r.isFaceoff)
         XCTAssertEqual(r.finalWinner, top)

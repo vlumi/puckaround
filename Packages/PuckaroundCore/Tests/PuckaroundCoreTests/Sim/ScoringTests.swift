@@ -20,7 +20,13 @@ final class ScoringTests: XCTestCase {
     private func shoot(_ r: inout Rink, at edge: Seat, x: Double) {
         let y = edge == .top ? r.table.puckField.minY + 1 : r.table.puckField.maxY - 1
         r.place(Puck(position: Vec2(x, y), velocity: Vec2(0, edge == .top ? -300 : 300)))
-        r.advance(inputs: [:])
+        // A goal counts only once the whole puck is past the line, so drive it
+        // in — until it scores, or a few ticks pass (a post hit that bounces).
+        let before = r.score
+        for _ in 0..<6 {
+            r.advance(inputs: [:])
+            if r.score != before { break }
+        }
     }
 
     func testAGameOpensWithAFaceoffAtCentre() {
@@ -77,6 +83,20 @@ final class ScoringTests: XCTestCase {
         var r3 = rink()
         shoot(&r3, at: .top, x: postX - r.table.puckRadius)
         XCTAssertEqual(r3.score, [1, 0])
+    }
+
+    func testAGoalNeedsTheWholePuckPastTheLine() {
+        var r = rink()
+        // Nose just over the line, the puck not yet fully in — not a goal.
+        r.place(
+            Puck(position: Vec2(r.table.center.x, r.table.puckField.minY), velocity: Vec2(0, -1)))
+        r.advance(inputs: [:])
+        XCTAssertEqual(r.score, [0, 0], "a nose over the line is not a goal")
+        // Fully past the line — it counts.
+        r.place(
+            Puck(position: Vec2(r.table.center.x, r.table.topGoalLine - 1), velocity: Vec2(0, -1)))
+        r.advance(inputs: [:])
+        XCTAssertEqual(r.score, [1, 0], "the whole puck across the line is a goal")
     }
 
     func testWinningOpensARematchFaceoffShowingTheResult() {

@@ -36,14 +36,13 @@ Not polish to leave for last: haptics are part of how a hit reads, so this comes
 - [ ] **Sound**: a click per hit, a duller one per wall, a horn on a goal. Ambient audio session, so the silent switch is honoured and the players' music keeps playing.
 - [ ] **Pace levels.** A pick in setup for how fast the table plays — the puck's speed cap (and probably drag with it), a few presets from a gentle warm-up to a frantic one. `maxSpeed` is already a `Playfield` constant, so this is a value setup chooses, not a physics change. **Frame it as pace, not difficulty**: in a two-player game both players share the same table, so a faster cap raises the intensity for both equally — it is not an easier/harder opponent (the opponent is the other person). Real per-side difficulty only means something once there's an AI seat or a solo mode, and then it lives in *those*, not here. Belongs to the setup step (see *The couch*), never a mid-game control.
 
-## Puck variety — *shaped pucks, needs the couch*
+## Puck variety — *shaped pucks*
 
-Promoted from the ideas list: the one addition that changes how the game plays rather than what is around it. A square or triangular puck skitters unpredictably off walls and mallets.
+The one addition that changes how the game plays rather than what is around it. A square or triangular puck skitters unpredictably off walls and mallets.
 
-**Splits cleanly in two, and only the second half needs the couch:**
-
-- [ ] **The physics — depends on nothing, do it first.** The sim is circle–circle today; a polygon puck needs rotation, edge and vertex contacts against walls and mallets, and a collision routine that stays deterministic. This is pure `Rink`/`Playfield` work and can be spiked any time — and *should* be, because it answers the only question that matters: **does a shaped puck actually play well?** Prove it on a square before designing more shapes or any picker.
-- [ ] **Choosing a puck — depends on the couch.** A puck-style picker needs a setup step to live in, which is [The couch](#the-couch--who-is-playing)'s front door. So *shipping* puck variety is gated on the couch even though proving it is not: build the physics, confirm the fun on a hardcoded shape, then add the picker once there's a setup screen. Never a mid-game control.
+- [x] **The physics (spiked, shipped).** A polygon puck that rotates and tumbles, with a deterministic wall collision (`PolygonCollision`) tuned for feel over exact realism: a disc-like linear bounce (never a launch) while the spin steers the outgoing direction off-axis. Proven fun on a device — that was the whole question. Round / square / triangle are pickable on the front page. See [ARCHITECTURE.md](ARCHITECTURE.md).
+- [ ] **Follow-ons, if play asks for them.** Triangle-specific feel; **per-vertex goals** (today a goal needs the puck CENTRE fully past the line, so a corner poked in early doesn't count — fine so far); tuning the three feel dials on more play; more shapes only if they behave distinctly (a hexagon is basically a disc).
+- [ ] **Grip-spin on a ROUND puck** — english coupling back into linear motion, the deeper and more fragile experiment, deferred separately from shape.
 
 ## Four players — *parked on a design question*
 

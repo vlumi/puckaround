@@ -82,8 +82,14 @@ final class EventTests: XCTestCase {
             Puck(
                 position: Vec2(r.table.center.x, r.table.puckField.minY + 1),
                 velocity: Vec2(0, -300)))
-        r.advance(inputs: [:])
-        XCTAssertEqual(r.events, [.goal(scorer: bottom, conceder: top), .gameOver(winner: bottom)])
+        // The goal fires on the tick the WHOLE puck clears the line.
+        var goalEvents: [GameEvent] = []
+        for _ in 0..<6 where goalEvents.isEmpty {
+            r.advance(inputs: [:])
+            goalEvents = r.events
+        }
+        XCTAssertEqual(
+            goalEvents, [.goal(scorer: bottom, conceder: top), .gameOver(winner: bottom)])
     }
 
     func testANonWinningGoalEmitsNoGameOver() {
@@ -92,8 +98,12 @@ final class EventTests: XCTestCase {
             Puck(
                 position: Vec2(r.table.center.x, r.table.puckField.minY + 1),
                 velocity: Vec2(0, -300)))
-        r.advance(inputs: [:])
-        XCTAssertEqual(r.events, [.goal(scorer: bottom, conceder: top)])
+        var goalEvents: [GameEvent] = []
+        for _ in 0..<6 where goalEvents.isEmpty {
+            r.advance(inputs: [:])
+            goalEvents = r.events
+        }
+        XCTAssertEqual(goalEvents, [.goal(scorer: bottom, conceder: top)])
     }
 
     func testEventsAreDeterministic() {

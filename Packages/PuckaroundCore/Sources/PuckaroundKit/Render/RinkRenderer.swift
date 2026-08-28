@@ -50,7 +50,7 @@ enum RinkRenderer {
     }
 
     /// Screen-space helpers for one frame: world → screen is a translate + scale.
-    private struct Projection {
+    struct Projection {
         let table: Playfield
         let rect: CGRect
         let scale: CGFloat
@@ -75,7 +75,7 @@ enum RinkRenderer {
 
     /// A glowing fill: the shape drawn once blurred (the bloom) and once solid
     /// (the core), so the colour stays legible while still emitting.
-    private static func glow(
+    static func glow(
         _ path: Path, color: Color, blur: CGFloat, core: Double = 1,
         in context: inout GraphicsContext
     ) {
@@ -143,7 +143,9 @@ enum RinkRenderer {
                 ripple: Ripple(active: true, time: scene.time, reducedMotion: scene.reducedMotion),
                 projection: projection, in: &context)
         }
-        drawPuck(scene.rink.puck, radius: table.puckRadius, projection: projection, in: &context)
+        drawPuck(
+            scene.rink.puck, radius: table.puckRadius, shape: table.puckShape,
+            projection: projection, in: &context)
         if !scene.reducedMotion {
             drawScanline(rect: rect, time: scene.time, in: &context)
         }
@@ -335,37 +337,6 @@ enum RinkRenderer {
         context.stroke(
             projection.disc(at: p, radius: r * 0.5), with: .color(color.opacity(0.6)),
             lineWidth: max(1, 0.4 * projection.scale))
-    }
-
-    /// The puck: a white-hot core with a bloom, trailing a streak whose length
-    /// grows with speed — a slow drift barely trails, a hard shot smears. The
-    /// trail is decorative, so reduced motion shortens it to almost nothing.
-    private static func drawPuck(
-        _ puck: Puck, radius: Double, projection: Projection, in context: inout GraphicsContext
-    ) {
-        let p = projection.point(puck.position)
-        let r = radius * projection.scale
-        let speed = puck.velocity.length
-        // Trail only earns its place at pace: near-zero slow, a few puck-lengths fast.
-        let trailLength = min(6, speed / 60) * r
-        if trailLength > r * 0.5 {
-            let dir = puck.velocity.normalized
-            let tail = CGPoint(x: p.x - dir.x * trailLength, y: p.y - dir.y * trailLength)
-            var streak = Path()
-            streak.move(to: p)
-            streak.addLine(to: tail)
-            var haze = context
-            haze.addFilter(.blur(radius: r * 0.6))
-            haze.stroke(
-                streak, with: .color(RinkRenderer.puck.opacity(0.35)),
-                style: StrokeStyle(lineWidth: r * 1.2, lineCap: .round))
-        }
-        glow(
-            projection.disc(at: p, radius: r), color: RinkRenderer.puck, blur: 5 * projection.scale,
-            in: &context)
-        context.fill(
-            projection.disc(at: CGPoint(x: p.x - r * 0.4, y: p.y - r * 0.4), radius: r * 0.22),
-            with: .color(.white))
     }
 
     /// A slow CRT breath over the ice — pure decoration, so it never draws under
