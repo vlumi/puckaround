@@ -62,7 +62,7 @@ public struct GameView: View {
             // the menu only offers Resume + Quit.
             Circle()
                 .fill(Color.white.opacity(0.001))
-                .frame(width: 66, height: 66)
+                .frame(width: 96, height: 96)
                 .position(x: rect.midX, y: rect.midY)
                 .onTapGesture { showingPause = true }
                 .accessibilityLabel(Text("Menu", bundle: .module))

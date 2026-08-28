@@ -133,6 +133,10 @@ enum RinkRenderer {
                 around: scene.rink.puck.position, radius: table.faceoffBubbleRadius,
                 ripple: Ripple(active: true, time: scene.time, reducedMotion: scene.reducedMotion),
                 projection: projection, in: &context)
+        } else {
+            // The menu glyph shows during play, where the centre spot is usually
+            // clear; in a faceoff the puck covers it and "Ready?" is the cue.
+            drawMenuGlyph(projection: projection, in: &context)
         }
         drawPuck(scene.rink.puck, radius: table.puckRadius, projection: projection, in: &context)
         if !scene.reducedMotion {
@@ -171,23 +175,33 @@ enum RinkRenderer {
             iceShape, color: line.opacity(0.9), lineWidth: max(1.5, 1.4 * projection.scale),
             blur: 4 * projection.scale, in: &context)
 
+        // The centre line is INTERRUPTED by the centre circle — as on a real
+        // rink — so it runs edge → ring on each side and leaves the ring's
+        // interior clean for the puck and the menu glyph.
         let centre = projection.point(projection.table.center)
+        let ringRadius = 16 * projection.scale
         var midline = Path()
         midline.move(to: CGPoint(x: rect.minX, y: centre.y))
+        midline.addLine(to: CGPoint(x: centre.x - ringRadius, y: centre.y))
+        midline.move(to: CGPoint(x: centre.x + ringRadius, y: centre.y))
         midline.addLine(to: CGPoint(x: rect.maxX, y: centre.y))
-        let ring = projection.disc(at: centre, radius: 10 * projection.scale)
+        let ring = projection.disc(at: centre, radius: ringRadius)
         glowStroke(
             midline, color: line.opacity(0.55), lineWidth: max(1, 0.8 * projection.scale),
             blur: 3 * projection.scale, in: &context)
         glowStroke(
             ring, color: line.opacity(0.55), lineWidth: max(1, 0.8 * projection.scale),
             blur: 3 * projection.scale, in: &context)
+    }
 
-        // A faint hamburger inside the centre ring — the menu affordance, so the
-        // centre tap target is discoverable. Three short horizontal bars: neutral
-        // (reads the same from both ends) and quiet, sitting under the puck.
-        let barWidth = 8 * projection.scale
-        let barGap = 3 * projection.scale
+    /// A faint hamburger inside the centre ring — the menu affordance, so the
+    /// centre tap target is discoverable. Three short bars, neutral (they read
+    /// the same from both ends). Only while playing: during a faceoff the puck
+    /// sits on the spot and the "Ready?" prompts are the affordance instead.
+    private static func drawMenuGlyph(projection: Projection, in context: inout GraphicsContext) {
+        let centre = projection.point(projection.table.center)
+        let barWidth = 15 * projection.scale
+        let barGap = 5.5 * projection.scale
         var bars = Path()
         for row in -1...1 {
             let y = centre.y + CGFloat(row) * barGap
@@ -195,8 +209,8 @@ enum RinkRenderer {
             bars.addLine(to: CGPoint(x: centre.x + barWidth / 2, y: y))
         }
         context.stroke(
-            bars, with: .color(line.opacity(0.4)),
-            style: StrokeStyle(lineWidth: max(1, 0.9 * projection.scale), lineCap: .round))
+            bars, with: .color(line.opacity(0.6)),
+            style: StrokeStyle(lineWidth: max(2, 2 * projection.scale), lineCap: .round))
     }
 
     /// The goal mouth: a glowing bar in the seat's own colour, set into its
