@@ -23,11 +23,13 @@ public struct Playfield: Equatable, Codable, Sendable {
     public var faceoffBubbleRadius: Double
     /// How fast the puck glides into the conceder's half on a serve after a goal.
     public var serveSpeed: Double
+    /// The puck's silhouette — circle by default; a polygon tumbles.
+    public var puckShape: PuckShape
 
     public init(
         size: Vec2, puckRadius: Double, malletRadius: Double, goalWidth: Double,
         restitution: Double, drag: Double, maxSpeed: Double, restSpeed: Double,
-        faceoffBubbleRadius: Double, serveSpeed: Double
+        faceoffBubbleRadius: Double, serveSpeed: Double, puckShape: PuckShape = .circle
     ) {
         self.size = size
         self.puckRadius = puckRadius
@@ -39,6 +41,7 @@ public struct Playfield: Equatable, Codable, Sendable {
         self.restSpeed = restSpeed
         self.faceoffBubbleRadius = faceoffBubbleRadius
         self.serveSpeed = serveSpeed
+        self.puckShape = puckShape
     }
 
     /// The one table there is: two players facing each other.

@@ -6,6 +6,7 @@ import SwiftUI
 public struct AppRoot: View {
     @State private var phase: Phase = .menu
     @AppStorage("puckaround.pointsToWin") private var pointsToWin = 7
+    @AppStorage("puckaround.puckShape") private var puckShapeKey = PuckShapeKey.circle.rawValue
 
     private enum Phase {
         case menu
@@ -20,6 +21,7 @@ public struct AppRoot: View {
         case .menu:
             MenuView(
                 pointsToWin: $pointsToWin,
+                puckShapeKey: $puckShapeKey,
                 onPlay: { phase = .playing(id: UUID()) })
         case .playing(let id):
             GameView(

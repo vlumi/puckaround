@@ -11,8 +11,11 @@ public struct GameView: View {
 
     let onExit: () -> Void
 
-    public init(rules: Rules = .standard, onExit: @escaping () -> Void = {}) {
-        _game = StateObject(wrappedValue: HockeyGame(rules: rules))
+    public init(
+        rules: Rules = .standard, puckShape: PuckShape = .circle,
+        onExit: @escaping () -> Void = {}
+    ) {
+        _game = StateObject(wrappedValue: HockeyGame(rules: rules, puckShape: puckShape))
         self.onExit = onExit
     }
 

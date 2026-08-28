@@ -46,6 +46,11 @@ public struct Rink: Equatable, Sendable {
 
     public static let tickRate = 60
     public static let dt = 1.0 / Double(tickRate)
+    /// Below this spin rate (rad/s) the puck stops rotating, so it settles.
+    static let restAngularVelocity = 0.05
+    /// How strongly a glancing mallet hit spins a shaped puck (0 = none). A feel
+    /// dial for the shaped-puck spike.
+    static let spinBite = 0.6
 
     public let table: Playfield
     public let lineup: Lineup
@@ -219,6 +224,14 @@ public struct Rink: Equatable, Sendable {
             if let player {
                 events.append(.malletHit(player, speed: -closing))
             }
+            // A shaped puck spins when the hit has any sideways bite: the
+            // tangential part of the mallet's approach grabs the puck's edge,
+            // like putting english on it. A dead-centre square-on hit adds none.
+            if case .polygon = table.puckShape {
+                let relative = puck.velocity - malletVelocity
+                let tangent = normal.perpendicular
+                puck.angularVelocity -= relative.dot(tangent) / table.puckRadius * Rink.spinBite
+            }
         }
         // Pinned against a wall: kill the speed aimed into it (the wall takes
         // it) and let it slide out ALONG the wall instead, so a hard slam
@@ -307,27 +320,52 @@ public struct Rink: Equatable, Sendable {
         if v.length < table.restSpeed {
             v = .zero
         }
-        var p = puck.position + v * Rink.dt
+        // Angular motion decays like linear, and stops below a small rest rate.
+        var omega = puck.angularVelocity * exp(-table.drag * Rink.dt)
+        if abs(omega) < Rink.restAngularVelocity {
+            omega = 0
+        }
+        let p = puck.position + v * Rink.dt
+        let newAngle = puck.angle + omega * Rink.dt
 
-        // The short walls carry the goals: a puck crossing one inside the mouth
-        // is a goal against the seat at that wall; anywhere else it's a post or
-        // wall and bounces. Long walls always bounce. Reflection mirrors the
-        // position back inside and the velocity component with it, keeping
-        // `restitution` of it.
+        // A goal is decided by the CENTRE crossing a short wall inside the mouth
+        // — the same test for any puck shape.
+        if p.y < table.puckField.minY, table.isInGoalMouth(x: p.x) {
+            goal(against: .top)
+            return
+        }
+        if p.y > table.puckField.maxY, table.isInGoalMouth(x: p.x) {
+            goal(against: .bottom)
+            return
+        }
+
+        puck = Puck(position: p, velocity: v, angle: newAngle, angularVelocity: omega)
+        switch table.puckShape {
+        case .circle: bounceCircleOffWalls()
+        case .polygon: bouncePolygonOffWalls()
+        }
+
+        // The puck may have moved into a resting mallet.
+        for mallet in mallets {
+            collidePuck(withMalletAt: mallet.position, velocity: mallet.velocity)
+        }
+        // …and if it ended the tick stuck against a wall with nothing holding
+        // it, peel it off — a mallet can never reach between puck and boards.
+        freeStuckPuckFromWall()
+    }
+
+    /// A circle bounces off each wall by mirroring the position back inside and
+    /// the velocity component with it, keeping `restitution` of it. (Goal
+    /// crossings were already handled in `stepPuck`.)
+    private mutating func bounceCircleOffWalls() {
         let field = table.puckField
+        var p = puck.position
+        var v = puck.velocity
         if p.y < field.minY {
-            if table.isInGoalMouth(x: p.x) {
-                goal(against: .top)
-                return
-            }
             p.y = field.minY + (field.minY - p.y)
             events.append(.wallBounce(speed: abs(v.y)))
             v.y = -v.y * table.restitution
         } else if p.y > field.maxY {
-            if table.isInGoalMouth(x: p.x) {
-                goal(against: .bottom)
-                return
-            }
             p.y = field.maxY - (p.y - field.maxY)
             events.append(.wallBounce(speed: abs(v.y)))
             v.y = -v.y * table.restitution
@@ -341,15 +379,37 @@ public struct Rink: Equatable, Sendable {
             events.append(.wallBounce(speed: abs(v.x)))
             v.x = -v.x * table.restitution
         }
-        puck = Puck(position: field.clamping(p), velocity: v)
+        puck.position = field.clamping(p)
+        puck.velocity = v
+    }
 
-        // The puck may have moved into a resting mallet.
-        for mallet in mallets {
-            collidePuck(withMalletAt: mallet.position, velocity: mallet.velocity)
+    /// A polygon bounces off its deepest-penetrating corner against each wall in
+    /// turn — a rigid impulse that both reflects and spins it. Walls are visited
+    /// in a fixed order so a corner-in-corner resolves deterministically.
+    private mutating func bouncePolygonOffWalls() {
+        let field = table.puckField
+        let walls: [PolygonCollision.Wall] = [
+            .init(normal: Vec2(0, -1), limit: -field.minY),
+            .init(normal: Vec2(0, 1), limit: field.maxY),
+            .init(normal: Vec2(-1, 0), limit: -field.minX),
+            .init(normal: Vec2(1, 0), limit: field.maxX),
+        ]
+        for wall in walls {
+            let body = PolygonCollision.Body(
+                shape: table.puckShape, center: puck.position, angle: puck.angle,
+                radius: table.puckRadius, velocity: puck.velocity,
+                angularVelocity: puck.angularVelocity, inertiaFactor: table.puckShape.inertiaFactor)
+            guard
+                let result = PolygonCollision.resolve(
+                    body, wall: wall, restitution: table.restitution)
+            else { continue }
+            puck.position += result.positionShift
+            puck.velocity = result.velocity
+            puck.angularVelocity = result.angularVelocity
+            if result.impactSpeed > 0 {
+                events.append(.wallBounce(speed: result.impactSpeed))
+            }
         }
-        // …and if it ended the tick stuck against a wall with nothing holding
-        // it, peel it off — a mallet can never reach between puck and boards.
-        freeStuckPuckFromWall()
     }
 
     /// The other seat scores; the conceder gets the puck, or the game ends.

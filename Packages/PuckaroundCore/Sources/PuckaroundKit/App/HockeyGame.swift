@@ -33,9 +33,13 @@ public final class HockeyGame: ObservableObject {
 
     public let rules: Rules
 
-    public init(rules: Rules = .standard, seed: UInt64 = UInt64.random(in: 0...UInt64.max)) {
+    public init(
+        rules: Rules = .standard, puckShape: PuckShape = .circle,
+        seed: UInt64 = UInt64.random(in: 0...UInt64.max)
+    ) {
         self.rules = rules
-        let table = Playfield.duel
+        var table = Playfield.duel
+        table.puckShape = puckShape
         let rink = Rink(table: table, lineup: lineup, rules: rules, seed: seed)
         let controls = MalletControlSource(zones: SeatZones(lineup: lineup, bounds: table.bounds))
         self.controls = controls

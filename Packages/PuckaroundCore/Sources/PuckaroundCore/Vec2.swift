@@ -40,6 +40,20 @@ public struct Vec2: Equatable, Hashable, Sendable, Codable {
 
     public func distance(to other: Vec2) -> Double { (self - other).length }
 
+    /// z of the 2D cross product — the signed area, and the lever arm used for
+    /// torque (`r.cross(impulse)`).
+    public func cross(_ other: Vec2) -> Double { x * other.y - y * other.x }
+
+    /// Rotated by `angle` radians about the origin.
+    public func rotated(by angle: Double) -> Vec2 {
+        let c = cos(angle)
+        let s = sin(angle)
+        return Vec2(x * c - y * s, x * s + y * c)
+    }
+
+    /// Rotated 90° left — a normal to this vector.
+    public var perpendicular: Vec2 { Vec2(-y, x) }
+
     /// Closest point to `self` on segment `a`–`b`.
     public func closestPoint(onSegment a: Vec2, _ b: Vec2) -> Vec2 {
         let ab = b - a

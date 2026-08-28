@@ -14,6 +14,7 @@ The `## vX.Y.Z` heading is written by the release lane too, whenever a release c
 
 ### Unreleased (next build)
 
+- **Pick your puck.** The front page now offers a round, square or triangular puck. The shaped ones tumble — they spin off the walls and your mallet, deflect at odd angles off a corner, and generally behave less predictably than the round one. A first taste of puck variety.
 - **A mallet can move through the centre again.** The centre-ring menu no longer swallows the touch that grabs or drives a mallet across the middle — a drag through the ring is play, only a tap opens the menu.
 
 ### build 2 — 2026-08-28
