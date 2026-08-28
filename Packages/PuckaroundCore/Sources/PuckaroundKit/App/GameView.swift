@@ -51,48 +51,53 @@ public struct GameView: View {
 
     @ViewBuilder
     private func overlay(for scene: RinkScene) -> some View {
+        let rect = scene.tableRect
         if case .finished = scene.rink.phase {
-            finishControls(at: CGPoint(x: scene.tableRect.midX, y: scene.tableRect.midY))
+            // Restart on the centre spot; the way to the menu sits on the same
+            // neutral centre line, off at the edge — both shared controls belong
+            // to neither player, so neither is planted in a player's half.
+            restartRing.position(x: rect.midX, y: rect.midY)
+            onMidline(
+                NeonIconButton(systemName: "house.fill", label: "Menu", action: onExit), in: rect)
         } else if showingPause {
             pauseMenu
         } else {
-            // The dim way in: a small menu dot on the centre line, out of the
-            // thumbs' way. Tapping it pauses to the abandon/restart choice.
-            NeonIconButton(systemName: "pause.fill", label: "Menu") {
-                showingPause = true
-            }
-            .position(x: scene.tableRect.midX, y: scene.tableRect.midY)
+            // The dim way in: a small pause dot on the centre line, at the edge
+            // — neutral to both players and clear of the centre-spot faceoff and
+            // the puck. Tapping it pauses to the abandon/restart choice.
+            onMidline(
+                NeonIconButton(systemName: "pause.fill", label: "Menu") { showingPause = true },
+                in: rect)
         }
+    }
+
+    /// Place a shared control on the centre line, tucked against the left edge —
+    /// on the boundary that belongs to neither player, out of the play at centre.
+    private func onMidline(_ button: some View, in rect: CGRect) -> some View {
+        button.position(x: rect.minX + 26, y: rect.midY)
     }
 
     /// A game in progress can be abandoned or restarted — both destructive, so
-    /// they sit behind the pause dot rather than on the table.
+    /// they sit behind the pause dot as a centred panel over a dimmed table.
     private var pauseMenu: some View {
-        VStack(spacing: 14) {
-            NeonButton(title: "Resume", tint: Neon.cyan) { showingPause = false }
-            NeonButton(title: "Restart") {
-                game.newGame()
-                showingPause = false
+        ZStack {
+            Color.black.opacity(0.55).ignoresSafeArea()
+            VStack(spacing: 14) {
+                NeonButton(title: "Resume", tint: Neon.cyan) { showingPause = false }
+                NeonButton(title: "Restart") {
+                    game.newGame()
+                    showingPause = false
+                }
+                NeonButton(title: "Quit to menu", tint: Neon.magenta, action: onExit)
             }
-            NeonButton(title: "Quit to menu", tint: Neon.magenta, action: onExit)
+            .frame(maxWidth: 260)
+            .padding(24)
+            .background(
+                RoundedRectangle(cornerRadius: 18).fill(Neon.ground.opacity(0.95))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 18).strokeBorder(Neon.inkSoft, lineWidth: 1))
+            )
         }
-        .frame(maxWidth: 260)
-        .padding(24)
-        .background(
-            RoundedRectangle(cornerRadius: 18).fill(Neon.ground.opacity(0.92))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 18).strokeBorder(Neon.inkSoft, lineWidth: 1)))
-    }
-
-    /// After a game: restart it (the ring, symmetric so it reads from both
-    /// ends), or go back to the front door.
-    private func finishControls(at centre: CGPoint) -> some View {
-        VStack(spacing: 16) {
-            restartRing
-            NeonButton(title: "Menu", tint: Neon.inkSoft) { onExit() }
-                .frame(width: 150)
-        }
-        .position(centre)
     }
 
     private var restartRing: some View {
