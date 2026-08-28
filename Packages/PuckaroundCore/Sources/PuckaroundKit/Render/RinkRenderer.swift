@@ -132,15 +132,16 @@ enum RinkRenderer {
                     time: scene.time, reducedMotion: scene.reducedMotion),
                 projection: projection, in: &context)
         }
+        // The menu glyph is always there — the centre ring is always the menu.
+        // It sits UNDER the puck (drawn next), so during a faceoff the frozen
+        // puck rests on it; that's fine, it's furniture, and an empty ring would
+        // read as broken.
+        drawMenuGlyph(projection: projection, in: &context)
         if scene.rink.isFaceoff {
             drawFaceoffBubble(
                 around: scene.rink.puck.position, radius: table.faceoffBubbleRadius,
                 ripple: Ripple(active: true, time: scene.time, reducedMotion: scene.reducedMotion),
                 projection: projection, in: &context)
-        } else {
-            // The menu glyph shows during play, where the centre spot is usually
-            // clear; in a faceoff the puck covers it and "Ready?" is the cue.
-            drawMenuGlyph(projection: projection, in: &context)
         }
         drawPuck(scene.rink.puck, radius: table.puckRadius, projection: projection, in: &context)
         if !scene.reducedMotion {
@@ -198,10 +199,10 @@ enum RinkRenderer {
             blur: 3 * projection.scale, in: &context)
     }
 
-    /// A faint hamburger inside the centre ring — the menu affordance, so the
-    /// centre tap target is discoverable. Three short bars, neutral (they read
-    /// the same from both ends). Only while playing: during a faceoff the puck
-    /// sits on the spot and the "Ready?" prompts are the affordance instead.
+    /// A hamburger inside the centre ring — the menu affordance, so the centre
+    /// tap target is discoverable. Three short bars, neutral (they read the same
+    /// from both ends). Always drawn (the ring is always the menu); it sits
+    /// under the puck, which rests on it during a faceoff.
     private static func drawMenuGlyph(projection: Projection, in context: inout GraphicsContext) {
         let centre = projection.point(projection.table.center)
         let barWidth = 15 * projection.scale
