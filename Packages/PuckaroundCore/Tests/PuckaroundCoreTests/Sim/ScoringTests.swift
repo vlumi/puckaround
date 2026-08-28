@@ -79,46 +79,56 @@ final class ScoringTests: XCTestCase {
         XCTAssertEqual(r3.score, [1, 0])
     }
 
-    func testFirstToTheLimitWinsAndFreezesThePuckOnly() {
+    func testWinningOpensARematchFaceoffShowingTheResult() {
         var r = rink(rules: Rules(pointsToWin: 2))
         shoot(&r, at: .bottom, x: r.table.center.x)
         XCTAssertEqual(r.phase, .playing)
         shoot(&r, at: .bottom, x: r.table.center.x)
-        XCTAssertEqual(r.phase, .finished(winner: top))
+        // The win goes straight to a faceoff that remembers the winner, so the
+        // result stays on screen while the players decide on a rematch.
+        XCTAssertTrue(r.isFaceoff)
+        XCTAssertEqual(r.finalWinner, top)
+        XCTAssertEqual(r.score, [0, 2], "the final score is kept for display")
         XCTAssertEqual(r.puck.position, r.table.center)
-        let finished = r
-        r.advance(inputs: [bottom: SeatInput(malletDrag: Vec2(5, -5))])
-        XCTAssertEqual(
-            r.mallet(of: bottom).position, finished.mallet(of: bottom).position + Vec2(5, -5),
-            "hands stay live")
-        XCTAssertEqual(r.puck, finished.puck, "the puck is done")
-        XCTAssertEqual(r.tick, finished.tick + 1)
+        XCTAssertFalse(r.puck.isMoving, "frozen behind the field")
     }
 
-    func testAFinishedGamesMalletCannotDisturbTheParkedPuck() {
+    func testReadyingUpAfterAWinIsTheRematchAndResetsTheScore() {
+        var r = rink(rules: Rules(pointsToWin: 2))
+        shoot(&r, at: .bottom, x: r.table.center.x)
+        shoot(&r, at: .bottom, x: r.table.center.x)
+        XCTAssertEqual(r.finalWinner, top)
+        r.ready(bottom)
+        XCTAssertEqual(r.score, [0, 2], "score holds until the rematch actually starts")
+        r.ready(top)
+        XCTAssertEqual(r.phase, .playing, "both readied → the rematch is on")
+        XCTAssertEqual(r.score, [0, 0], "and the score resets as it starts")
+        XCTAssertNil(r.finalWinner)
+    }
+
+    func testTheRematchFaceoffPuckIsUntouchableUntilReady() {
         var r = rink(rules: Rules(pointsToWin: 1))
         shoot(&r, at: .bottom, x: r.table.center.x)
-        // Drive the bottom mallet up onto the centre line, right under the puck.
-        r.placeMallet(of: bottom, at: Vec2(r.table.center.x, r.table.center.y + 30))
-        for _ in 0..<10 {
-            r.advance(inputs: [bottom: SeatInput(malletDrag: Vec2(0, -5))])
+        XCTAssertTrue(r.isFaceoff)
+        // Drive the bottom mallet at the frozen puck — the field holds it out.
+        for _ in 0..<20 {
+            r.advance(inputs: [bottom: SeatInput(malletDrag: Vec2(0, -20))])
         }
-        XCTAssertEqual(r.mallet(of: bottom).position.y, r.table.center.y + r.table.malletRadius)
         XCTAssertEqual(r.puck.position, r.table.center)
         XCTAssertFalse(r.puck.isMoving)
     }
 
-    func testNewGameResetsTheScoreAndOpensAFaceoffButLeavesTheMallets() {
+    func testNewGameResetsTheScoreAndOpensAFreshFaceoffLeavingTheMallets() {
         var r = rink(rules: Rules(pointsToWin: 1))
         shoot(&r, at: .bottom, x: r.table.center.x)
-        XCTAssertEqual(r.phase, .finished(winner: top))
+        XCTAssertEqual(r.finalWinner, top)
         r.advance(inputs: [bottom: SeatInput(malletDrag: Vec2(3, -3))])
         let hands = r.mallets
         r.newGame()
         XCTAssertEqual(r.score, [0, 0])
-        XCTAssertTrue(r.isFaceoff, "a new game opens with a faceoff")
+        XCTAssertTrue(r.isFaceoff)
+        XCTAssertNil(r.finalWinner, "a fresh game shows no prior result")
         XCTAssertEqual(r.puck.position, r.table.center)
-        XCTAssertFalse(r.puck.isMoving)
         XCTAssertEqual(r.mallets, hands, "the mallets are where the hands left them")
     }
 

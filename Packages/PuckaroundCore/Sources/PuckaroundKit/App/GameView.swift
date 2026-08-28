@@ -52,42 +52,31 @@ public struct GameView: View {
     @ViewBuilder
     private func overlay(for scene: RinkScene) -> some View {
         let rect = scene.tableRect
-        if case .finished = scene.rink.phase {
-            // Restart on the centre spot; the way to the menu sits on the same
-            // neutral centre line, off at the edge — both shared controls belong
-            // to neither player, so neither is planted in a player's half.
-            restartRing.position(x: rect.midX, y: rect.midY)
-            onMidline(
-                NeonIconButton(systemName: "house.fill", label: "Menu", action: onExit), in: rect)
-        } else if showingPause {
+        if showingPause {
             pauseMenu
         } else {
-            // The dim way in: a small pause dot on the centre line, at the edge
-            // — neutral to both players and clear of the centre-spot faceoff and
-            // the puck. Tapping it pauses to the abandon/restart choice.
-            onMidline(
-                NeonIconButton(systemName: "pause.fill", label: "Menu") { showingPause = true },
-                in: rect)
+            // The centre ring IS the menu — always, whether playing or between
+            // games. An invisible tap target on the neutral centre spot, under
+            // the puck, so it belongs to neither player and needs no chrome of
+            // its own. Playing again is the faceoff (ready up), not a button, so
+            // the menu only offers Resume + Quit.
+            Circle()
+                .fill(Color.white.opacity(0.001))
+                .frame(width: 66, height: 66)
+                .position(x: rect.midX, y: rect.midY)
+                .onTapGesture { showingPause = true }
+                .accessibilityLabel(Text("Menu", bundle: .module))
         }
     }
 
-    /// Place a shared control on the centre line, tucked against the left edge —
-    /// on the boundary that belongs to neither player, out of the play at centre.
-    private func onMidline(_ button: some View, in rect: CGRect) -> some View {
-        button.position(x: rect.minX + 26, y: rect.midY)
-    }
-
-    /// A game in progress can be abandoned or restarted — both destructive, so
-    /// they sit behind the pause dot as a centred panel over a dimmed table.
+    /// The menu behind the centre ring: resume, or quit to the front door.
+    /// There is no "restart" — after a game the faceoff returns and readying up
+    /// IS the rematch, so quitting never has to go through a restart.
     private var pauseMenu: some View {
         ZStack {
-            Color.black.opacity(0.55).ignoresSafeArea()
+            Color.black.opacity(0.6).ignoresSafeArea().onTapGesture { showingPause = false }
             VStack(spacing: 14) {
                 NeonButton(title: "Resume", tint: Neon.cyan) { showingPause = false }
-                NeonButton(title: "Restart") {
-                    game.newGame()
-                    showingPause = false
-                }
                 NeonButton(title: "Quit to menu", tint: Neon.magenta, action: onExit)
             }
             .frame(maxWidth: 260)
@@ -98,23 +87,5 @@ public struct GameView: View {
                         RoundedRectangle(cornerRadius: 18).strokeBorder(Neon.inkSoft, lineWidth: 1))
             )
         }
-    }
-
-    private var restartRing: some View {
-        Button {
-            game.newGame()
-        } label: {
-            Image(systemName: "arrow.triangle.2.circlepath")
-                .font(.system(size: 30, weight: .bold))
-                .foregroundStyle(RinkRenderer.line)
-                .shadow(color: RinkRenderer.line.opacity(0.8), radius: 8)
-                .frame(width: 78, height: 78)
-                .background(
-                    Circle().fill(RinkRenderer.ice.opacity(0.9))
-                        .overlay(
-                            Circle().strokeBorder(RinkRenderer.line, lineWidth: 2)
-                                .shadow(color: RinkRenderer.line.opacity(0.7), radius: 6)))
-        }
-        .accessibilityLabel(Text("New game", bundle: .module))
     }
 }

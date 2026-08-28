@@ -82,9 +82,13 @@ final class FaceoffTests: XCTestCase {
         let y = r.table.puckField.maxY - 1
         r.place(Puck(position: Vec2(r.table.center.x, y), velocity: Vec2(0, 300)))
         r.advance(inputs: [:])
-        XCTAssertEqual(r.phase, .finished(winner: top))
+        // A win opens a rematch faceoff remembering the winner…
+        XCTAssertTrue(r.isFaceoff)
+        XCTAssertEqual(r.finalWinner, top)
+        // …and a full new game clears that, a fresh faceoff with no result shown.
         r.newGame()
         XCTAssertTrue(r.isFaceoff)
+        XCTAssertNil(r.finalWinner)
         XCTAssertEqual(r.readySeats, [])
     }
 }

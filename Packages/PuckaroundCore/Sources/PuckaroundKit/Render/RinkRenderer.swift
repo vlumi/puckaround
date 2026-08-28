@@ -107,14 +107,18 @@ enum RinkRenderer {
                 scene.rink.score(of: player), at: edge, color: color,
                 projection: projection, in: &context)
             drawGoal(at: edge, color: color, projection: projection, in: &context)
-            if case .finished(let winner) = scene.rink.phase {
+            let half = projection.rect(table.malletZone(for: edge))
+            // The result of the game just played stays up through the rematch
+            // faceoff, so players see who won while deciding to go again.
+            if let winner = scene.rink.finalWinner {
                 drawVerdict(
-                    won: winner == player, in: projection.rect(table.malletZone(for: edge)),
-                    facing: edge, color: color, in: &context)
+                    won: winner == player, in: half, facing: edge, color: color, in: &context)
             }
+            // A seat that hasn't readied is prompted to — "Ready?" to open, or a
+            // rematch invite once a game is over.
             if scene.rink.isFaceoff, !faceoffReady.contains(player) {
                 drawReadyPrompt(
-                    in: projection.rect(table.malletZone(for: edge)), facing: edge, color: color,
+                    rematch: scene.rink.finalWinner != nil, in: half, facing: edge, color: color,
                     in: &context)
             }
             drawMallet(
@@ -360,16 +364,23 @@ extension RinkRenderer {
     /// "Ready?" on the board in the seat's half, facing its player — the prompt
     /// to tap in. Disappears the moment that seat has readied.
     private static func drawReadyPrompt(
-        in half: CGRect, facing edge: Seat, color: Color, in context: inout GraphicsContext
+        rematch: Bool, in half: CGRect, facing edge: Seat, color: Color,
+        in context: inout GraphicsContext
     ) {
         var ctx = context
-        ctx.translateBy(x: half.midX, y: half.midY)
+        // On a rematch the verdict sits near the centre line, so the prompt
+        // drops toward the player to clear it; the opening faceoff centres it.
+        let fraction = rematch ? 0.6 : 0.5
+        let y =
+            edge == .top ? half.maxY - half.height * fraction : half.minY + half.height * fraction
+        ctx.translateBy(x: half.midX, y: y)
         if edge == .top {
             ctx.rotate(by: .degrees(180))
         }
+        let phrase =
+            rematch ? Text("Tap to rematch", bundle: .module) : Text("Ready?", bundle: .module)
         let text = ctx.resolve(
-            Text("Ready?", bundle: .module).font(
-                .system(size: half.height * 0.12, weight: .bold, design: .rounded)))
+            phrase.font(.system(size: half.height * 0.09, weight: .bold, design: .rounded)))
         var haze = ctx
         haze.addFilter(.blur(radius: half.height * 0.012))
         haze.draw(coloured(text, color.opacity(0.85)), at: .zero, anchor: .center)
