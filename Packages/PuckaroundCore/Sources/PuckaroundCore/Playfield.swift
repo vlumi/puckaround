@@ -18,10 +18,16 @@ public struct Playfield: Equatable, Codable, Sendable {
     /// Below this the puck is at rest, so it never creeps forever on
     /// floating-point dust.
     public var restSpeed: Double
+    /// The faceoff force field: no mallet may enter this radius around the puck
+    /// (parked at centre) until everyone is ready and the field drops.
+    public var faceoffBubbleRadius: Double
+    /// How fast the puck glides into the conceder's half on a serve after a goal.
+    public var serveSpeed: Double
 
     public init(
         size: Vec2, puckRadius: Double, malletRadius: Double, goalWidth: Double,
-        restitution: Double, drag: Double, maxSpeed: Double, restSpeed: Double
+        restitution: Double, drag: Double, maxSpeed: Double, restSpeed: Double,
+        faceoffBubbleRadius: Double, serveSpeed: Double
     ) {
         self.size = size
         self.puckRadius = puckRadius
@@ -31,12 +37,15 @@ public struct Playfield: Equatable, Codable, Sendable {
         self.drag = drag
         self.maxSpeed = maxSpeed
         self.restSpeed = restSpeed
+        self.faceoffBubbleRadius = faceoffBubbleRadius
+        self.serveSpeed = serveSpeed
     }
 
     /// The one table there is: two players facing each other.
     public static let duel = Playfield(
         size: Vec2(100, 160), puckRadius: 4, malletRadius: 7, goalWidth: 36,
-        restitution: 0.85, drag: 0.4, maxSpeed: 400, restSpeed: 0.5)
+        restitution: 0.85, drag: 0.4, maxSpeed: 400, restSpeed: 0.5, faceoffBubbleRadius: 22,
+        serveSpeed: 26)
 
     public var bounds: Rect { Rect(origin: .zero, size: size) }
     public var center: Vec2 { bounds.center }

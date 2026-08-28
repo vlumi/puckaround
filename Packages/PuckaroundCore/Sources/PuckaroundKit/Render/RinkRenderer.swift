@@ -99,6 +99,7 @@ enum RinkRenderer {
         let lineup = scene.rink.lineup
 
         drawRink(projection: projection, in: &context)
+        let faceoffReady = scene.rink.readySeats
         for player in lineup.players {
             let edge = lineup.seat(of: player)
             let color = SeatPalette.color(for: player, in: lineup)
@@ -111,8 +112,22 @@ enum RinkRenderer {
                     won: winner == player, in: projection.rect(table.malletZone(for: edge)),
                     facing: edge, color: color, in: &context)
             }
+            if scene.rink.isFaceoff, !faceoffReady.contains(player) {
+                drawReadyPrompt(
+                    in: projection.rect(table.malletZone(for: edge)), facing: edge, color: color,
+                    in: &context)
+            }
             drawMallet(
                 scene.rink.mallet(of: player), radius: table.malletRadius, color: color,
+                ripple: Ripple(
+                    active: scene.rink.isFaceoff && !faceoffReady.contains(player),
+                    time: scene.time, reducedMotion: scene.reducedMotion),
+                projection: projection, in: &context)
+        }
+        if scene.rink.isFaceoff {
+            drawFaceoffBubble(
+                around: scene.rink.puck.position, radius: table.faceoffBubbleRadius,
+                ripple: Ripple(active: true, time: scene.time, reducedMotion: scene.reducedMotion),
                 projection: projection, in: &context)
         }
         drawPuck(scene.rink.puck, radius: table.puckRadius, projection: projection, in: &context)
@@ -250,12 +265,31 @@ enum RinkRenderer {
     /// The mallet: a glowing ring in the seat's colour with a dark hollow, so
     /// it reads as a striker rather than a solid disc, and its colour is
     /// unmistakably that player's.
+    /// Whether a mallet ripples (a not-yet-readied seat during faceoff), and the
+    /// clock + reduced-motion state that shape it.
+    private struct Ripple {
+        var active = false
+        var time: Double = 0
+        var reducedMotion = false
+    }
+
     private static func drawMallet(
-        _ mallet: Mallet, radius: Double, color: Color, projection: Projection,
-        in context: inout GraphicsContext
+        _ mallet: Mallet, radius: Double, color: Color, ripple: Ripple = Ripple(),
+        projection: Projection, in context: inout GraphicsContext
     ) {
         let p = projection.point(mallet.position)
         let r = radius * projection.scale
+        // Before a seat readies, a slow ripple pulses out from its mallet — a
+        // wordless "grab me". Off under reduced motion (a static soft halo).
+        if ripple.active {
+            let phase =
+                ripple.reducedMotion ? 0.5 : (ripple.time * 0.8).truncatingRemainder(dividingBy: 1)
+            let rippleR = r * (1 + phase * 1.6)
+            context.stroke(
+                projection.disc(at: p, radius: rippleR),
+                with: .color(color.opacity((1 - phase) * 0.5)),
+                lineWidth: max(1, 0.5 * projection.scale))
+        }
         glow(
             projection.disc(at: p, radius: r), color: color, blur: 6 * projection.scale, core: 1,
             in: &context)
@@ -317,5 +351,44 @@ enum RinkRenderer {
                     startPoint: CGPoint(x: 0, y: band.minY),
                     endPoint: CGPoint(x: 0, y: band.maxY)))
         }
+    }
+}
+
+// MARK: - Faceoff overlay
+
+extension RinkRenderer {
+    /// "Ready?" on the board in the seat's half, facing its player — the prompt
+    /// to tap in. Disappears the moment that seat has readied.
+    private static func drawReadyPrompt(
+        in half: CGRect, facing edge: Seat, color: Color, in context: inout GraphicsContext
+    ) {
+        var ctx = context
+        ctx.translateBy(x: half.midX, y: half.midY)
+        if edge == .top {
+            ctx.rotate(by: .degrees(180))
+        }
+        let text = ctx.resolve(
+            Text("Ready?", bundle: .module).font(
+                .system(size: half.height * 0.12, weight: .bold, design: .rounded)))
+        var haze = ctx
+        haze.addFilter(.blur(radius: half.height * 0.012))
+        haze.draw(coloured(text, color.opacity(0.85)), at: .zero, anchor: .center)
+        ctx.draw(coloured(text, color.opacity(0.85)), at: .zero, anchor: .center)
+    }
+
+    /// The faceoff force field: a glowing ring around the frozen puck that no
+    /// mallet may enter, breathing slowly so it reads as "live, not yet open".
+    private static func drawFaceoffBubble(
+        around centre: Vec2, radius: Double, ripple: Ripple, projection: Projection,
+        in context: inout GraphicsContext
+    ) {
+        let p = projection.point(centre)
+        let pulse = ripple.reducedMotion ? 0 : sin(ripple.time * 3) * 0.06
+        let r = radius * projection.scale * (1 + pulse)
+        let ring = projection.disc(at: p, radius: r)
+        context.fill(ring, with: .color(line.opacity(0.06)))
+        glowStroke(
+            ring, color: line.opacity(0.7), lineWidth: max(1.5, 1.2 * projection.scale),
+            blur: 5 * projection.scale, in: &context)
     }
 }

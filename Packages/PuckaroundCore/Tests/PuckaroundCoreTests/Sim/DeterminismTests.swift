@@ -13,6 +13,7 @@ final class DeterminismTests: XCTestCase {
 
     private func run(seed: UInt64, ticks: Int) -> (rink: Rink, trail: [Vec2]) {
         var rink = Rink(table: .duel, lineup: .duel, seed: seed)
+        rink.startPlaying()
         var trail: [Vec2] = []
         for _ in 0..<ticks {
             var inputs: [PlayerID: SeatInput] = [:]
@@ -37,17 +38,15 @@ final class DeterminismTests: XCTestCase {
         XCTAssertNotEqual(a.trail.first, a.trail.last, "the script actually moved the puck")
     }
 
-    func testTheSeedDecidesTheOpeningPossession() {
-        var first: Vec2?
-        var differed = false
-        for seed in 0..<10 {
-            let puck = Rink(table: .duel, lineup: .duel, seed: UInt64(seed)).puck.position
-            if let first, first != puck {
-                differed = true
-            }
-            first = first ?? puck
-        }
-        XCTAssertTrue(differed)
+    func testEveryGameOpensTheSameWay() {
+        // No chance in the opening now — a faceoff, puck frozen at centre — so
+        // the seed does not change how a game begins.
+        let a = Rink(table: .duel, lineup: .duel, seed: 1)
+        let b = Rink(table: .duel, lineup: .duel, seed: 999)
+        XCTAssertTrue(a.isFaceoff)
+        XCTAssertEqual(a.puck.position, a.table.center)
+        XCTAssertEqual(a.puck.position, b.puck.position)
+        XCTAssertFalse(a.puck.isMoving)
     }
 
     func testNewGameIsReproducibleFromTheSeed() {

@@ -85,7 +85,13 @@ public final class HockeyGame: ObservableObject {
     // MARK: - Touches (screen points in, world points on)
 
     func touchBegan(id: TouchID, at p: CGPoint) {
-        controls.touchBegan(id: id, at: world(fromScreen: p))
+        let world = world(fromScreen: p)
+        // During the faceoff, grabbing your mallet IS declaring yourself ready —
+        // one gesture, so your hand is on the mallet the instant the field drops.
+        if session.rink.isFaceoff {
+            session.ready(controls.zones.owner(of: world))
+        }
+        controls.touchBegan(id: id, at: world)
     }
 
     func touchMoved(id: TouchID, at p: CGPoint) {

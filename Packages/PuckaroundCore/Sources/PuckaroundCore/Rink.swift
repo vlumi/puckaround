@@ -32,6 +32,10 @@ public struct Rules: Equatable, Codable, Sendable {
 /// inputs.
 public struct Rink: Equatable, Sendable {
     public enum Phase: Equatable, Sendable {
+        /// The opening ceremony: the puck is frozen at centre behind a force
+        /// field, and play begins the instant every seat has readied. Carries
+        /// who has readied so far.
+        case faceoff(ready: Set<PlayerID>)
         case playing
         case finished(winner: PlayerID)
     }
@@ -73,19 +77,43 @@ public struct Rink: Equatable, Sendable {
     public func mallet(of player: PlayerID) -> Mallet { mallets[player.rawValue] }
     public func score(of player: PlayerID) -> Int { score[player.rawValue] }
 
-    /// Scores to zero and the opening possession decided by the seed — the one
-    /// place chance enters. The mallets stay where the hands left them: they
-    /// were never out of play.
+    /// Scores to zero, and open with a faceoff: the puck sits frozen at centre
+    /// behind the force field until every seat readies. No chance decides the
+    /// opening — the players do, by both grabbing in. The mallets stay where the
+    /// hands left them.
     public mutating func newGame() {
         score = lineup.players.map { _ in 0 }
-        phase = .playing
-        let first = lineup.players[Int.random(in: 0..<lineup.playerCount, using: &rng)]
-        serve(to: first)
+        puck = Puck(position: table.center)
+        phase = .faceoff(ready: [])
     }
 
-    /// The puck at rest in `player`'s half, theirs to push off.
+    /// A seat declares itself ready. No take-backs — readiness is a latch. When
+    /// the last seat readies, the force field drops and play begins that instant.
+    public mutating func ready(_ player: PlayerID) {
+        guard case .faceoff(var ready) = phase, lineup.contains(player) else { return }
+        ready.insert(player)
+        phase = ready.count == lineup.playerCount ? .playing : .faceoff(ready: ready)
+    }
+
+    /// Which seats have readied during the faceoff (empty otherwise).
+    public var readySeats: Set<PlayerID> {
+        if case .faceoff(let ready) = phase { return ready }
+        return []
+    }
+
+    public var isFaceoff: Bool {
+        if case .faceoff = phase { return true }
+        return false
+    }
+
+    /// After a goal: the puck is served from centre, gliding slowly into the
+    /// conceder's half. It moves AWAY from every opponent — a 1v1 opponent can't
+    /// cross the centre line, so a puck heading into the conceder's own end is
+    /// unreachable by anyone but them until it settles.
     public mutating func serve(to player: PlayerID) {
-        puck = Puck(position: table.serveSpot(for: lineup.seat(of: player)))
+        // Toward the conceder's own goal — away from centre and every opponent.
+        let towardOwnGoal = -lineup.seat(of: player).inward
+        puck = Puck(position: table.center, velocity: towardOwnGoal * table.serveSpeed)
     }
 
     /// One tick: every mallet moves (striking the puck on its way), then the
@@ -110,12 +138,20 @@ public struct Rink: Equatable, Sendable {
     /// The mallet goes where the hand says, clamped to its half, and is swept
     /// along its path in steps no longer than the puck's radius — so a fast
     /// hand can't pass through the puck between two positions.
+    ///
+    /// During a faceoff the puck's force field is closed: the mallet is also
+    /// clamped OUT of the bubble, and a finger driven into the bubble leaves the
+    /// mallet stranded at the rim rather than warping it to the puck's edge — so
+    /// nobody can ride a finger onto the puck the instant the field drops.
     private mutating func moveMallet(
         _ index: Int, of player: PlayerID, by drag: Vec2, strikes: Bool
     ) {
         let zone = table.malletZone(for: lineup.seat(of: player))
         let from = mallets[index].position
-        let to = zone.clamping(from + drag)
+        var to = zone.clamping(from + drag)
+        if isFaceoff {
+            to = clampedOutOfBubble(to, seat: lineup.seat(of: player))
+        }
         let velocity = (to - from) * (1 / Rink.dt)
         if strikes {
             let steps = max(1, Int(((to - from).length / table.puckRadius).rounded(.up)))
@@ -125,6 +161,20 @@ public struct Rink: Equatable, Sendable {
             }
         }
         mallets[index] = Mallet(position: to, velocity: velocity)
+    }
+
+    /// The nearest point to `p` that keeps the mallet's rim clear of the faceoff
+    /// bubble around the puck. A point already inside is pushed back out to the
+    /// rim — the mallet stops there, disconnected from the finger.
+    private func clampedOutOfBubble(_ p: Vec2, seat: Seat) -> Vec2 {
+        let keepOut = table.faceoffBubbleRadius + table.malletRadius
+        let offset = p - puck.position
+        let distance = offset.length
+        guard distance < keepOut else { return p }
+        // Push back along the offset; if the mallet is dead on the puck, push it
+        // toward the seat's own goal (opposite its inward direction).
+        let direction = distance > 0 ? offset * (1 / distance) : -seat.inward
+        return puck.position + direction * keepOut
     }
 
     /// Circle–circle against a kinematic mallet: push the puck clear, and if
