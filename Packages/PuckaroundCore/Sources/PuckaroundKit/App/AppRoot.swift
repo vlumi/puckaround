@@ -26,6 +26,7 @@ public struct AppRoot: View {
         case .playing(let id):
             GameView(
                 rules: Rules(pointsToWin: pointsToWin),
+                puckShape: PuckShapeKey(rawValue: puckShapeKey)?.shape ?? .circle,
                 onExit: { phase = .menu }
             )
             // Keyed so "restart" (a new game id) tears down the old table
