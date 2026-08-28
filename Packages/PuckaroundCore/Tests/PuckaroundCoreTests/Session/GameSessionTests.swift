@@ -63,4 +63,13 @@ final class GameSessionTests: XCTestCase {
         XCTAssertEqual(
             s.rink.mallets, seedState.mallets, "nobody has moved, so the mallets are still home")
     }
+
+    func testReadyForwardsToTheRinkAndStartsPlay() {
+        let s = session()
+        XCTAssertTrue(s.rink.isFaceoff, "a fresh session opens in a faceoff")
+        s.ready(PlayerID(0))
+        XCTAssertTrue(s.rink.isFaceoff, "one seat readied is not enough")
+        s.ready(PlayerID(1))
+        XCTAssertEqual(s.rink.phase, .playing, "both readied via the session → play begins")
+    }
 }

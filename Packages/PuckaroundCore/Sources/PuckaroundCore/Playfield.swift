@@ -71,13 +71,6 @@ public struct Playfield: Equatable, Codable, Sendable {
         }
     }
 
-    /// Where a seat's puck is placed for a serve: a quarter of the way from
-    /// the centre line to its goal — between the mallet's home (the middle of
-    /// the half) and the line, clear of both.
-    public func serveSpot(for edge: Seat) -> Vec2 {
-        center + edge.inward * -(size.y / 8)
-    }
-
     /// Whether a puck centre crossing a short wall at `x` goes cleanly into the
     /// goal mouth — clear of both posts, so the whole disc fits through.
     public func isInGoalMouth(x: Double) -> Bool {

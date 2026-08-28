@@ -49,4 +49,11 @@ final class LineupTests: XCTestCase {
         XCTAssertTrue(four.areAllies(PlayerID(2), PlayerID(2)))
         XCTAssertFalse(four.areAllies(PlayerID(0), PlayerID(1)))
     }
+
+    func testPlayerIDsOrderBySeatIndex() {
+        XCTAssertTrue(PlayerID(0) < PlayerID(1))
+        XCTAssertEqual(
+            [PlayerID(2), PlayerID(0), PlayerID(1)].sorted(),
+            [PlayerID(0), PlayerID(1), PlayerID(2)])
+    }
 }
