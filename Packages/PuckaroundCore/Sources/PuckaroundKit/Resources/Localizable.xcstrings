@@ -1,9 +1,16 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "AROUND": {},
+    "First to": {},
     "LOSE": {},
-    "New game": {},
+    "Menu": {},
+    "PUCK": {},
+    "Play": {},
+    "Quit to menu": {},
     "Ready?": {},
+    "Restart": {},
+    "Resume": {},
     "WIN": {}
   },
   "version": "1.0"

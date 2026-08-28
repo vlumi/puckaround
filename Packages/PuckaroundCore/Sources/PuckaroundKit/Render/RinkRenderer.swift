@@ -31,6 +31,10 @@ enum RinkRenderer {
     /// The puck: white-hot, so it reads against every seat colour and the ice.
     static let puck = Color(red: 0.97, green: 0.96, blue: 1.0)
 
+    /// The centre ring's radius in world units — the menu button. Shared so the
+    /// touch target (in the view) matches the drawn ring exactly.
+    static let centreRingRadius: Double = 16
+
     /// The table letterboxed into the screen: as big as its aspect allows
     /// inside `margin`, centred.
     static func fittedTableRect(tableSize: Vec2, in screen: CGSize, margin: CGFloat = 12) -> CGRect
@@ -107,14 +111,18 @@ enum RinkRenderer {
                 scene.rink.score(of: player), at: edge, color: color,
                 projection: projection, in: &context)
             drawGoal(at: edge, color: color, projection: projection, in: &context)
-            if case .finished(let winner) = scene.rink.phase {
+            let half = projection.rect(table.malletZone(for: edge))
+            // The result of the game just played stays up through the rematch
+            // faceoff, so players see who won while deciding to go again.
+            if let winner = scene.rink.finalWinner {
                 drawVerdict(
-                    won: winner == player, in: projection.rect(table.malletZone(for: edge)),
-                    facing: edge, color: color, in: &context)
+                    won: winner == player, in: half, facing: edge, color: color, in: &context)
             }
+            // A seat that hasn't readied is prompted to — "Ready?" to open, or a
+            // rematch invite once a game is over.
             if scene.rink.isFaceoff, !faceoffReady.contains(player) {
                 drawReadyPrompt(
-                    in: projection.rect(table.malletZone(for: edge)), facing: edge, color: color,
+                    rematch: scene.rink.finalWinner != nil, in: half, facing: edge, color: color,
                     in: &context)
             }
             drawMallet(
@@ -124,6 +132,11 @@ enum RinkRenderer {
                     time: scene.time, reducedMotion: scene.reducedMotion),
                 projection: projection, in: &context)
         }
+        // The menu glyph is always there — the centre ring is always the menu.
+        // It sits UNDER the puck (drawn next), so during a faceoff the frozen
+        // puck rests on it; that's fine, it's furniture, and an empty ring would
+        // read as broken.
+        drawMenuGlyph(projection: projection, in: &context)
         if scene.rink.isFaceoff {
             drawFaceoffBubble(
                 around: scene.rink.puck.position, radius: table.faceoffBubbleRadius,
@@ -167,17 +180,42 @@ enum RinkRenderer {
             iceShape, color: line.opacity(0.9), lineWidth: max(1.5, 1.4 * projection.scale),
             blur: 4 * projection.scale, in: &context)
 
+        // The centre line is INTERRUPTED by the centre circle — as on a real
+        // rink — so it runs edge → ring on each side and leaves the ring's
+        // interior clean for the puck and the menu glyph.
         let centre = projection.point(projection.table.center)
+        let ringRadius = centreRingRadius * projection.scale
         var midline = Path()
         midline.move(to: CGPoint(x: rect.minX, y: centre.y))
+        midline.addLine(to: CGPoint(x: centre.x - ringRadius, y: centre.y))
+        midline.move(to: CGPoint(x: centre.x + ringRadius, y: centre.y))
         midline.addLine(to: CGPoint(x: rect.maxX, y: centre.y))
-        let ring = projection.disc(at: centre, radius: 10 * projection.scale)
+        let ring = projection.disc(at: centre, radius: ringRadius)
         glowStroke(
             midline, color: line.opacity(0.55), lineWidth: max(1, 0.8 * projection.scale),
             blur: 3 * projection.scale, in: &context)
         glowStroke(
             ring, color: line.opacity(0.55), lineWidth: max(1, 0.8 * projection.scale),
             blur: 3 * projection.scale, in: &context)
+    }
+
+    /// A hamburger inside the centre ring — the menu affordance, so the centre
+    /// tap target is discoverable. Three short bars, neutral (they read the same
+    /// from both ends). Always drawn (the ring is always the menu); it sits
+    /// under the puck, which rests on it during a faceoff.
+    private static func drawMenuGlyph(projection: Projection, in context: inout GraphicsContext) {
+        let centre = projection.point(projection.table.center)
+        let barWidth = 15 * projection.scale
+        let barGap = 5.5 * projection.scale
+        var bars = Path()
+        for row in -1...1 {
+            let y = centre.y + CGFloat(row) * barGap
+            bars.move(to: CGPoint(x: centre.x - barWidth / 2, y: y))
+            bars.addLine(to: CGPoint(x: centre.x + barWidth / 2, y: y))
+        }
+        context.stroke(
+            bars, with: .color(line.opacity(0.6)),
+            style: StrokeStyle(lineWidth: max(2, 2 * projection.scale), lineCap: .round))
     }
 
     /// The goal mouth: a glowing bar in the seat's own colour, set into its
@@ -360,16 +398,22 @@ extension RinkRenderer {
     /// "Ready?" on the board in the seat's half, facing its player — the prompt
     /// to tap in. Disappears the moment that seat has readied.
     private static func drawReadyPrompt(
-        in half: CGRect, facing edge: Seat, color: Color, in context: inout GraphicsContext
+        rematch: Bool, in half: CGRect, facing edge: Seat, color: Color,
+        in context: inout GraphicsContext
     ) {
         var ctx = context
-        ctx.translateBy(x: half.midX, y: half.midY)
+        // On a rematch the verdict sits near the centre line, so the prompt
+        // drops toward the player to clear it; the opening faceoff centres it.
+        let fraction = rematch ? 0.6 : 0.5
+        let y =
+            edge == .top ? half.maxY - half.height * fraction : half.minY + half.height * fraction
+        ctx.translateBy(x: half.midX, y: y)
         if edge == .top {
             ctx.rotate(by: .degrees(180))
         }
         let text = ctx.resolve(
             Text("Ready?", bundle: .module).font(
-                .system(size: half.height * 0.12, weight: .bold, design: .rounded)))
+                .system(size: half.height * 0.1, weight: .bold, design: .rounded)))
         var haze = ctx
         haze.addFilter(.blur(radius: half.height * 0.012))
         haze.draw(coloured(text, color.opacity(0.85)), at: .zero, anchor: .center)

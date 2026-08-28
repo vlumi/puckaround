@@ -66,8 +66,8 @@ final class PuckPhysicsTests: XCTestCase {
             if r.score != before {
                 goals += 1
             }
-            if case .finished = r.phase {
-                break
+            if r.finalWinner != nil {
+                break  // a goal ended the game → rematch faceoff, puck frozen
             }
             XCTAssertTrue(
                 field.contains(r.puck.position), "escaped at tick \(tick): \(r.puck.position)")

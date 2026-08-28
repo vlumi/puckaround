@@ -31,9 +31,12 @@ public final class HockeyGame: ObservableObject {
         }
     }
 
-    public init(seed: UInt64 = UInt64.random(in: 0...UInt64.max)) {
+    public let rules: Rules
+
+    public init(rules: Rules = .standard, seed: UInt64 = UInt64.random(in: 0...UInt64.max)) {
+        self.rules = rules
         let table = Playfield.duel
-        let rink = Rink(table: table, lineup: lineup, seed: seed)
+        let rink = Rink(table: table, lineup: lineup, rules: rules, seed: seed)
         let controls = MalletControlSource(zones: SeatZones(lineup: lineup, bounds: table.bounds))
         self.controls = controls
         self.session = GameSession(rink: rink) { player, tick in
@@ -47,6 +50,8 @@ public final class HockeyGame: ObservableObject {
         haptics.prepare()
     }
 
+    /// Start over — same players, same rules, a fresh faceoff. Used by the
+    /// restart ring after a game, and by "restart" mid-game.
     public func newGame() {
         controls.releaseAll()
         session.newGame()

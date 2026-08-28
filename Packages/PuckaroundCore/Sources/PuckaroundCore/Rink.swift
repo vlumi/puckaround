@@ -32,12 +32,16 @@ public struct Rules: Equatable, Codable, Sendable {
 /// inputs.
 public struct Rink: Equatable, Sendable {
     public enum Phase: Equatable, Sendable {
-        /// The opening ceremony: the puck is frozen at centre behind a force
+        /// The faceoff ceremony: the puck is frozen at centre behind a force
         /// field, and play begins the instant every seat has readied. Carries
-        /// who has readied so far.
-        case faceoff(ready: Set<PlayerID>)
+        /// who has readied so far, and — after a finished game — who just won,
+        /// so the result stays on screen while the players decide on a rematch.
+        /// A faceoff that follows a win resets the score when it starts (the
+        /// rematch); the opening one has nothing to reset.
+        case faceoff(ready: Set<PlayerID>, afterWin: PlayerID?)
         case playing
-        case finished(winner: PlayerID)
+
+        static var opening: Phase { .faceoff(ready: [], afterWin: nil) }
     }
 
     public static let tickRate = 60
@@ -84,21 +88,39 @@ public struct Rink: Equatable, Sendable {
     public mutating func newGame() {
         score = lineup.players.map { _ in 0 }
         puck = Puck(position: table.center)
-        phase = .faceoff(ready: [])
+        phase = .opening
     }
 
     /// A seat declares itself ready. No take-backs — readiness is a latch. When
     /// the last seat readies, the force field drops and play begins that instant.
     public mutating func ready(_ player: PlayerID) {
-        guard case .faceoff(var ready) = phase, lineup.contains(player) else { return }
+        guard case .faceoff(var ready, let afterWin) = phase, lineup.contains(player) else {
+            return
+        }
         ready.insert(player)
-        phase = ready.count == lineup.playerCount ? .playing : .faceoff(ready: ready)
+        if ready.count == lineup.playerCount {
+            // The rematch begins: a faceoff that followed a win clears the score
+            // the instant it starts, so the final result stayed up until now.
+            if afterWin != nil {
+                score = lineup.players.map { _ in 0 }
+            }
+            phase = .playing
+        } else {
+            phase = .faceoff(ready: ready, afterWin: afterWin)
+        }
     }
 
     /// Which seats have readied during the faceoff (empty otherwise).
     public var readySeats: Set<PlayerID> {
-        if case .faceoff(let ready) = phase { return ready }
+        if case .faceoff(let ready, _) = phase { return ready }
         return []
+    }
+
+    /// The winner still shown during a post-game faceoff (nil for the opening
+    /// one, or during play). Drives the WIN/LOSE overlay.
+    public var finalWinner: PlayerID? {
+        if case .faceoff(_, let afterWin) = phase { return afterWin }
+        return nil
     }
 
     public var isFaceoff: Bool {
@@ -336,7 +358,9 @@ public struct Rink: Equatable, Sendable {
         score[scorer.rawValue] += 1
         events.append(.goal(scorer: scorer, conceder: conceder))
         if score[scorer.rawValue] >= rules.pointsToWin {
-            phase = .finished(winner: scorer)
+            // The game is won: show the result and open the rematch faceoff at
+            // once. Readying up starts a fresh game (score resets then).
+            phase = .faceoff(ready: [], afterWin: scorer)
             puck = Puck(position: table.center)
             events.append(.gameOver(winner: scorer))
         } else {

@@ -1,11 +1,20 @@
 import PuckaroundCore
 import SwiftUI
 
+/// The table screen: one game of air hockey, plus the ways out of it — a dim
+/// menu affordance during play (abandon / restart), and after a game both the
+/// restart ring and a way back to the front door.
 public struct GameView: View {
-    @StateObject private var game = HockeyGame()
+    @StateObject private var game: HockeyGame
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var showingPause = false
 
-    public init() {}
+    let onExit: () -> Void
+
+    public init(rules: Rules = .standard, onExit: @escaping () -> Void = {}) {
+        _game = StateObject(wrappedValue: HockeyGame(rules: rules))
+        self.onExit = onExit
+    }
 
     public var body: some View {
         GeometryReader { geo in
@@ -23,11 +32,8 @@ public struct GameView: View {
                         }
                         InputSurface(game: game)
                         // ABOVE the input surface, or the multitouch view eats
-                        // the tap and the button never fires.
-                        if case .finished = scene.rink.phase {
-                            restartButton
-                                .position(x: scene.tableRect.midX, y: scene.tableRect.midY)
-                        }
+                        // the taps.
+                        overlay(for: scene)
                     }
                 }
             }
@@ -43,27 +49,48 @@ public struct GameView: View {
         .defersEdgeSwipes(true)
     }
 
-    /// Sits on the centre line when the game is over — the only way to start
-    /// over, since a game in progress is finished by playing it. An icon rather
-    /// than a word, and a rotationally symmetric one, because it is read from
-    /// both ends of the table at once; the WIN / LOSE verdicts are drawn on the
-    /// ice, each facing its own player.
-    private var restartButton: some View {
-        Button {
-            game.newGame()
-        } label: {
-            Image(systemName: "arrow.triangle.2.circlepath")
-                .font(.system(size: 30, weight: .bold))
-                .foregroundStyle(RinkRenderer.line)
-                .shadow(color: RinkRenderer.line.opacity(0.8), radius: 8)
-                .frame(width: 78, height: 78)
-                .background(
-                    Circle()
-                        .fill(RinkRenderer.ice.opacity(0.9))
-                        .overlay(
-                            Circle().strokeBorder(RinkRenderer.line, lineWidth: 2)
-                                .shadow(color: RinkRenderer.line.opacity(0.7), radius: 6)))
+    @ViewBuilder
+    private func overlay(for scene: RinkScene) -> some View {
+        let rect = scene.tableRect
+        if showingPause {
+            pauseMenu
+        } else {
+            // The centre ring IS the menu — always, whether playing or between
+            // games. The tap target matches the drawn ring (see the renderer's
+            // centre-ring radius), on the neutral centre spot under the puck, so
+            // it belongs to neither player.
+            let diameter =
+                2 * RinkRenderer.centreRingRadius * (rect.width / scene.rink.table.size.x)
+            Circle()
+                .fill(Color.white.opacity(0.001))
+                .frame(width: diameter, height: diameter)
+                .position(x: rect.midX, y: rect.midY)
+                .onTapGesture { showingPause = true }
+                .accessibilityLabel(Text("Menu", bundle: .module))
         }
-        .accessibilityLabel(Text("New game", bundle: .module))
+    }
+
+    /// The menu behind the centre ring: resume, restart, or quit to the front
+    /// door. Restart scraps the current game for a fresh one — a new opening
+    /// faceoff, score at zero, nobody readied — reachable from anywhere.
+    private var pauseMenu: some View {
+        ZStack {
+            Color.black.opacity(0.6).ignoresSafeArea().onTapGesture { showingPause = false }
+            VStack(spacing: 14) {
+                NeonButton(title: "Resume", tint: Neon.cyan) { showingPause = false }
+                NeonButton(title: "Restart") {
+                    game.newGame()
+                    showingPause = false
+                }
+                NeonButton(title: "Quit to menu", tint: Neon.magenta, action: onExit)
+            }
+            .frame(maxWidth: 260)
+            .padding(24)
+            .background(
+                RoundedRectangle(cornerRadius: 18).fill(Neon.ground.opacity(0.95))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 18).strokeBorder(Neon.inkSoft, lineWidth: 1))
+            )
+        }
     }
 }
