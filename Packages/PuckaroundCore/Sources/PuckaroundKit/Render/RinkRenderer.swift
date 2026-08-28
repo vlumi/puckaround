@@ -182,6 +182,21 @@ enum RinkRenderer {
         glowStroke(
             ring, color: line.opacity(0.55), lineWidth: max(1, 0.8 * projection.scale),
             blur: 3 * projection.scale, in: &context)
+
+        // A faint hamburger inside the centre ring — the menu affordance, so the
+        // centre tap target is discoverable. Three short horizontal bars: neutral
+        // (reads the same from both ends) and quiet, sitting under the puck.
+        let barWidth = 8 * projection.scale
+        let barGap = 3 * projection.scale
+        var bars = Path()
+        for row in -1...1 {
+            let y = centre.y + CGFloat(row) * barGap
+            bars.move(to: CGPoint(x: centre.x - barWidth / 2, y: y))
+            bars.addLine(to: CGPoint(x: centre.x + barWidth / 2, y: y))
+        }
+        context.stroke(
+            bars, with: .color(line.opacity(0.4)),
+            style: StrokeStyle(lineWidth: max(1, 0.9 * projection.scale), lineCap: .round))
     }
 
     /// The goal mouth: a glowing bar in the seat's own colour, set into its
@@ -377,10 +392,9 @@ extension RinkRenderer {
         if edge == .top {
             ctx.rotate(by: .degrees(180))
         }
-        let phrase =
-            rematch ? Text("Tap to rematch", bundle: .module) : Text("Ready?", bundle: .module)
         let text = ctx.resolve(
-            phrase.font(.system(size: half.height * 0.09, weight: .bold, design: .rounded)))
+            Text("Ready?", bundle: .module).font(
+                .system(size: half.height * 0.1, weight: .bold, design: .rounded)))
         var haze = ctx
         haze.addFilter(.blur(radius: half.height * 0.012))
         haze.draw(coloured(text, color.opacity(0.85)), at: .zero, anchor: .center)
