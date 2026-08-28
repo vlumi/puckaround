@@ -72,6 +72,19 @@ middle — is a goal; anywhere else the wall bounces it.
 **Coordinates are y-down**, matching screen space: rendering is a pure scale
 and nothing flips. `Seat.bottom` is the bottom of the screen.
 
+**The look is a neon cabinet, and single-theme by choice.** A dark violet-black
+ground, a glowing neutral rink (ice, grid, centre line, puck) that belongs to
+no seat, and each player's neon colour on exactly the three things that are
+theirs — mallet, goal mouth, score — so table furniture never competes with
+player identity. Magenta and cyan lead the 1v1 palette: the max-contrast pair,
+and colour-blind-safe (they separate on lightness and the red–green axis). Glow
+is drawn as a blurred pass under a solid core, so a hard puck and a readable
+score survive the bloom; decorative motion (the puck's speed-scaled trail, a CRT
+scanline breath) backs off under `accessibilityReduceMotion`. All procedural, no
+assets — the icon is the same recipe (`AppIconScene`), and it must keep matching
+`RinkRenderer`. A cabinet is a dark object, so there is no light variant. See
+`RinkRenderer` / `SeatPalette`.
+
 **Feedback is a pure event stream.** Each tick fills `Rink.events` —
 `malletHit` (with closing speed), `wallBounce`, `goal`, `gameOver` — cleared at
 the top of the next `advance`, so it always describes only the latest step.

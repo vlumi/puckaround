@@ -3,6 +3,7 @@ import SwiftUI
 
 public struct GameView: View {
     @StateObject private var game = HockeyGame()
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     public init() {}
 
@@ -13,7 +14,9 @@ public struct GameView: View {
                 // closure, so it re-evaluates with the frame without publishing
                 // anything. Layered, not stacked: the ZStack matters.
                 TimelineView(.animation) { timeline in
-                    let scene = game.frame(at: timeline.date.timeIntervalSinceReferenceDate)
+                    let scene = game.frame(
+                        at: timeline.date.timeIntervalSinceReferenceDate,
+                        reducedMotion: reduceMotion)
                     ZStack {
                         Canvas { context, size in
                             RinkRenderer.draw(scene, in: &context, size: size)

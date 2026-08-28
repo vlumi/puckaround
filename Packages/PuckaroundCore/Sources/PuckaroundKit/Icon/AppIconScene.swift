@@ -1,9 +1,11 @@
 import PuckaroundCore
 import SwiftUI
 
-/// The app icon, drawn by the game's own recipe — a puck skating across the
-/// ice toward a seat's band, its trail behind it. No image assets: `make icon`
-/// renders this at 1024×1024 into the asset catalog.
+/// The app icon, drawn by the game's own recipe — the neon cabinet shrunk to a
+/// tile: the glowing rink, its two goal mouths in the seat colours, the two
+/// mallets facing off across the centre line, and a white-hot puck in the
+/// slot. No image assets: `make icon` renders this at 1024×1024 into the asset
+/// catalog. It must keep matching how `RinkRenderer` draws the real table.
 public struct AppIconScene: View {
     public init() {}
 
@@ -12,75 +14,110 @@ public struct AppIconScene: View {
             let s = size.width / 1024  // designed at 1024
             let full = CGRect(origin: .zero, size: size)
 
-            // Ground, then the ice filling the icon with a soft margin.
+            // Cabinet ground.
             context.fill(Path(full), with: .color(RinkRenderer.ground))
-            let ice = full.insetBy(dx: 96 * s, dy: 96 * s)
-            let iceShape = Path(roundedRect: ice, cornerRadius: 72 * s)
-            context.fill(iceShape, with: .color(RinkRenderer.ice))
 
-            // Four seat bands — the table is for everyone around it.
+            // The rink, inset with a soft margin, with a faint grid.
+            let rink = full.insetBy(dx: 150 * s, dy: 150 * s)
+            let iceShape = Path(roundedRect: rink, cornerRadius: 64 * s)
+            context.fill(iceShape, with: .color(RinkRenderer.ice))
             context.drawLayer { layer in
                 layer.clip(to: iceShape)
-                let depth = 92 * s
-                let bands: [(CGRect, Color)] = [
-                    (
-                        CGRect(x: ice.minX, y: ice.maxY - depth, width: ice.width, height: depth),
-                        SeatPalette.colors[0]
-                    ),
-                    (
-                        CGRect(x: ice.minX, y: ice.minY, width: ice.width, height: depth),
-                        SeatPalette.colors[1]
-                    ),
-                    (
-                        CGRect(x: ice.minX, y: ice.minY, width: depth, height: ice.height),
-                        SeatPalette.colors[2]
-                    ),
-                    (
-                        CGRect(x: ice.maxX - depth, y: ice.minY, width: depth, height: ice.height),
-                        SeatPalette.colors[3]
-                    ),
-                ]
-                for (band, color) in bands {
-                    layer.fill(Path(band), with: .color(color.opacity(0.55)))
+                var grid = Path()
+                var gx = rink.minX
+                while gx <= rink.maxX {
+                    grid.move(to: CGPoint(x: gx, y: rink.minY))
+                    grid.addLine(to: CGPoint(x: gx, y: rink.maxY))
+                    gx += 64 * s
                 }
+                var gy = rink.minY
+                while gy <= rink.maxY {
+                    grid.move(to: CGPoint(x: rink.minX, y: gy))
+                    grid.addLine(to: CGPoint(x: rink.maxX, y: gy))
+                    gy += 64 * s
+                }
+                layer.stroke(grid, with: .color(RinkRenderer.line.opacity(0.12)), lineWidth: 2 * s)
             }
+            glowStroke(
+                iceShape, color: RinkRenderer.line.opacity(0.85), width: 10 * s, blur: 20 * s,
+                in: &context)
 
-            // Centre ring.
-            let centre = CGPoint(x: size.width / 2, y: size.height / 2)
-            let ring = 150 * s
-            context.stroke(
-                Path(
-                    ellipseIn: CGRect(
-                        x: centre.x - ring, y: centre.y - ring, width: 2 * ring, height: 2 * ring)),
-                with: .color(RinkRenderer.lines), lineWidth: 10 * s)
+            // Centre line + ring.
+            let mid = size.height / 2
+            var midline = Path()
+            midline.move(to: CGPoint(x: rink.minX, y: mid))
+            midline.addLine(to: CGPoint(x: rink.maxX, y: mid))
+            glowStroke(
+                midline, color: RinkRenderer.line.opacity(0.5), width: 6 * s, blur: 14 * s,
+                in: &context)
+            let ring = disc(CGPoint(x: size.width / 2, y: mid), 120 * s)
+            glowStroke(
+                ring, color: RinkRenderer.line.opacity(0.5), width: 6 * s, blur: 14 * s,
+                in: &context)
 
-            // The puck, mid-flight from bottom-left toward top-right, trailing
-            // a fading streak of where it has been.
-            let puckAt = CGPoint(x: 640 * s, y: 380 * s)
-            let from = CGPoint(x: 300 * s, y: 720 * s)
-            let steps = 6
-            for i in 0..<steps {
-                let t = Double(i) / Double(steps)
-                let p = CGPoint(
-                    x: from.x + (puckAt.x - from.x) * t, y: from.y + (puckAt.y - from.y) * t)
-                let r = (60 + 40 * t) * s
-                context.fill(
-                    Path(ellipseIn: CGRect(x: p.x - r, y: p.y - r, width: 2 * r, height: 2 * r)),
-                    with: .color(RinkRenderer.puck.opacity(0.10 + 0.12 * t)))
+            // Goal mouths, each in its seat colour.
+            let goalW = 300.0 * s
+            func goal(y: CGFloat, color: Color) {
+                var bar = Path()
+                bar.move(to: CGPoint(x: size.width / 2 - goalW / 2, y: y))
+                bar.addLine(to: CGPoint(x: size.width / 2 + goalW / 2, y: y))
+                glowStroke(bar, color: color, width: 18 * s, blur: 22 * s, in: &context)
             }
-            let r = 110 * s
+            goal(y: rink.minY, color: SeatPalette.magenta)
+            goal(y: rink.maxY, color: SeatPalette.cyan)
+
+            // Two mallets, facing off — magenta top, cyan bottom, matching the goals.
+            mallet(
+                CGPoint(x: size.width * 0.5, y: rink.minY + rink.height * 0.26), 96 * s,
+                SeatPalette.magenta, s: s, in: &context)
+            mallet(
+                CGPoint(x: size.width * 0.5, y: rink.minY + rink.height * 0.74), 96 * s,
+                SeatPalette.cyan, s: s, in: &context)
+
+            // The white-hot puck, just off centre with a short trail toward it.
+            let puckAt = CGPoint(x: size.width * 0.5, y: mid - 40 * s)
+            var streak = Path()
+            streak.move(to: puckAt)
+            streak.addLine(to: CGPoint(x: puckAt.x + 130 * s, y: puckAt.y + 150 * s))
+            var haze = context
+            haze.addFilter(.blur(radius: 40 * s))
+            haze.stroke(
+                streak, with: .color(RinkRenderer.puck.opacity(0.4)),
+                style: StrokeStyle(lineWidth: 70 * s, lineCap: .round))
+            glowDisc(puckAt, 60 * s, RinkRenderer.puck, blur: 28 * s, in: &context)
             context.fill(
-                Path(
-                    ellipseIn: CGRect(x: puckAt.x - r, y: puckAt.y - r, width: 2 * r, height: 2 * r)
-                ),
-                with: .color(RinkRenderer.puck))
-            let h = 44 * s
-            context.fill(
-                Path(
-                    ellipseIn: CGRect(
-                        x: puckAt.x - 50 * s - h / 2, y: puckAt.y - 50 * s - h / 2, width: h,
-                        height: h)),
-                with: .color(Color.white.opacity(0.28)))
+                disc(CGPoint(x: puckAt.x - 22 * s, y: puckAt.y - 22 * s), 16 * s),
+                with: .color(.white))
         }
+    }
+
+    private func disc(_ c: CGPoint, _ r: CGFloat) -> Path {
+        Path(ellipseIn: CGRect(x: c.x - r, y: c.y - r, width: 2 * r, height: 2 * r))
+    }
+
+    private func glowStroke(
+        _ path: Path, color: Color, width: CGFloat, blur: CGFloat, in context: inout GraphicsContext
+    ) {
+        var haze = context
+        haze.addFilter(.blur(radius: blur))
+        haze.stroke(path, with: .color(color.opacity(0.85)), lineWidth: width)
+        context.stroke(path, with: .color(color), lineWidth: width)
+    }
+
+    private func glowDisc(
+        _ c: CGPoint, _ r: CGFloat, _ color: Color, blur: CGFloat, in context: inout GraphicsContext
+    ) {
+        var haze = context
+        haze.addFilter(.blur(radius: blur))
+        haze.fill(disc(c, r), with: .color(color.opacity(0.9)))
+        context.fill(disc(c, r), with: .color(color))
+    }
+
+    private func mallet(
+        _ c: CGPoint, _ r: CGFloat, _ color: Color, s: CGFloat, in context: inout GraphicsContext
+    ) {
+        glowDisc(c, r, color, blur: 26 * s, in: &context)
+        context.fill(disc(c, r * 0.5), with: .color(RinkRenderer.ground.opacity(0.85)))
+        context.stroke(disc(c, r * 0.5), with: .color(color.opacity(0.6)), lineWidth: 4 * s)
     }
 }
