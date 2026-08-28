@@ -40,10 +40,6 @@ public struct Vec2: Equatable, Hashable, Sendable, Codable {
 
     public func distance(to other: Vec2) -> Double { (self - other).length }
 
-    /// z of the 2D cross product — the signed area, and the lever arm used for
-    /// torque (`r.cross(impulse)`).
-    public func cross(_ other: Vec2) -> Double { x * other.y - y * other.x }
-
     /// Rotated by `angle` radians about the origin.
     public func rotated(by angle: Double) -> Vec2 {
         let c = cos(angle)
