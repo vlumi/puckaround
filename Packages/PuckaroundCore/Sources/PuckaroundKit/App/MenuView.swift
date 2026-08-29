@@ -19,12 +19,12 @@ struct MenuView: View {
         ZStack {
             Neon.ground.ignoresSafeArea()
             // A scroll view so a short screen (SE) can reach Play instead of
-            // clipping it. The content centres itself when the screen is tall
+            // clipping it. The content centers itself when the screen is tall
             // enough (minHeight = the viewport) and scrolls when it isn't.
             GeometryReader { geo in
                 ScrollView {
                     VStack(spacing: 28) {
-                        // Spacers centre the content on a tall screen but collapse
+                        // Spacers center the content on a tall screen but collapse
                         // to nothing when it overflows, so nothing ever clips.
                         Spacer(minLength: 0)
                         wordmark
@@ -39,7 +39,7 @@ struct MenuView: View {
                     .padding(.vertical, 24)
                     // Cap the column so buttons don't stretch across an iPad,
                     // then re-expand to the full width so that capped column is
-                    // centred rather than pinned to the leading edge.
+                    // centerd rather than pinned to the leading edge.
                     .frame(maxWidth: 440)
                     .frame(maxWidth: .infinity)
                     .frame(minHeight: geo.size.height)
@@ -48,7 +48,7 @@ struct MenuView: View {
         }
     }
 
-    /// The two teams face off across a "VS.", each its own colour — so it reads
+    /// The two teams face off across a "VS.", each its own color — so it reads
     /// as one side against the other, not a stack of unrelated toggles. Within a
     /// team, 1 or 2 hands (person silhouettes); mixing the two teams is 1v2.
     private var formatPicker: some View {
@@ -65,7 +65,7 @@ struct MenuView: View {
     }
 
     /// One team's choice: 1 or 2 hands, the two options stacked, the picked one
-    /// filled in the team's colour.
+    /// filled in the team's color.
     private func teamColumn(binding: Binding<Int>, tint: Color) -> some View {
         VStack(spacing: 8) {
             ForEach([1, 2], id: \.self) { count in
@@ -151,7 +151,7 @@ struct MenuView: View {
     }
 
     /// The pill behind a picker option: filled when selected, outlined when not.
-    /// `tint` colours it (defaulting to neutral ink for the mono pickers).
+    /// `tint` colors it (defaulting to neutral ink for the mono pickers).
     private func pillBackground(selected: Bool, tint: Color = Neon.ink) -> some View {
         RoundedRectangle(cornerRadius: 12)
             .fill(selected ? tint : Color.clear)

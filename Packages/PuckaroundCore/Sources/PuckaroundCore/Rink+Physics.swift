@@ -65,7 +65,7 @@ extension Rink {
             }
             // A shaped puck spins when the hit has any sideways bite: the
             // tangential part of the mallet's approach grabs the puck's edge,
-            // like putting english on it. A dead-centre square-on hit adds none.
+            // like putting english on it. A dead-center square-on hit adds none.
             if case .polygon = table.puckShape {
                 let relative = puck.velocity - malletVelocity
                 let tangent = normal.perpendicular

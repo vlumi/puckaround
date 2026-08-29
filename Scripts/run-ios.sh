@@ -25,7 +25,7 @@ esac
 #    you the SE), and FAIL if nothing matches rather than silently substituting.
 #    Names are additive substrings ("17" ⊂ "17 Pro" ⊂ "17 Pro Max"), so among
 #    matches prefer an exact name, then the shortest name, then newest runtime —
-#    `DEVICE=17` favours plain "iPhone 17" over the Pro Max.
+#    `DEVICE=17` favors plain "iPhone 17" over the Pro Max.
 udid="$(xcrun simctl list devices --json 2>/dev/null | DEVICE="$device" FAMILY="$family_match" python3 -c '
 import json, os, re, sys
 d = json.load(sys.stdin)["devices"]

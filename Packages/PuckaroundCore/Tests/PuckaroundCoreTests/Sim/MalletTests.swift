@@ -32,7 +32,7 @@ final class MalletTests: XCTestCase {
         XCTAssertEqual(r.mallet(at: bottom)!.velocity, .zero, "a still hand is a still mallet")
     }
 
-    func testAMalletCannotCrossTheCentreLineOrLeaveTheTable() {
+    func testAMalletCannotCrossTheCenterLineOrLeaveTheTable() {
         var r = rink()
         r.advance(inputs: [bottom: SeatInput(malletDrag: Vec2(-1000, -1000))])
         let m = r.mallet(at: bottom)!.position
@@ -107,7 +107,7 @@ final class MalletTests: XCTestCase {
             r.advance(inputs: [bottom: SeatInput(malletDrag: Vec2(40, 0))])
             // Never punched clean through to the mallet's far (inner) side —
             // it stays within a mallet's reach of the wall side, not flung to
-            // the centre — and never off the table.
+            // the center — and never off the table.
             XCTAssertGreaterThan(
                 r.puck.position.x, r.mallet(at: bottom)!.position.x - r.table.malletRadius,
                 "the puck never tunnels past the mallet")

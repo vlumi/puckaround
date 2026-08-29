@@ -15,12 +15,12 @@ final class SeatZonesTests: XCTestCase {
     }
 
     func testAnyPointInAHalfRoutesToThatSidesSingle() {
-        // Hard against a side wall, off-centre — still the half's one mallet.
+        // Hard against a side wall, off-center — still the half's one mallet.
         XCTAssertEqual(duel.owner(of: Vec2(0, 90)), .bottomSingle)
         XCTAssertEqual(duel.owner(of: Vec2(119, 30)), .topSingle)
     }
 
-    func testTheCentreLineGoesToTheBottom() {
+    func testTheCenterLineGoesToTheBottom() {
         XCTAssertEqual(duel.owner(of: table.center), .bottomSingle)
     }
 

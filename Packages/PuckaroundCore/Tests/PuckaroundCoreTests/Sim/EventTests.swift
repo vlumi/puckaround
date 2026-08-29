@@ -25,7 +25,7 @@ final class EventTests: XCTestCase {
             if !r.events.isEmpty { sawSome = true }
         }
         XCTAssertTrue(sawSome, "a bouncing puck should raise wall events")
-        // Park it dead centre, still: a quiet tick has no events.
+        // Park it dead center, still: a quiet tick has no events.
         r.place(Puck(position: r.table.center))
         r.advance(inputs: [:])
         XCTAssertEqual(r.events, [])

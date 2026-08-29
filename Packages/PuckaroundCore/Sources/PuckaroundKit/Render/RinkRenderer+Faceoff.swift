@@ -6,19 +6,19 @@ import SwiftUI
 extension RinkRenderer {
     /// The lane line down a doubles side: neutral furniture marking where its
     /// two mallets' zones meet, so a mallet stopping mid-half reads as a boundary,
-    /// not an invisible wall. Runs that side's wall → centre line, only where the
-    /// side fields two, and fainter than the centre line — a lesser boundary.
+    /// not an invisible wall. Runs that side's wall → center line, only where the
+    /// side fields two, and fainter than the center line — a lesser boundary.
     static func drawLaneDividers(
         _ scene: RinkScene, projection: Projection, in context: inout GraphicsContext
     ) {
         let table = scene.rink.table
         let rect = projection.rect
-        let centreY = projection.point(table.center).y
+        let centerY = projection.point(table.center).y
         var lines = Path()
         for side in Side.allCases where table.format.hands(on: side) == .two {
             let wallY = side == .bottom ? rect.maxY : rect.minY
             lines.move(to: CGPoint(x: rect.midX, y: wallY))
-            lines.addLine(to: CGPoint(x: rect.midX, y: centreY))
+            lines.addLine(to: CGPoint(x: rect.midX, y: centerY))
         }
         guard !lines.isEmpty else { return }
         glowStroke(
@@ -61,8 +61,8 @@ extension RinkRenderer {
         in context: inout GraphicsContext
     ) {
         var ctx = context
-        // On a rematch the verdict sits near the centre line, so the prompt
-        // drops toward the player to clear it; the opening faceoff centres it.
+        // On a rematch the verdict sits near the center line, so the prompt
+        // drops toward the player to clear it; the opening faceoff centers it.
         let fraction = rematch ? 0.6 : 0.5
         let y =
             side == .top ? half.maxY - half.height * fraction : half.minY + half.height * fraction
@@ -75,14 +75,14 @@ extension RinkRenderer {
                 .system(size: half.height * 0.1, weight: .bold, design: .rounded)))
         var haze = ctx
         haze.addFilter(.blur(radius: half.height * 0.012))
-        haze.draw(coloured(text, color.opacity(0.85)), at: .zero, anchor: .center)
-        ctx.draw(coloured(text, color.opacity(0.85)), at: .zero, anchor: .center)
+        haze.draw(colored(text, color.opacity(0.85)), at: .zero, anchor: .center)
+        ctx.draw(colored(text, color.opacity(0.85)), at: .zero, anchor: .center)
     }
 
     /// The field BURSTING as play begins: a ring expanding out from the bubble
     /// and fading — the visual "GO". Paired with the whistle sound and haptic.
     static func drawFaceoffBurst(
-        at centre: CGPoint, from startRadius: CGFloat, progress: Double,
+        at center: CGPoint, from startRadius: CGFloat, progress: Double,
         in context: inout GraphicsContext
     ) {
         let eased = 1 - (1 - progress) * (1 - progress)  // ease-out
@@ -90,7 +90,7 @@ extension RinkRenderer {
         let alpha = (1 - progress) * 0.8
         let ring = Path(
             ellipseIn: CGRect(
-                x: centre.x - radius, y: centre.y - radius, width: 2 * radius, height: 2 * radius))
+                x: center.x - radius, y: center.y - radius, width: 2 * radius, height: 2 * radius))
         glowStroke(
             ring, color: line.opacity(alpha), lineWidth: max(1, CGFloat(2 * (1 - progress)) + 1),
             blur: 6, in: &context)
@@ -99,10 +99,10 @@ extension RinkRenderer {
     /// The faceoff force field: a glowing ring around the frozen puck that no
     /// mallet may enter, breathing slowly so it reads as "live, not yet open".
     static func drawFaceoffBubble(
-        around centre: Vec2, radius: Double, ripple: Ripple, projection: Projection,
+        around center: Vec2, radius: Double, ripple: Ripple, projection: Projection,
         in context: inout GraphicsContext
     ) {
-        let p = projection.point(centre)
+        let p = projection.point(center)
         let pulse = ripple.reducedMotion ? 0 : sin(ripple.time * 3) * 0.06
         let r = radius * projection.scale * (1 + pulse)
         let ring = projection.disc(at: p, radius: r)

@@ -25,7 +25,7 @@ public struct Playfield: Equatable, Codable, Sendable {
     /// floating-point dust.
     public var restSpeed: Double
     /// The faceoff force field: no mallet may enter this radius around the puck
-    /// (parked at centre) until everyone is ready and the field drops.
+    /// (parked at center) until everyone is ready and the field drops.
     public var faceoffBubbleRadius: Double
     /// How fast the puck glides into the conceder's half on a serve after a goal.
     public var serveSpeed: Double
@@ -77,11 +77,11 @@ public struct Playfield: Equatable, Codable, Sendable {
 
     public var bounds: Rect { Rect(origin: .zero, size: size) }
     public var center: Vec2 { bounds.center }
-    /// Where the puck's CENTRE may be: the bounds shrunk by its radius.
+    /// Where the puck's CENTER may be: the bounds shrunk by its radius.
     public var puckField: Rect { bounds.insetBy(puckRadius) }
 
-    /// Where a mallet slot's centre may roam: its side's half of the table,
-    /// inset by the mallet's radius so it can kiss the centre line but not cross,
+    /// Where a mallet slot's center may roam: its side's half of the table,
+    /// inset by the mallet's radius so it can kiss the center line but not cross,
     /// and — in doubles — narrowed to its own left or right lane so two mallets
     /// of a side don't fight over the middle.
     public func malletZone(for slot: MalletSlot) -> Rect {
@@ -99,14 +99,14 @@ public struct Playfield: Equatable, Codable, Sendable {
         }
     }
 
-    /// Whether a puck centre crossing `side`'s short wall at `x` goes cleanly
+    /// Whether a puck center crossing `side`'s short wall at `x` goes cleanly
     /// into that side's goal mouth — clear of both posts, so the whole disc fits
     /// through. Each side's goal has its own width (wider for two defenders).
     public func isInGoalMouth(x: Double, of side: Side) -> Bool {
         abs(x - center.x) <= goalWidth(for: side) / 2 - puckRadius
     }
 
-    /// The y a puck centre must reach for the WHOLE puck to be past a short wall
+    /// The y a puck center must reach for the WHOLE puck to be past a short wall
     /// — the goal line fully crossed (soccer rules), so it warps back only after
     /// it is all the way in, not when its nose touches the line.
     public var topGoalLine: Double { -puckRadius }

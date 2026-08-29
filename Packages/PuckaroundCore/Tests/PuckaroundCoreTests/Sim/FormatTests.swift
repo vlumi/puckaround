@@ -43,16 +43,16 @@ final class FormatTests: XCTestCase {
         XCTAssertEqual(table.goalWidth(for: .top), table.doublesGoalWidth)
     }
 
-    func testDoublesLanesAreDisjointAndMeetAtCentre() {
+    func testDoublesLanesAreDisjointAndMeetAtCenter() {
         let table = Playfield.duel.with(format: .twoVsTwo)
         let left = table.malletZone(for: MalletSlot(side: .bottom, lane: .left))
         let right = table.malletZone(for: MalletSlot(side: .bottom, lane: .right))
         let r = table.malletRadius
-        // Left runs from the outer wall inset to centre-x; right from centre-x to
-        // its outer wall inset — they meet at centre-x and never overlap.
+        // Left runs from the outer wall inset to center-x; right from center-x to
+        // its outer wall inset — they meet at center-x and never overlap.
         XCTAssertEqual(left.minX, r, "left inset from the left wall")
-        XCTAssertEqual(left.maxX, table.size.x / 2, "left reaches the centre line")
-        XCTAssertEqual(right.minX, table.size.x / 2, "right starts at the centre line")
+        XCTAssertEqual(left.maxX, table.size.x / 2, "left reaches the center line")
+        XCTAssertEqual(right.minX, table.size.x / 2, "right starts at the center line")
         XCTAssertEqual(right.maxX, table.size.x - r, "right inset from the right wall")
         XCTAssertLessThanOrEqual(left.maxX, right.minX, "the lanes are disjoint")
     }

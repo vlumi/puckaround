@@ -52,7 +52,7 @@ Weighed and deferred, because each is a *different table* (new geometry) and
 most fit a portrait phone poorly:
 
 - **Square, a goal per edge** (true four-way, four goals). Wastes half a
-  portrait screen (a centred square), and four thumbs crowd the shrunk field.
+  portrait screen (a centerd square), and four thumbs crowd the shrunk field.
   **Corner goals** map better to the long axis but change the game (you defend
   a diagonal; a puck along an edge is safe — likely too defensive). The
   strongest *free-for-all* four-way, but free-for-all needs four goals, which
@@ -81,7 +81,7 @@ a slice is a new defensive problem.
 **The mechanic that makes it worth building — spin that rolls the wall.**
 Crucially this wants spin on the ROUND puck too, not just polygons. Spin is
 invisible on a disc, so either it stays a hidden state that only shows through
-behaviour, or **a small symbol is drawn on the puck** to make its rotation
+behavior, or **a small symbol is drawn on the puck** to make its rotation
 readable (open question — decide when it is built; a mark that reads at a
 glance without cluttering the neon puck). The walls are **not sticky or
 rubbery by default** — a plain bounce. But a **low, wall-hugging shot with
@@ -100,7 +100,7 @@ fun before committing, and keep it off the singles/doubles path.
 ## Order
 
 1. **Singles/Doubles on the oblong** (near-term). Unlocks the couch work — who
-   is playing, seat colours — on the table that exists, plus the doubles goal
+   is playing, seat colors — on the table that exists, plus the doubles goal
    width and quadrant zones. This is what the couch is built against.
 2. **The ellipse + slice goals + rolling spin** (a later spike, any time).
    Independent; the exciting exploration; iPad-forgiving.
@@ -123,8 +123,8 @@ Building it clarified the model further:
   nothing of who holds what — "who's playing" is a couch/UI matter that ends
   when you leave the table. Own goals are allowed and need no special case: the
   puck crossing a side's own line is the other side's point, whoever touched it.
-- **One colour per side.** Both mallets of a side and its goal and its score
-  share one colour (bottom magenta, top cyan) — a side reads as one team.
+- **One color per side.** Both mallets of a side and its goal and its score
+  share one color (bottom magenta, top cyan) — a side reads as one team.
 - **The "1.5"/asymmetric worry is gone** — per-side hand counts ARE the
   asymmetry, handled uniformly. A three-player table (one side singles, other
   doubles) is exactly 1v2.

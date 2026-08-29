@@ -62,14 +62,14 @@ public struct GameView: View {
         if showingPause {
             pauseMenu
         }
-        // The centre ring IS the menu, but it is NOT a view on top of the table:
+        // The center ring IS the menu, but it is NOT a view on top of the table:
         // an overlapping tap view would swallow the touches that grab and drive a
-        // mallet through the centre. Instead a centre-ring TAP is recognised
+        // mallet through the center. Instead a center-ring TAP is recognized
         // inside the multitouch input path (`HockeyGame.onMenuTap`), so a drag
         // through the ring stays ordinary play and only a tap opens the menu.
     }
 
-    /// The menu behind the centre ring: resume, restart, or quit to the front
+    /// The menu behind the center ring: resume, restart, or quit to the front
     /// door. Restart scraps the current game for a fresh one — a new opening
     /// faceoff, score at zero, nobody readied — reachable from anywhere.
     private var pauseMenu: some View {

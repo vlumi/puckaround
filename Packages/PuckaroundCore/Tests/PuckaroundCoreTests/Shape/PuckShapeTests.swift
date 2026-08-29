@@ -11,7 +11,7 @@ final class PuckShapeTests: XCTestCase {
         let v = PuckShape.square.worldVertices(position: .zero, angle: 0, radius: 4)
         XCTAssertEqual(v.count, 4)
         for corner in v {
-            XCTAssertEqual(corner.length, 4, accuracy: 1e-9, "every corner is radius from centre")
+            XCTAssertEqual(corner.length, 4, accuracy: 1e-9, "every corner is radius from center")
         }
     }
 

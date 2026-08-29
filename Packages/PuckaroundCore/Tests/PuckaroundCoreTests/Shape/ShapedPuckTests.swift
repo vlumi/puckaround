@@ -45,7 +45,7 @@ final class ShapedPuckTests: XCTestCase {
         // spun bounces must differ from each other.
         func bounceDirection(spin: Double) -> Double {
             var r = rink(squareTable)
-            // Tilted so a corner (not a flat face) meets the wall off-centre —
+            // Tilted so a corner (not a flat face) meets the wall off-center —
             // that lever is what the spin steers against.
             r.place(
                 Puck(
@@ -170,7 +170,7 @@ final class ShapedPuckTests: XCTestCase {
                     position: r.puck.position, velocity: Vec2(angle: a) * s,
                     angle: r.puck.angle, angularVelocity: Double.random(in: -10...10, using: &rng)))
             r.advance(inputs: [:])
-            // The CENTRE can leave through a goal mouth; otherwise it stays in.
+            // The CENTER can leave through a goal mouth; otherwise it stays in.
             let out = !r.table.puckField.insetBy(-2).contains(r.puck.position)
             if out {
                 let inAMouth =

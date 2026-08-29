@@ -2,7 +2,7 @@ import PuckaroundCore
 import SwiftUI
 
 /// **Neon cabinet.** A dark playfield that glows: a neutral rink (ice, grid,
-/// centre line, puck) that belongs to no seat, and the two players' colours on
+/// center line, puck) that belongs to no seat, and the two players' colors on
 /// exactly the three things that are theirs — mallet, goal, score. Glow is
 /// additive over a solid core, so a hard puck and a readable score survive the
 /// bloom. All procedural; no assets. Being a committed dark look, it has no
@@ -12,17 +12,17 @@ enum RinkRenderer {
     static let ground = Color(red: 0.039, green: 0.024, blue: 0.071)
     /// The ice: a dark neutral playfield, not white — the glow does the lifting.
     static let ice = Color(red: 0.071, green: 0.043, blue: 0.122)
-    /// Rink furniture: grid, centre line, ring. A cool neutral owned by nobody.
+    /// Rink furniture: grid, center line, ring. A cool neutral owned by nobody.
     static let line = Color(red: 0.60, green: 0.72, blue: 0.95)
-    /// The puck: white-hot, so it reads against every seat colour and the ice.
+    /// The puck: white-hot, so it reads against every seat color and the ice.
     static let puck = Color(red: 0.97, green: 0.96, blue: 1.0)
 
-    /// The centre ring's radius in world units — the menu button. Shared so the
+    /// The center ring's radius in world units — the menu button. Shared so the
     /// touch target (in the view) matches the drawn ring exactly.
-    static let centreRingRadius: Double = 16
+    static let centerRingRadius: Double = 16
 
     /// The table letterboxed into the screen: as big as its aspect allows
-    /// inside `margin`, centred.
+    /// inside `margin`, centerd.
     static func fittedTableRect(tableSize: Vec2, in screen: CGSize, margin: CGFloat = 12) -> CGRect
     {
         let box = CGRect(origin: .zero, size: screen).insetBy(dx: margin, dy: margin)
@@ -60,7 +60,7 @@ enum RinkRenderer {
     }
 
     /// A glowing fill: the shape drawn once blurred (the bloom) and once solid
-    /// (the core), so the colour stays legible while still emitting.
+    /// (the core), so the color stays legible while still emitting.
     static func glow(
         _ path: Path, color: Color, blur: CGFloat, core: Double = 1,
         in context: inout GraphicsContext
@@ -90,7 +90,7 @@ enum RinkRenderer {
         drawRink(projection: projection, in: &context)
         drawLaneDividers(scene, projection: projection, in: &context)
         drawSides(scene, projection: projection, in: &context)
-        // The menu glyph is always there — the centre ring is always the menu.
+        // The menu glyph is always there — the center ring is always the menu.
         // It sits UNDER the puck (drawn next), so during a faceoff the frozen
         // puck rests on it; that's fine, it's furniture, and an empty ring would
         // read as broken.
@@ -115,8 +115,8 @@ enum RinkRenderer {
         }
     }
 
-    /// Each side's coloured furniture (goal, score, verdict, ready prompt), then
-    /// every mallet — both mallets of a side share that side's colour.
+    /// Each side's colored furniture (goal, score, verdict, ready prompt), then
+    /// every mallet — both mallets of a side share that side's color.
     private static func drawSides(
         _ scene: RinkScene, projection: Projection, in context: inout GraphicsContext
     ) {
@@ -126,7 +126,7 @@ enum RinkRenderer {
         for side in Side.allCases {
             let color = SeatPalette.color(for: side)
             // A side's own half, full width (both doubles lanes), split at the
-            // centre line — the surface its verdict and ready prompt sit on.
+            // center line — the surface its verdict and ready prompt sit on.
             let half = projection.rect(
                 Rect(
                     x: 0, y: side == .bottom ? halfHeight : 0, width: table.size.x,
@@ -157,7 +157,7 @@ enum RinkRenderer {
     }
 
     /// The ice, a faint neutral grid clipped to it, and a glowing border +
-    /// centre line — all neutral, so the rink belongs to no player.
+    /// center line — all neutral, so the rink belongs to no player.
     private static func drawRink(projection: Projection, in context: inout GraphicsContext) {
         let rect = projection.rect
         let corner = 8 * projection.scale
@@ -187,17 +187,17 @@ enum RinkRenderer {
             iceShape, color: line.opacity(0.9), lineWidth: max(1.5, 1.4 * projection.scale),
             blur: 4 * projection.scale, in: &context)
 
-        // The centre line is INTERRUPTED by the centre circle — as on a real
+        // The center line is INTERRUPTED by the center circle — as on a real
         // rink — so it runs edge → ring on each side and leaves the ring's
         // interior clean for the puck and the menu glyph.
-        let centre = projection.point(projection.table.center)
-        let ringRadius = centreRingRadius * projection.scale
+        let center = projection.point(projection.table.center)
+        let ringRadius = centerRingRadius * projection.scale
         var midline = Path()
-        midline.move(to: CGPoint(x: rect.minX, y: centre.y))
-        midline.addLine(to: CGPoint(x: centre.x - ringRadius, y: centre.y))
-        midline.move(to: CGPoint(x: centre.x + ringRadius, y: centre.y))
-        midline.addLine(to: CGPoint(x: rect.maxX, y: centre.y))
-        let ring = projection.disc(at: centre, radius: ringRadius)
+        midline.move(to: CGPoint(x: rect.minX, y: center.y))
+        midline.addLine(to: CGPoint(x: center.x - ringRadius, y: center.y))
+        midline.move(to: CGPoint(x: center.x + ringRadius, y: center.y))
+        midline.addLine(to: CGPoint(x: rect.maxX, y: center.y))
+        let ring = projection.disc(at: center, radius: ringRadius)
         glowStroke(
             midline, color: line.opacity(0.55), lineWidth: max(1, 0.8 * projection.scale),
             blur: 3 * projection.scale, in: &context)
@@ -206,27 +206,27 @@ enum RinkRenderer {
             blur: 3 * projection.scale, in: &context)
     }
 
-    /// A hamburger inside the centre ring — the menu affordance, so the centre
+    /// A hamburger inside the center ring — the menu affordance, so the center
     /// tap target is discoverable. Three short bars, neutral (they read the same
     /// from both ends). Always drawn (the ring is always the menu); it sits
     /// under the puck, which rests on it during a faceoff.
     private static func drawMenuGlyph(projection: Projection, in context: inout GraphicsContext) {
-        let centre = projection.point(projection.table.center)
+        let center = projection.point(projection.table.center)
         let barWidth = 15 * projection.scale
         let barGap = 5.5 * projection.scale
         var bars = Path()
         for row in -1...1 {
-            let y = centre.y + CGFloat(row) * barGap
-            bars.move(to: CGPoint(x: centre.x - barWidth / 2, y: y))
-            bars.addLine(to: CGPoint(x: centre.x + barWidth / 2, y: y))
+            let y = center.y + CGFloat(row) * barGap
+            bars.move(to: CGPoint(x: center.x - barWidth / 2, y: y))
+            bars.addLine(to: CGPoint(x: center.x + barWidth / 2, y: y))
         }
         context.stroke(
             bars, with: .color(line.opacity(0.6)),
             style: StrokeStyle(lineWidth: max(2, 2 * projection.scale), lineCap: .round))
     }
 
-    /// The goal mouth: a glowing bar in the side's own colour, set into its
-    /// short wall — one of the three things that colour owns. Its width is that
+    /// The goal mouth: a glowing bar in the side's own color, set into its
+    /// short wall — one of the three things that color owns. Its width is that
     /// side's own (wider when two defenders share it).
     private static func drawGoal(
         at side: Side, color: Color, projection: Projection, in context: inout GraphicsContext
@@ -266,11 +266,11 @@ enum RinkRenderer {
                 .system(size: 15 * projection.scale, weight: .black, design: .rounded)))
         var haze = ctx
         haze.addFilter(.blur(radius: 4 * projection.scale))
-        haze.draw(coloured(text, color.opacity(0.9)), at: .zero, anchor: .center)
-        ctx.draw(coloured(text, color), at: .zero, anchor: .center)
+        haze.draw(colored(text, color.opacity(0.9)), at: .zero, anchor: .center)
+        ctx.draw(colored(text, color), at: .zero, anchor: .center)
     }
 
-    static func coloured(
+    static func colored(
         _ text: GraphicsContext.ResolvedText, _ color: Color
     ) -> GraphicsContext.ResolvedText {
         var copy = text
@@ -285,8 +285,8 @@ enum RinkRenderer {
         in context: inout GraphicsContext
     ) {
         var ctx = context
-        let towardCentre = half.height * 0.22
-        let y = side == .top ? half.maxY - towardCentre : half.minY + towardCentre
+        let towardCenter = half.height * 0.22
+        let y = side == .top ? half.maxY - towardCenter : half.minY + towardCenter
         ctx.translateBy(x: half.midX, y: y)
         if side == .top {
             ctx.rotate(by: .degrees(180))
@@ -298,13 +298,13 @@ enum RinkRenderer {
         if won {
             var haze = ctx
             haze.addFilter(.blur(radius: half.height * 0.02))
-            haze.draw(coloured(text, shade.opacity(0.9)), at: .zero, anchor: .center)
+            haze.draw(colored(text, shade.opacity(0.9)), at: .zero, anchor: .center)
         }
-        ctx.draw(coloured(text, shade), at: .zero, anchor: .center)
+        ctx.draw(colored(text, shade), at: .zero, anchor: .center)
     }
 
-    /// The mallet: a glowing ring in the seat's colour with a dark hollow, so
-    /// it reads as a striker rather than a solid disc, and its colour is
+    /// The mallet: a glowing ring in the seat's color with a dark hollow, so
+    /// it reads as a striker rather than a solid disc, and its color is
     /// unmistakably that player's.
     /// Whether a mallet ripples (a not-yet-readied seat during faceoff), and the
     /// clock + reduced-motion state that shape it.
