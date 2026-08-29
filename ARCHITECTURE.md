@@ -14,20 +14,21 @@ into describing a model that was never built.
 
 ```swift
 public protocol ControlSource {
-    func input(for player: PlayerID, at tick: Tick) -> SeatInput
+    func input(for slot: MalletSlot, at tick: Tick) -> SeatInput
 }
 ```
 
 `SeatInput` is data about the table, not about the screen: it carries how far
-the seat wants its mallet moved this tick, in world units. Fingers on glass, a
-future AI seat, anything else are all just `ControlSource`s. The sim never
-knows which, and decides for itself what the movement did (below).
+the mallet wants moving this tick (and, on a fresh grab, an absolute point to
+snap to), in world units. Fingers on glass, a future AI hand, anything else are
+all just `ControlSource`s. The sim never knows which, and decides for itself
+what the movement did (below).
 
 ## Two targets, one seam
 
 | | `PuckaroundCore` | `PuckaroundKit` |
 |---|---|---|
-| holds | math, lineup + seats, the air-hockey sim (table, puck, mallets, score), control sources, the session clock | SwiftUI rendering, UIKit touch capture, the app icon scene |
+| holds | math, table geometry (`Playfield`/`Goal`, `Table`'s sides & slots), the air-hockey sim (puck, mallets, score), control sources, the session clock | SwiftUI rendering, UIKit touch capture, the app icon scene |
 | imports | Foundation | SwiftUI, UIKit (iOS only), PuckaroundCore |
 | tested | headless, coverage-gated | coverage-ignored |
 
@@ -44,35 +45,46 @@ Deterministic by construction: same seed + same inputs → same state,
 bit-for-bit. Replays are seed + per-tick inputs, and any future lockstep would
 stand on the same promise.
 
-- `Rink.advance(inputs: [PlayerID: SeatInput])` at a fixed timestep.
+- `Rink.advance(inputs: [MalletSlot: SeatInput])` at a fixed timestep.
   `tickRate = 60`, `dt = 1/60`. `GameSession` drives it from render-loop time,
   stepping however many ticks a frame owes (capped, so a hitch drops time
-  rather than spiralling).
+  rather than spiralling; a `paused` latch freezes it for the menu).
 - Physics is hand-written — position, velocity, drag, wall and mallet
   reflection. **Not** `SKPhysicsBody`: SpriteKit physics isn't guaranteed
   deterministic.
 - Randomness is injected and seeded (`SeededRNG`, SplitMix64), never ambient.
-  The opening possession is the one random thing.
-- Seats apply in `Lineup` order, never dictionary order — the order hits land
-  in is part of the state.
+  A seam for future randomness; the shipped sim has none (the faceoff opening
+  replaced the old random serve).
+- Mallets apply in `slots` (`Format.slots`) order, never dictionary order — the
+  order hits land in is part of the state.
 
-**The game is 1v1 air hockey**, standard rules: a goal in each short wall, a
-mallet each, the player scored on gets the puck, first to seven
-(`Rules.pointsToWin`). Why this game and not another is in
+**The game is air hockey**, standard rules: a goal in each short wall, the side
+scored on gets the puck, first to seven (`Rules.pointsToWin`). Each side fields
+one or two mallets — see [Sides & slots](#sides--slots) — so 1v1, 1v2 and 2v2
+are one game. Why this game and not another is in
 [docs/air-hockey-plan.md](docs/air-hockey-plan.md).
 
-**The table** (`Playfield`) is a walled rectangle in world units, a goal mouth
-centerd in each short wall, plus the constants: puck and mallet radii, goal
-width, wall restitution, surface drag, a speed cap (so no hit can carry the
-puck through a wall in one tick), and a rest speed below which the puck stops
-instead of creeping on floating-point dust, and the `puckShape` (below). The
-short walls are **open across the mouth** (clear of both posts, `goalWidth/2 −
-puckRadius`): a puck lined up with the goal passes through, and a goal counts
-only once the **whole puck is past the line** (soccer rules — it flies fully in
-before warping back). Elsewhere the wall bounces it; a post bounces it too.
+**The table** (`Playfield`) is a walled rectangle in world units, a goal in each
+short wall, plus the constants: puck and mallet radii, goal width, wall
+restitution, surface drag, a speed cap (so no hit can carry the puck through a
+wall in one tick), a rest speed below which the puck stops instead of creeping
+on floating-point dust, the `puckShape` (below), and `sideWalls` (solid or
+wrap). One side's goal geometry is a `Goal` value (built by `Playfield.goal`):
+its line, its **opening** (the drawn gap between the posts), and the narrower
+**scoring mouth** (the opening less a puck radius each side, since the whole
+disc must clear the posts). A goal counts only once the **whole puck is past the
+line and within the mouth** (soccer rules — it flies fully in before warping
+back). A puck that enters the opening but clips a post bounces off the post's
+inner face, staying in the goal; a puck wide of the opening bounces off the
+short wall.
+
+**Side walls can wrap.** With `sideWalls == .wrap` the long walls are portals —
+a puck leaving one long side re-enters the opposite side at the same height,
+keeping its speed (the goals stay solid). A table variant, orthogonal to shape
+and format; see [docs/table-and-modes-plan.md](docs/table-and-modes-plan.md).
 
 **Coordinates are y-down**, matching screen space: rendering is a pure scale
-and nothing flips. `Seat.bottom` is the bottom of the screen.
+and nothing flips. `Side.bottom` is the bottom of the screen.
 
 **The puck has a shape** (`PuckShape` on `Playfield` — `circle` by default, or
 a `polygon`; square and triangle ship). A polygon puck carries an `angle` and
@@ -96,10 +108,11 @@ small mark that turns with `angle`.
 
 **The look is a neon cabinet, and single-theme by choice.** A dark violet-black
 ground, a glowing neutral rink (ice, grid, center line, puck) that belongs to
-no seat, and each player's neon color on exactly the three things that are
-theirs — mallet, goal mouth, score — so table furniture never competes with
-player identity. Magenta and cyan lead the 1v1 palette: the max-contrast pair,
-and color-blind-safe (they separate on lightness and the red–green axis). Glow
+no side, and each **side's** neon color on exactly the things that are theirs —
+its mallet(s), its goal, its score — so table furniture never competes with side
+identity. One color per side (both mallets of a doubles side share it): magenta
+for the bottom, cyan for the top — the max-contrast pair, and color-blind-safe
+(they separate on lightness and the red–green axis). Glow
 is drawn as a blurred pass under a solid core, so a hard puck and a readable
 score survive the bloom; decorative motion (the puck's speed-scaled trail, a CRT
 scanline breath) backs off under `accessibilityReduceMotion`. All procedural, no
@@ -117,33 +130,42 @@ a pure function of the sim, the events are deterministic and a replay gets them
 for free.
 
 **Mallets are kinematic.** A mallet goes exactly where the hand's movement
-puts it, clamped to its own half (it may touch the center line, never cross
-it), and is infinitely heavy as far as the puck is concerned: the puck is
-pushed clear along the contact normal and, if they were closing, bounces with
-the mallet's velocity added (`(1 + restitution)` of the closing speed). A fast
+puts it, clamped to its own zone (its side's half, and in doubles its left or
+right lane — it may touch the center line, never cross it), and is infinitely
+heavy as far as the puck is concerned: the puck is pushed clear along the
+contact normal and, if they were closing, bounces with the mallet's velocity
+added (`(1 + restitution)` of the closing speed) plus a little english. A fast
 hand is swept along its path in steps no longer than the puck's radius, so it
 cannot pass through the puck between two positions. A still mallet is a wall.
 **Mallets are the players' hands, so they are never frozen or reset**: a
 finished game parks only the puck, and a new game leaves the mallets where
 they were.
 
-## Seats
+## Sides & slots
 
-`Lineup` is who is at the table: 2–4 players, seated in order at the bottom,
-top, left and right edges — so two players face each other across the table.
-With four, the lineup may be **teamed** (partners across: bottom + top vs.
-left + right). **Only the duel is playable**: `Rink` refuses any other count,
-because the table has nowhere to put more goals yet (see *Planned*).
+The sim knows nothing of players or teams — that identity ends when you leave
+the table. A **mallet is a `MalletSlot`** (a `Side` × a `Lane`); a **goal is a
+`Side`** (bottom or top). Score is per side (`Rink.score(of:)`); own goals need
+no special case — the puck crossing a side's own line is the other side's point,
+whoever touched it.
 
-`SeatZones` maps a world point to its seat by nearest seated wall, and gives
-each seat a band along its edge to be drawn in.
+`Format` is the shape of play: how many hands each side fields, `(bottom, top)`
+each one or two, so 1v1, 1v2 and 2v2 all fall out of one model. `Format.slots`
+lists the mallets in a fixed order (bottom's lanes, then top's) — the order the
+sim iterates, so it stays deterministic. A side's goal **widens with its hand
+count** (`Playfield.goalWidth(for:)`): a lone defender keeps a narrow goal, a
+pair earns a wide one, so in 1v2 the harder goal to keep goes to the
+better-staffed side. In doubles a side's half splits into left/right lanes, each
+mallet confined to one, with a drawn divider down the middle.
 
-**A touch belongs to the seat it began in for its whole life**, and **the
-first finger down in a half drives that half's mallet** — further fingers of
-the same seat are ignored until the driver lifts. Decided at touch-down, never
-revisited, so a finger crossing the center line never becomes the other
-player's. `MalletControlSource` holds the ownership and turns the driving
-finger's movement since the last tick into that seat's drag.
+`SeatZones` maps a world point to the slot that owns it (its side's half, then
+its lane). **A touch belongs to the slot it grabbed for its whole life** — one
+finger per mallet, decided on the grab, never revisited. `MalletControlSource`
+holds the ownership and turns the driving finger's movement into that mallet's
+drag. A finger only **grabs** a mallet when it comes down (or slides) near it;
+land far away and the mallet stays put until a finger reaches it — so re-grabbing
+after a lift snaps the mallet under the thumb instead of driving it from an
+offset.
 
 ---
 
@@ -151,16 +173,15 @@ finger's movement since the last tick into that seat's drag.
 
 Not built. Nothing below describes existing code.
 
-**Three and four seats.** The lineup exists; the table doesn't. Where a third
-and fourth goal go — one per wall on a square table, corners, a shared goal
-per team — and whether four hands fit round a phone at all are open; see
-[docs/air-hockey-plan.md](docs/air-hockey-plan.md).
-
 **The couch's tail.** The front door shipped (title, first-to-N, puck pick,
-Play; the center ring is the always-available menu; a rematch is the faceoff
-returning). Still planned: who is playing, seat colors, per-seat HUD facing its
-player, side-by-side vs. face-to-face seating on iPad — the parts that need
-more seats and profiles.
+players-per-side and walls pickers, Play; the center ring is the
+always-available menu; a rematch is the faceoff returning). Still planned: who is
+playing beyond a bare per-side count — names, remembered colors, profiles.
+
+**A curved table (the ellipse).** Slice goals and curved walls, and the payoff
+the flat table can't express: a forward-spun puck that rolls the wall toward the
+goal. A whole table's worth of physics — a spike, not a variant. Design in
+[docs/table-and-modes-plan.md](docs/table-and-modes-plan.md).
 
 ## Deliberately out of scope
 

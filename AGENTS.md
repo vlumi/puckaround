@@ -1,15 +1,16 @@
 # Puck Around — agent & contributor guide
 
-Air hockey for iPhone and iPad: two people around **one device**, a mallet
-each, a goal each; three and four seats designed for but not yet on the table.
-Local multiplayer only — the device *is* the table. This file is how to *work
+Air hockey for iPhone and iPad: people around **one device**, a goal each end,
+one or two mallets a side (1v1, 1v2, 2v2). Local multiplayer only — the device
+*is* the table. This file is how to *work
 on* the repo, for humans and AI agents alike.
 
-**The repo is at the prototyping stage.** 1v1 air hockey is built; the first
-job is to find out whether it feels good on glass — the mallet, the drag, the
-bounce — not to build a finished game around it. Don't build menus, modes or
-persistence before the core feel is proven; [ROADMAP.md](ROADMAP.md) has the
-order, and the *Settled* section there records what has been decided.
+**The repo is past first feel and building out the couch.** The core plays well
+on glass (mallet, drag, bounce all proven on device), and singles/doubles/1v2,
+shaped and spinning pucks, wrap-wall tables, and a front door have shipped. The
+work now is the multiplayer table and the pickers around it — kept lean, feel
+first. [ROADMAP.md](ROADMAP.md) has the order, and its *Settled* section records
+what has been decided.
 
 Separate project from its siblings [Skid Jam](https://github.com/vlumi/skid) (a
 couch racer), [Donpa Squad](https://github.com/vlumi/donpa) (Minesweeper),
@@ -25,7 +26,7 @@ One place per concern — don't duplicate, link:
 
 | | |
 |---|---|
-| **What the system is** | [ARCHITECTURE.md](ARCHITECTURE.md) — the sim, the seats, the touch rule, and a fenced *Planned* chapter |
+| **What the system is** | [ARCHITECTURE.md](ARCHITECTURE.md) — the sim, sides & slots, the touch rule, and a fenced *Planned* chapter |
 | **How to work on it** | this file — conventions, toolchain, PR process |
 | **What's next, and when** | [ROADMAP.md](ROADMAP.md) |
 | **Why a design was chosen** | `docs/*-plan.md`, linked from ARCHITECTURE.md — [docs/air-hockey-plan.md](docs/air-hockey-plan.md) so far |
@@ -64,10 +65,10 @@ describing intent as fact otherwise.
 The load-bearing decisions and their rationale live in
 [ARCHITECTURE.md](ARCHITECTURE.md). The essentials:
 
-- **A control scheme is an input source, not a game mode.** Every seat's
-  action reaches the sim as a `SeatInput` value (how far to move the mallet
-  this tick). Fingers, a future AI seat, anything — all `ControlSource`s; the
-  sim never knows which.
+- **A control scheme is an input source, not a game mode.** Every mallet's
+  action reaches the sim as a `SeatInput` value (how far to move it this tick,
+  or a point to grab it to). Fingers, a future AI hand, anything — all
+  `ControlSource`s; the sim never knows which.
 - **The sim is pure and deterministic** — hand-written physics at a fixed
   timestep, seeded RNG, no `SKPhysicsBody`, no ambient randomness. Same seed +
   same inputs → same state, bit-for-bit. Replays are seed + inputs.
@@ -96,7 +97,7 @@ puckaround/
     │   ├── Table/                  Playfield + Goal geometry, Table (Side/Lane/MalletSlot/Format), PuckShape
     │   └── Input/                  SeatInput + ControlSource, SeatZones, MalletControlSource
     ├── Sources/PuckaroundKit/      SwiftUI + UIKit, depends on Core; coverage-ignored
-    │   ├── App/                    GameView, HockeyGame (one table of 1v1), Compat (iOS 16 wrappers)
+    │   ├── App/                    GameView, HockeyGame (one table), Menu/AppRoot (front door), Compat (iOS 16 wrappers)
     │   ├── Feedback/               Haptics + SoundEngine — procedural, off the sim's GameEvent stream
     │   ├── Input/                  MultiTouchSurface — every finger, id-tagged, to the control source
     │   ├── Render/                 RinkRenderer (Canvas), SeatPalette
@@ -110,7 +111,7 @@ Both targets and the tests group **by domain, not by type**.
 
 ### Art assets
 
-**All graphics procedural** — table, puck, seats, and the app icon are drawn in
+**All graphics procedural** — table, puck, mallets, and the app icon are drawn in
 code; no image assets. The icon is the one PNG in the repo, and it is
 *generated*: `make icon` renders `AppIconScene` (the game's own drawing code)
 to `Sources/Shared/Assets.xcassets/AppIcon.appiconset/icon-1024.png`, flattened
@@ -192,12 +193,12 @@ Branch off `main`, one focused change per PR (details in
   commit messages and the docs.
 - **Determinism for tests:** all randomness through an injected `SeededRNG`
   (SplitMix64); production seeds from `SystemRandomNumberGenerator`. The sim
-  iterates seats in `Lineup` order, never dictionary order.
+  iterates mallets in `Format.slots` order, never dictionary order.
 - **World coordinates are y-down**, matching screen space, so rendering is one
-  scale and nothing flips. `Seat.bottom` is the bottom of the screen in
+  scale and nothing flips. `Side.bottom` is the bottom of the screen in
   portrait.
-- **A touch belongs to the seat it began in for its whole life**, and **the
-  first finger down in a half drives its mallet** — the two rules that make
+- **A touch belongs to the mallet it grabbed for its whole life**, and **a
+  finger only grabs a mallet it comes down near** — the two rules that make
   several fingers on one screen unambiguous.
 - Core geometry uses `Vec2`/`Rect` (no CoreGraphics in Core); the Kit bridges
   to `CGPoint`/`CGRect` at the edge.
