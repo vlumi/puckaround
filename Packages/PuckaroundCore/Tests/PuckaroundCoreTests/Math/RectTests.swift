@@ -23,4 +23,17 @@ final class RectTests: XCTestCase {
         XCTAssertTrue(rect.contains(Vec2(110, 70)))
         XCTAssertFalse(rect.contains(Vec2(110.01, 70)))
     }
+
+    func testEdgeProximity() {
+        XCTAssertTrue(rect.isAtLeftEdge(Vec2(10, 45)))
+        XCTAssertFalse(rect.isAtLeftEdge(Vec2(11, 45)))
+        XCTAssertTrue(rect.isAtRightEdge(Vec2(110, 45)))
+        XCTAssertFalse(rect.isAtRightEdge(Vec2(109, 45)))
+        XCTAssertTrue(rect.isAtTopEdge(Vec2(60, 20)))
+        XCTAssertFalse(rect.isAtTopEdge(Vec2(60, 21)))
+        XCTAssertTrue(rect.isAtBottomEdge(Vec2(60, 70)))
+        XCTAssertFalse(rect.isAtBottomEdge(Vec2(60, 69)))
+        // A hair past still counts (float dust from clamping).
+        XCTAssertTrue(rect.isAtLeftEdge(Vec2(10 - 1e-9, 45)))
+    }
 }

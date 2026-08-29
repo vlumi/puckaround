@@ -31,12 +31,15 @@ public struct Playfield: Equatable, Codable, Sendable {
     public var serveSpeed: Double
     /// The puck's silhouette — circle by default; a polygon tumbles.
     public var puckShape: PuckShape
+    /// How the long side walls behave — solid (bounce) by default, or wrap.
+    public var sideWalls: SideWalls
 
     public init(
         size: Vec2, puckRadius: Double, malletRadius: Double, goalWidth: Double,
         restitution: Double, drag: Double, maxSpeed: Double, restSpeed: Double,
         faceoffBubbleRadius: Double, serveSpeed: Double, puckShape: PuckShape = .circle,
-        doublesGoalWidth: Double? = nil, format: Format = .oneVsOne
+        doublesGoalWidth: Double? = nil, format: Format = .oneVsOne,
+        sideWalls: SideWalls = .solid
     ) {
         self.size = size
         self.puckRadius = puckRadius
@@ -51,6 +54,7 @@ public struct Playfield: Equatable, Codable, Sendable {
         self.puckShape = puckShape
         self.doublesGoalWidth = doublesGoalWidth ?? goalWidth * 2.2
         self.format = format
+        self.sideWalls = sideWalls
     }
 
     /// The one table there is: two players facing each other.
@@ -99,11 +103,25 @@ public struct Playfield: Equatable, Codable, Sendable {
         }
     }
 
+    /// The scoring mouth's width for a side: the goal opening minus a puck
+    /// radius at each post, since the WHOLE disc must clear the posts to count.
+    /// This is the width to DRAW, so what looks like the goal is what scores.
+    public func goalMouthWidth(for side: Side) -> Double {
+        max(0, goalWidth(for: side) - 2 * puckRadius)
+    }
+
     /// Whether a puck center crossing `side`'s short wall at `x` goes cleanly
     /// into that side's goal mouth — clear of both posts, so the whole disc fits
     /// through. Each side's goal has its own width (wider for two defenders).
     public func isInGoalMouth(x: Double, of side: Side) -> Bool {
-        abs(x - center.x) <= goalWidth(for: side) / 2 - puckRadius
+        abs(x - center.x) <= goalMouthWidth(for: side) / 2
+    }
+
+    /// Whether a puck center at `x` is within the goal OPENING — the full drawn
+    /// gap between the posts, not the narrower whole-puck mouth. Inside this but
+    /// outside the mouth is the post-clip zone (the puck touches a post).
+    public func isInGoalOpening(x: Double, of side: Side) -> Bool {
+        abs(x - center.x) <= goalWidth(for: side) / 2
     }
 
     /// The y a puck center must reach for the WHOLE puck to be past a short wall

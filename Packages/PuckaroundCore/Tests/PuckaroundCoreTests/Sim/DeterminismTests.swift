@@ -37,7 +37,9 @@ final class DeterminismTests: XCTestCase {
         }
         XCTAssertEqual(a.rink, b.rink)
         XCTAssertEqual(a.rink.tick, 1800)
-        XCTAssertNotEqual(a.trail.first, a.trail.last, "the script actually moved the puck")
+        // The script actually moved the puck at some point (it may end back at
+        // center after a goal, so compare against the whole trail, not just last).
+        XCTAssertTrue(a.trail.contains { $0 != a.trail.first }, "the script moved the puck")
     }
 
     func testEveryGameOpensTheSameWay() {

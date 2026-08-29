@@ -73,7 +73,8 @@ The lane is in place (see [RELEASING.md](RELEASING.md)); what's missing is the f
 ## Backlog (unversioned)
 
 - [ ] An **AI seat** to fill an empty edge — a `ControlSource` like any other. Not the premise (this is a game for people in a room), so only if it costs little.
-- [ ] Variants: bumpers on the table, two pucks, a moving goal.
+- [x] **Wrap-around side walls** — a table variant where the long walls are portals (exit one side, enter the other at the same height, keeping speed); goals stay solid. A `SideWalls` on `Playfield`, chosen by a "Walls" picker, orthogonal to puck and format. The seam for grouping table variants under one picker later.
+- [ ] More variants: bumpers on the table, two pucks, a moving goal.
 - [ ] Finnish/Japanese localization (String Catalog makes this translation-only).
 
 ## Ideas to evaluate — *not scheduled*

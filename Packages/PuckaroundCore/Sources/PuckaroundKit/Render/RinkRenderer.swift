@@ -87,7 +87,9 @@ enum RinkRenderer {
         guard rect.width > 0 else { return }
         let projection = Projection(table: table, rect: rect, scale: rect.width / table.size.x)
 
-        drawRink(projection: projection, in: &context)
+        drawRink(
+            projection: projection, time: scene.time, reducedMotion: scene.reducedMotion,
+            in: &context)
         drawLaneDividers(scene, projection: projection, in: &context)
         drawSides(scene, projection: projection, in: &context)
         // The menu glyph is always there — the center ring is always the menu.
@@ -104,6 +106,8 @@ enum RinkRenderer {
         drawPuck(
             scene.rink.puck, radius: table.puckRadius, shape: table.puckShape,
             projection: projection, in: &context)
+        // Mallets last — above the puck and the center glyph, since they're hands.
+        drawMallets(scene, projection: projection, in: &context)
         if let burst = scene.faceoffBurst, !scene.reducedMotion {
             drawFaceoffBurst(
                 at: projection.point(table.center),
@@ -115,13 +119,12 @@ enum RinkRenderer {
         }
     }
 
-    /// Each side's colored furniture (goal, score, verdict, ready prompt), then
-    /// every mallet — both mallets of a side share that side's color.
+    /// Each side's colored furniture: goal, score, verdict, ready prompt. The
+    /// mallets are drawn later (see `drawMallets`), on top of everything.
     private static func drawSides(
         _ scene: RinkScene, projection: Projection, in context: inout GraphicsContext
     ) {
         let table = scene.rink.table
-        let faceoffReady = scene.rink.readyMallets
         let halfHeight = table.size.y / 2
         for side in Side.allCases {
             let color = SeatPalette.color(for: side)
@@ -145,20 +148,14 @@ enum RinkRenderer {
                     scene, side: side, half: half, color: color, in: &context)
             }
         }
-        for slot in scene.rink.slots {
-            guard let mallet = scene.rink.mallet(at: slot) else { continue }
-            drawMallet(
-                mallet, radius: table.malletRadius, color: SeatPalette.color(for: slot.side),
-                ripple: Ripple(
-                    active: scene.rink.isFaceoff && !faceoffReady.contains(slot),
-                    time: scene.time, reducedMotion: scene.reducedMotion),
-                projection: projection, in: &context)
-        }
     }
 
     /// The ice, a faint neutral grid clipped to it, and a glowing border +
     /// center line — all neutral, so the rink belongs to no player.
-    private static func drawRink(projection: Projection, in context: inout GraphicsContext) {
+    private static func drawRink(
+        projection: Projection, time: Double, reducedMotion: Bool,
+        in context: inout GraphicsContext
+    ) {
         let rect = projection.rect
         let corner = 8 * projection.scale
         let iceShape = Path(roundedRect: rect, cornerRadius: corner)
@@ -183,9 +180,14 @@ enum RinkRenderer {
             layer.stroke(grid, with: .color(line.opacity(0.10)), lineWidth: 1)
         }
 
-        glowStroke(
-            iceShape, color: line.opacity(0.9), lineWidth: max(1.5, 1.4 * projection.scale),
-            blur: 4 * projection.scale, in: &context)
+        if projection.table.sideWalls == .wrap {
+            drawWrapBorder(
+                time: time, reducedMotion: reducedMotion, projection: projection, in: &context)
+        } else {
+            glowStroke(
+                iceShape, color: line.opacity(0.9), lineWidth: max(1.5, 1.4 * projection.scale),
+                blur: 4 * projection.scale, in: &context)
+        }
 
         // The center line is INTERRUPTED by the center circle — as on a real
         // rink — so it runs edge → ring on each side and leaves the ring's
@@ -232,7 +234,9 @@ enum RinkRenderer {
         at side: Side, color: Color, projection: Projection, in context: inout GraphicsContext
     ) {
         let table = projection.table
-        let width = table.goalWidth(for: side) * projection.scale
+        // Draw the SCORING mouth (posts inset by a puck radius), not the raw
+        // opening, so a puck that reaches the drawn goal actually counts.
+        let width = table.goalMouthWidth(for: side) * projection.scale
         let x = projection.rect.midX - width / 2
         let y = side == .top ? projection.rect.minY : projection.rect.maxY
         var bar = Path()
@@ -318,32 +322,6 @@ enum RinkRenderer {
         var active = false
         var time: Double = 0
         var reducedMotion = false
-    }
-
-    private static func drawMallet(
-        _ mallet: Mallet, radius: Double, color: Color, ripple: Ripple = Ripple(),
-        projection: Projection, in context: inout GraphicsContext
-    ) {
-        let p = projection.point(mallet.position)
-        let r = radius * projection.scale
-        // Before a seat readies, a slow ripple pulses out from its mallet — a
-        // wordless "grab me". Off under reduced motion (a static soft halo).
-        if ripple.active {
-            let phase =
-                ripple.reducedMotion ? 0.5 : (ripple.time * 0.8).truncatingRemainder(dividingBy: 1)
-            let rippleR = r * (1 + phase * 1.6)
-            context.stroke(
-                projection.disc(at: p, radius: rippleR),
-                with: .color(color.opacity((1 - phase) * 0.5)),
-                lineWidth: max(1, 0.5 * projection.scale))
-        }
-        glow(
-            projection.disc(at: p, radius: r), color: color, blur: 6 * projection.scale, core: 1,
-            in: &context)
-        context.fill(projection.disc(at: p, radius: r * 0.5), with: .color(ground.opacity(0.85)))
-        context.stroke(
-            projection.disc(at: p, radius: r * 0.5), with: .color(color.opacity(0.6)),
-            lineWidth: max(1, 0.4 * projection.scale))
     }
 
     /// A slow CRT breath over the ice — pure decoration, so it never draws under
