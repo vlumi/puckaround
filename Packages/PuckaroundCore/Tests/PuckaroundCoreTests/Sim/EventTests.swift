@@ -82,11 +82,15 @@ final class EventTests: XCTestCase {
             Puck(
                 position: Vec2(r.table.center.x, r.table.puckField.minY + 1),
                 velocity: Vec2(0, -300)))
-        // The goal fires on the tick the WHOLE puck clears the line.
+        // The goal fires on the tick the WHOLE puck clears the line. (Skip the
+        // GO announced on play's first tick.)
         var goalEvents: [GameEvent] = []
-        for _ in 0..<6 where goalEvents.isEmpty {
+        for _ in 0..<6
+        where !goalEvents.contains(where: {
+            if case .goal = $0 { return true } else { return false }
+        }) {
             r.advance(inputs: [:])
-            goalEvents = r.events
+            goalEvents = r.events.filter { $0 != .faceoffCleared }
         }
         XCTAssertEqual(
             goalEvents, [.goal(scorer: bottom, conceder: top), .gameOver(winner: bottom)])
@@ -99,9 +103,12 @@ final class EventTests: XCTestCase {
                 position: Vec2(r.table.center.x, r.table.puckField.minY + 1),
                 velocity: Vec2(0, -300)))
         var goalEvents: [GameEvent] = []
-        for _ in 0..<6 where goalEvents.isEmpty {
+        for _ in 0..<6
+        where !goalEvents.contains(where: {
+            if case .goal = $0 { return true } else { return false }
+        }) {
             r.advance(inputs: [:])
-            goalEvents = r.events
+            goalEvents = r.events.filter { $0 != .faceoffCleared }
         }
         XCTAssertEqual(goalEvents, [.goal(scorer: bottom, conceder: top)])
     }
@@ -120,5 +127,19 @@ final class EventTests: XCTestCase {
             return trail
         }
         XCTAssertEqual(run(), run())
+    }
+
+    func testTheFaceoffClearingEmitsAGo() {
+        var r = Rink(table: .duel, lineup: .duel, seed: 1)
+        r.park()
+        r.ready(bottom)
+        r.advance(inputs: [:])
+        XCTAssertFalse(r.events.contains(.faceoffCleared), "one seat readied is not GO")
+        r.ready(top)  // clears the faceoff → play begins
+        XCTAssertTrue(r.isFaceoff == false)
+        r.advance(inputs: [:])
+        XCTAssertTrue(r.events.contains(.faceoffCleared), "the first tick of play announces GO")
+        r.advance(inputs: [:])
+        XCTAssertFalse(r.events.contains(.faceoffCleared), "and only that one tick")
     }
 }

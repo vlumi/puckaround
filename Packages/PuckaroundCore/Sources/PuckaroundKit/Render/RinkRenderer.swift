@@ -13,6 +13,11 @@ struct RinkScene {
     var reducedMotion = false
     /// A rising time base for ambient effects; the view feeds it the frame time.
     var time: Double = 0
+    /// 0→1 progress of the faceoff-clears burst, or nil when not bursting.
+    var faceoffBurst: Double?
+
+    /// How long the burst ring animates, in seconds.
+    static let burstDuration = 0.45
 }
 
 /// **Neon cabinet.** A dark playfield that glows: a neutral rink (ice, grid,
@@ -146,6 +151,12 @@ enum RinkRenderer {
         drawPuck(
             scene.rink.puck, radius: table.puckRadius, shape: table.puckShape,
             projection: projection, in: &context)
+        if let burst = scene.faceoffBurst, !scene.reducedMotion {
+            drawFaceoffBurst(
+                at: projection.point(table.center),
+                from: table.faceoffBubbleRadius * projection.scale,
+                progress: burst, in: &context)
+        }
         if !scene.reducedMotion {
             drawScanline(rect: rect, time: scene.time, in: &context)
         }
@@ -389,6 +400,23 @@ extension RinkRenderer {
         haze.addFilter(.blur(radius: half.height * 0.012))
         haze.draw(coloured(text, color.opacity(0.85)), at: .zero, anchor: .center)
         ctx.draw(coloured(text, color.opacity(0.85)), at: .zero, anchor: .center)
+    }
+
+    /// The field BURSTING as play begins: a ring expanding out from the bubble
+    /// and fading — the visual "GO". Paired with the whistle sound and haptic.
+    private static func drawFaceoffBurst(
+        at centre: CGPoint, from startRadius: CGFloat, progress: Double,
+        in context: inout GraphicsContext
+    ) {
+        let eased = 1 - (1 - progress) * (1 - progress)  // ease-out
+        let radius = startRadius * (1 + CGFloat(eased) * 2.2)
+        let alpha = (1 - progress) * 0.8
+        let ring = Path(
+            ellipseIn: CGRect(
+                x: centre.x - radius, y: centre.y - radius, width: 2 * radius, height: 2 * radius))
+        glowStroke(
+            ring, color: line.opacity(alpha), lineWidth: max(1, CGFloat(2 * (1 - progress)) + 1),
+            blur: 6, in: &context)
     }
 
     /// The faceoff force field: a glowing ring around the frozen puck that no

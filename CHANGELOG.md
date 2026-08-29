@@ -14,6 +14,7 @@ The `## vX.Y.Z` heading is written by the release lane too, whenever a release c
 
 ### Unreleased (next build)
 
+- **The faceoff goes off with a bang.** When everyone's readied and play begins, the force field bursts — a ring flares out from the centre, with a whistle-crack sound and a haptic pop — instead of just quietly vanishing. You can feel the GO.
 ### build 3 — 2026-08-28
 
 - **Pick your puck.** The front page now offers a round, square or triangular puck. The shaped ones tumble — a corner catching the boards starts them spinning, and a spinning puck skews off the wall at an angle that depends on how it's turning, so a rally with a square or triangle is a scramble. The round puck plays exactly as before. A first taste of puck variety.
