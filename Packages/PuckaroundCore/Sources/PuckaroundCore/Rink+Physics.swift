@@ -63,14 +63,13 @@ extension Rink {
             if let slot {
                 events.append(.malletHit(slot, speed: -closing))
             }
-            // A shaped puck spins when the hit has any sideways bite: the
-            // tangential part of the mallet's approach grabs the puck's edge,
-            // like putting english on it. A dead-center square-on hit adds none.
-            if case .polygon = table.puckShape {
-                let relative = puck.velocity - malletVelocity
-                let tangent = normal.perpendicular
-                puck.angularVelocity -= relative.dot(tangent) / table.puckRadius * Rink.spinBite
-            }
+            // Any puck spins when the hit has sideways bite: the tangential part
+            // of the mallet's approach grabs its edge, like putting english on
+            // it. A dead-center square-on hit adds none. A disc bites less than a
+            // polygon (no corners to catch) — see `spinBite`.
+            let relative = puck.velocity - malletVelocity
+            let tangent = normal.perpendicular
+            puck.angularVelocity -= relative.dot(tangent) / table.puckRadius * spinBite
         }
         // Pinned against a wall: kill the speed aimed into it (the wall takes
         // it) and let it slide out ALONG the wall instead, so a hard slam
@@ -205,12 +204,15 @@ extension Rink {
     }
 
     /// A circle bounces off each wall by mirroring the position back inside and
-    /// the velocity component with it, keeping `restitution` of it. (Goal
-    /// crossings were already handled in `stepPuck`.)
+    /// the velocity component with it, keeping `restitution` of it. Its spin then
+    /// skews the outgoing angle a little and the wall bleeds some of that spin —
+    /// gently, since a flat wall can't roll the puck along it (that's the
+    /// ellipse's trick). (Goal crossings were already handled in `stepPuck`.)
     private mutating func bounceCircleOffWalls() {
         let field = table.puckField
         var p = puck.position
         var v = puck.velocity
+        var bounced = false
         // The short walls are open across each side's own mouth — a puck lined
         // up with a goal passes through (to be scored once fully in) instead of
         // bouncing. The two mouths can differ in width, so each wall checks its
@@ -219,19 +221,29 @@ extension Rink {
             p.y = field.minY + (field.minY - p.y)
             events.append(.wallBounce(speed: abs(v.y)))
             v.y = -v.y * table.restitution
+            bounced = true
         } else if p.y > field.maxY, !table.isInGoalMouth(x: p.x, of: .bottom) {
             p.y = field.maxY - (p.y - field.maxY)
             events.append(.wallBounce(speed: abs(v.y)))
             v.y = -v.y * table.restitution
+            bounced = true
         }
         if p.x < field.minX {
             p.x = field.minX + (field.minX - p.x)
             events.append(.wallBounce(speed: abs(v.x)))
             v.x = -v.x * table.restitution
+            bounced = true
         } else if p.x > field.maxX {
             p.x = field.maxX - (p.x - field.maxX)
             events.append(.wallBounce(speed: abs(v.x)))
             v.x = -v.x * table.restitution
+            bounced = true
+        }
+        // Spin steers the outgoing angle and is bled by the wall's grip. Done
+        // once for the whole tick's bounce, on the already-reflected velocity.
+        if bounced, puck.angularVelocity != 0 {
+            v = v.rotated(by: puck.angularVelocity * Rink.discSteerPerSpin)
+            puck.angularVelocity *= Rink.discSpinKeptOnBounce
         }
         // Clamp X to the field always, but Y only when the mouth the puck is
         // heading for is closed — else a puck flying into the goal is dragged

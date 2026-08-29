@@ -84,8 +84,15 @@ the wall), while the puck's **spin steers the outgoing direction off-axis** —
 which way and how much set by the spin's sign and speed and how off-center the
 corner hit is. A corner catch also *starts* a little spin from rest; a flat
 face bounces clean. A glancing mallet hit puts english on it. Three dials tune
-the feel: `PolygonCollision.steerPerSpin`, `spinFromCorner`, `spinSpent`. The
-circle path is untouched, so the shipped round game is byte-identical.
+the feel: `PolygonCollision.steerPerSpin`, `spinFromCorner`, `spinSpent`.
+
+**The round puck spins too, more gently.** A glancing mallet hit gives the disc
+english (`Rink.discSpinBite`, below the polygon's `spinBite`), and its spin
+skews the wall bounce (`discSteerPerSpin`) while the wall bleeds some of it
+(`discSpinKeptOnBounce`) — a finesse effect, not the polygon's tumble, and a
+flat wall deliberately can't *roll* the puck along it (that payoff waits on the
+ellipse's curved walls). Spin is invisible on a circle, so the renderer draws a
+small mark that turns with `angle`.
 
 **The look is a neon cabinet, and single-theme by choice.** A dark violet-black
 ground, a glowing neutral rink (ice, grid, center line, puck) that belongs to

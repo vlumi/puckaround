@@ -14,6 +14,8 @@ The `## vX.Y.Z` heading is written by the release lane too, whenever a release c
 
 ### Unreleased (next build)
 
+- **The round puck takes spin now.** Clip it with a moving mallet and it picks up english — a little dot on the puck shows which way it's turning — and a spinning puck skews off the walls instead of bouncing straight. It's a gentler effect than the square or triangle (a disc has no corners to catch), a finesse tool rather than a big swing.
+
 ### build 4 — 2026-08-29
 
 - **Play doubles, or one against two.** The front page now sets each side's players separately — one or two per end, facing off across a "VS." — so you can play 1v1, 2v2, or an uneven 1v2. In doubles a side fields two mallets, one keeping each half of its end, with a line down the middle marking the two players' territory; the goal is wider to match the extra defender, and both mallets of a side share its color as one team.

@@ -28,15 +28,26 @@ extension RinkRenderer {
         }
         let body = puckBodyPath(puck, radius: radius, shape: shape, projection: projection)
         glow(body, color: RinkRenderer.puck, blur: 5 * projection.scale, in: &context)
-        // A circle needs a highlight to show it is moving at all; a polygon
-        // shows its spin by its own rotation, so it needs none (an offset dot
-        // just reads as a stray mark on the small shape).
+        // A polygon shows its spin by its own rotation; a disc can't, so it wears
+        // a small mark that turns with `angle` — off-center enough to read english
+        // at a glance, without cluttering the neon core.
         if case .circle = shape {
-            context.fill(
-                projection.disc(
-                    at: CGPoint(x: p.x - r * 0.4, y: p.y - r * 0.4), radius: r * 0.22),
-                with: .color(.white))
+            drawDiscSpinMark(at: p, radius: r, angle: puck.angle, in: &context)
         }
+    }
+
+    /// The disc's spin mark: a dot set into the puck, offset toward the rim along
+    /// `angle`, so a spinning disc visibly turns and a still one holds steady.
+    private static func drawDiscSpinMark(
+        at p: CGPoint, radius r: CGFloat, angle: Double, in context: inout GraphicsContext
+    ) {
+        let reach = r * 0.5
+        let dotR = r * 0.2
+        let cx = p.x + cos(angle) * reach
+        let cy = p.y + sin(angle) * reach
+        let dot = Path(
+            ellipseIn: CGRect(x: cx - dotR, y: cy - dotR, width: 2 * dotR, height: 2 * dotR))
+        context.fill(dot, with: .color(.white))
     }
 
     /// The puck's outline on screen: a disc, or the rotated polygon.
