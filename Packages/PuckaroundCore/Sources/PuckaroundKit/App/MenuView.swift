@@ -1,12 +1,15 @@
 import PuckaroundCore
 import SwiftUI
 
-/// **The front door.** For a 1v1-only game today it is deliberately small: the
-/// wordmark, how many goals win, which puck to play with, and Play. No player
-/// list or seat picker — those arrive with more seats.
+/// **The front door.** Deliberately small: the wordmark, how many hands each
+/// side fields (the format), how many goals win, which puck to play with, and
+/// Play. The format is two toggles — one or two hands per side — so singles,
+/// 1v2 and doubles are all just a pair of choices.
 struct MenuView: View {
     @Binding var pointsToWin: Int
     @Binding var puckShapeKey: String
+    @Binding var bottomHands: Int
+    @Binding var topHands: Int
     let onPlay: () -> Void
 
     /// The offered targets — a short, sane range.
@@ -19,6 +22,7 @@ struct MenuView: View {
                 Spacer()
                 wordmark
                 Spacer()
+                formatPicker
                 firstToPicker
                 puckPicker
                 NeonButton(title: "Play", tint: Neon.cyan, prominent: true, action: onPlay)
@@ -30,13 +34,42 @@ struct MenuView: View {
         }
     }
 
+    /// One or two hands per side, shown top-then-bottom to match how the sides
+    /// sit on the table, and tinted in each side's own colour — so the picker
+    /// reads as "this end, that end". Two silhouettes = doubles for that side;
+    /// mixing them (one side 1, the other 2) is 1v2.
+    private var formatPicker: some View {
+        VStack(spacing: 12) {
+            sectionLabel("Players")
+            handsRow(binding: $topHands, tint: Neon.cyan)
+            handsRow(binding: $bottomHands, tint: Neon.magenta)
+        }
+    }
+
+    /// A side's toggle: 1 or 2, each a count of person silhouettes, in that
+    /// side's colour.
+    private func handsRow(binding: Binding<Int>, tint: Color) -> some View {
+        HStack(spacing: 10) {
+            ForEach([1, 2], id: \.self) { count in
+                let selected = count == binding.wrappedValue
+                Button {
+                    binding.wrappedValue = count
+                } label: {
+                    HandsGlyph(count: count)
+                        .frame(height: 26)
+                        .foregroundStyle(selected ? Neon.ground : tint)
+                        .frame(width: 96, height: 48)
+                        .background(pillBackground(selected: selected, tint: tint))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(Text(verbatim: count == 1 ? "1 player" : "2 players"))
+            }
+        }
+    }
+
     private var puckPicker: some View {
         VStack(spacing: 12) {
-            Text("Puck", bundle: .module)
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(Neon.inkSoft)
-                .textCase(.uppercase)
-                .kerning(2)
+            sectionLabel("Puck")
             HStack(spacing: 10) {
                 ForEach(PuckShapeKey.allCases, id: \.rawValue) { key in
                     let selected = key.rawValue == puckShapeKey
@@ -47,14 +80,7 @@ struct MenuView: View {
                             .frame(width: 30, height: 30)
                             .foregroundStyle(selected ? Neon.ground : Neon.ink)
                             .frame(width: 72, height: 52)
-                            .background(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(selected ? Neon.ink : Color.clear)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 12)
-                                            .strokeBorder(
-                                                Neon.ink.opacity(selected ? 1 : 0.4), lineWidth: 1.5
-                                            )))
+                            .background(pillBackground(selected: selected))
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel(Text(verbatim: key.label))
@@ -77,11 +103,7 @@ struct MenuView: View {
 
     private var firstToPicker: some View {
         VStack(spacing: 12) {
-            Text("First to", bundle: .module)
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(Neon.inkSoft)
-                .textCase(.uppercase)
-                .kerning(2)
+            sectionLabel("First to")
             HStack(spacing: 10) {
                 ForEach(targets, id: \.self) { target in
                     let selected = target == pointsToWin
@@ -92,19 +114,32 @@ struct MenuView: View {
                             .font(.system(size: 20, weight: .bold, design: .rounded))
                             .foregroundStyle(selected ? Neon.ground : Neon.ink)
                             .frame(width: 52, height: 48)
-                            .background(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(selected ? Neon.ink : Color.clear)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 12)
-                                            .strokeBorder(
-                                                Neon.ink.opacity(selected ? 1 : 0.4), lineWidth: 1.5
-                                            )))
+                            .background(pillBackground(selected: selected))
                     }
                     .buttonStyle(.plain)
                 }
             }
         }
+    }
+
+    /// A section's uppercase, kerned heading — the one label style the pickers
+    /// share.
+    private func sectionLabel(_ key: LocalizedStringKey) -> some View {
+        Text(key, bundle: .module)
+            .font(.system(size: 15, weight: .semibold))
+            .foregroundStyle(Neon.inkSoft)
+            .textCase(.uppercase)
+            .kerning(2)
+    }
+
+    /// The pill behind a picker option: filled when selected, outlined when not.
+    /// `tint` colours it (defaulting to neutral ink for the mono pickers).
+    private func pillBackground(selected: Bool, tint: Color = Neon.ink) -> some View {
+        RoundedRectangle(cornerRadius: 12)
+            .fill(selected ? tint : Color.clear)
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .strokeBorder(tint.opacity(selected ? 1 : 0.4), lineWidth: 1.5))
     }
 }
 
@@ -136,5 +171,19 @@ private struct PuckGlyph: View {
             path.closeSubpath()
         }
         return path
+    }
+}
+
+/// One or two person silhouettes — a side's hand count. SF Symbols carry the
+/// shape (this is UI chrome, not the procedural rink), so one and two read at a
+/// glance and tint with selection.
+private struct HandsGlyph: View {
+    let count: Int
+
+    var body: some View {
+        Image(systemName: count == 2 ? "person.2.fill" : "person.fill")
+            .resizable()
+            .scaledToFit()
+            .font(.body.weight(.semibold))
     }
 }

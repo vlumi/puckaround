@@ -34,12 +34,13 @@ public final class HockeyGame: ObservableObject {
 
     public init(
         rules: Rules = .standard, puckShape: PuckShape = .circle,
+        format: Format = .oneVsOne,
         seed: UInt64 = UInt64.random(in: 0...UInt64.max)
     ) {
         self.rules = rules
-        // Singles by default — `Playfield.duel` carries `.oneVsOne`; a format
-        // picker is a later task. The zones follow the table's own format.
-        var table = Playfield.duel
+        // The chosen format sets each side's hand count; the zones follow the
+        // table's own format, so they split into lanes wherever a side fields two.
+        var table = Playfield.duel.with(format: format)
         table.puckShape = puckShape
         let rink = Rink(table: table, rules: rules, seed: seed)
         let controls = MalletControlSource(
@@ -47,6 +48,17 @@ public final class HockeyGame: ObservableObject {
         self.controls = controls
         self.session = GameSession(rink: rink) { slot, tick in
             controls.input(for: slot, at: tick)
+        }
+    }
+
+    /// Freeze the sim (menu open) or let it run again. While paused the puck
+    /// holds and drops any in-flight touches, so a finger left on a mallet
+    /// doesn't fling it the instant play resumes.
+    public var isPaused: Bool {
+        get { session.paused }
+        set {
+            session.paused = newValue
+            if newValue { controls.releaseAll() }
         }
     }
 

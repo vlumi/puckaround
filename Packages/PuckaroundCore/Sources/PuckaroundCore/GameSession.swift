@@ -20,15 +20,21 @@ public final class GameSession {
     private var lastTime: TimeInterval?
     private var owed: Double = 0
 
+    /// While paused the sim holds: `update` re-anchors the clock each frame but
+    /// steps nothing, so no wall time is owed and resuming never bursts to catch
+    /// up. The render loop keeps running (the table still draws); only the sim
+    /// is frozen.
+    public var paused = false
+
     public init(rink: Rink, inputFor: @escaping (MalletSlot, Tick) -> SeatInput) {
         self.rink = rink
         self.inputFor = inputFor
     }
 
     /// Advance to `time` (seconds, any monotonic reference). The first call only
-    /// anchors the clock.
+    /// anchors the clock; a paused session re-anchors and steps nothing.
     public func update(to time: TimeInterval) {
-        guard let last = lastTime else {
+        guard let last = lastTime, !paused else {
             lastTime = time
             return
         }
