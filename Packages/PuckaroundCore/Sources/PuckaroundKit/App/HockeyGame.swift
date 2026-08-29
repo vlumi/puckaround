@@ -143,11 +143,13 @@ public final class HockeyGame: ObservableObject {
             if hypot(p.x - pending.at.x, p.y - pending.at.y) > HockeyGame.tapSlop {
                 pendingMenuTouch = nil
                 startPlay(id: id, at: pending.at)
-                controls.touchMoved(id: id, at: world(fromScreen: p))
+                let world = world(fromScreen: p)
+                controls.touchMoved(id: id, at: world, malletAt: malletPosition(near: world))
             }
             return
         }
-        controls.touchMoved(id: id, at: world(fromScreen: p))
+        let world = world(fromScreen: p)
+        controls.touchMoved(id: id, at: world, malletAt: malletPosition(near: world))
     }
 
     func touchEnded(id: TouchID) {
@@ -160,14 +162,23 @@ public final class HockeyGame: ObservableObject {
         controls.touchEnded(id: id)
     }
 
-    /// Begin an ordinary play touch: grab/drive a mallet, and — during a faceoff
-    /// — ready that mallet, since grabbing it IS declaring ready.
+    /// Begin an ordinary play touch: grab/drive a mallet if the finger is near
+    /// it, and — during a faceoff — ready that side's mallet, since reaching for
+    /// it is declaring ready (readying stays lenient; the grab itself doesn't).
     private func startPlay(id: TouchID, at p: CGPoint) {
         let world = world(fromScreen: p)
         if session.rink.isFaceoff {
             session.ready(controls.zones.owner(of: world))
         }
-        controls.touchBegan(id: id, at: world)
+        controls.touchBegan(id: id, at: world, malletAt: malletPosition(near: world))
+    }
+
+    /// Where the mallet a touch at `world` would drive currently sits — the
+    /// mallet owning that point's zone. The control source uses it to decide
+    /// whether the finger is close enough to grab.
+    private func malletPosition(near world: Vec2) -> Vec2 {
+        let slot = controls.zones.owner(of: world)
+        return session.rink.mallet(at: slot)?.position ?? world
     }
 
     /// Whether a screen point lands within the center-ring menu button.
