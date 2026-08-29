@@ -35,9 +35,10 @@ extension RinkRenderer {
                 // Each half stretches along x toward its near wall — the
                 // light-speed smear. Anchor at the trailing rim (away from the
                 // wall) so the leading edge races off the screen edge, widening
-                // the gap between the two halves.
+                // the gap between the two halves. "Near" is by table half, so a
+                // real puck a hair inside the left wall stretches left, not right.
                 let p = projection.point(image.position)
-                let towardWall: CGFloat = image.position.x < 0 ? -1 : 1
+                let towardWall: CGFloat = image.position.x < width / 2 ? -1 : 1
                 let anchorX = p.x - towardWall * radius * projection.scale
                 var ctx = layer
                 ctx.translateBy(x: anchorX, y: p.y)

@@ -78,6 +78,50 @@ extension RinkRenderer {
             blur: 3 * projection.scale, in: &context)
     }
 
+    /// The mallets, drawn last of all — they are the players' hands, so they sit
+    /// above the puck and the center menu glyph rather than hiding beneath them.
+    static func drawMallets(
+        _ scene: RinkScene, projection: Projection, in context: inout GraphicsContext
+    ) {
+        let table = scene.rink.table
+        let faceoffReady = scene.rink.readyMallets
+        for slot in scene.rink.slots {
+            guard let mallet = scene.rink.mallet(at: slot) else { continue }
+            drawMallet(
+                mallet, radius: table.malletRadius, color: SeatPalette.color(for: slot.side),
+                ripple: Ripple(
+                    active: scene.rink.isFaceoff && !faceoffReady.contains(slot),
+                    time: scene.time, reducedMotion: scene.reducedMotion),
+                projection: projection, in: &context)
+        }
+    }
+
+    private static func drawMallet(
+        _ mallet: Mallet, radius: Double, color: Color, ripple: Ripple = Ripple(),
+        projection: Projection, in context: inout GraphicsContext
+    ) {
+        let p = projection.point(mallet.position)
+        let r = radius * projection.scale
+        // Before a seat readies, a slow ripple pulses out from its mallet — a
+        // wordless "grab me". Off under reduced motion (a static soft halo).
+        if ripple.active {
+            let phase =
+                ripple.reducedMotion ? 0.5 : (ripple.time * 0.8).truncatingRemainder(dividingBy: 1)
+            let rippleR = r * (1 + phase * 1.6)
+            context.stroke(
+                projection.disc(at: p, radius: rippleR),
+                with: .color(color.opacity((1 - phase) * 0.5)),
+                lineWidth: max(1, 0.5 * projection.scale))
+        }
+        glow(
+            projection.disc(at: p, radius: r), color: color, blur: 6 * projection.scale, core: 1,
+            in: &context)
+        context.fill(projection.disc(at: p, radius: r * 0.5), with: .color(ground.opacity(0.85)))
+        context.stroke(
+            projection.disc(at: p, radius: r * 0.5), with: .color(color.opacity(0.6)),
+            lineWidth: max(1, 0.4 * projection.scale))
+    }
+
     /// A side's faceoff readiness: a "Ready?" in each of its mallets' lanes that
     /// hasn't readied yet — so in doubles each partner sees their own prompt and
     /// knows which of them is holding up the start. The lane boundary itself is
