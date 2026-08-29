@@ -24,12 +24,16 @@ extension View {
 
     /// Fingers live at the screen edges during play: make system edge swipes
     /// (home indicator, notification/control center) require the deliberate
-    /// double-swipe while `active`.
+    /// double-swipe while `active`. Backed by a controller (`EdgeGestureGuard`)
+    /// as well, since the SwiftUI modifier alone under-delivers beneath the
+    /// UIKit touch surface.
+    @ViewBuilder
     func defersEdgeSwipes(_ active: Bool) -> some View {
         #if os(iOS)
-        return defersSystemGestures(on: active ? .all : [])
+        defersSystemGestures(on: active ? .all : [])
+            .background(active ? AnyView(EdgeGestureGuard()) : AnyView(EmptyView()))
         #else
-        return self
+        self
         #endif
     }
 }

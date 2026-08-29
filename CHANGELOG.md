@@ -14,6 +14,10 @@ The `## vX.Y.Z` heading is written by the release lane too, whenever a release c
 
 ### Unreleased (next build)
 
+- **Grabbing your mallet is more forgiving.** Put your finger on or near the mallet and it snaps under your thumb; land far from it and nothing happens until you swipe over to it — so coming back to the table after lifting your hand no longer drives the mallet from an awkward offset.
+- **A stray edge swipe won't yank you out mid-rally.** Fingers skating along the bottom of the screen during play no longer trip the app-switch gesture on the first brush — it now takes a deliberate second swipe to leave. (iOS never lets an app fully block that swipe; this makes it much harder to hit by accident.)
+- **The score no longer touches the wall.** It sits clear of the boards now, including in doubles where the wider goal used to crowd it into the corner.
+
 ### build 4 — 2026-08-29
 
 - **Play doubles, or one against two.** The front page now sets each side's players separately — one or two per end, facing off across a "VS." — so you can play 1v1, 2v2, or an uneven 1v2. In doubles a side fields two mallets, one keeping each half of its end, with a line down the middle marking the two players' territory; the goal is wider to match the extra defender, and both mallets of a side share its color as one team.

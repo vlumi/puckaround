@@ -13,9 +13,13 @@ extension Rink {
     /// clamped OUT of the bubble, and a finger driven into the bubble leaves the
     /// mallet stranded at the rim rather than warping it to the puck's edge — so
     /// nobody can ride a finger onto the puck the instant the field drops.
-    mutating func moveMallet(at index: Int, by drag: Vec2, strikes: Bool) {
+    mutating func moveMallet(at index: Int, grabTo grab: Vec2? = nil, by drag: Vec2, strikes: Bool)
+    {
         let slot = slots[index]
-        let from = mallets[index].position
+        // A grab snaps the mallet under the finger before the drag — placing the
+        // hand, not swinging it, so it doesn't strike the puck on the way there
+        // (it's clamped to the zone, so it can't reach across to shove the puck).
+        let from = grab.map { table.malletZone(for: slot).clamping($0) } ?? mallets[index].position
         var to = table.malletZone(for: slot).clamping(from + drag)
         if isFaceoff {
             to = clampedOutOfBubble(to, side: slot.side)

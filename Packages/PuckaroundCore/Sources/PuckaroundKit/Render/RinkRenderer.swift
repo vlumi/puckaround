@@ -250,9 +250,15 @@ enum RinkRenderer {
         in context: inout GraphicsContext
     ) {
         let table = projection.table
-        // The middle of the strip between the side wall and the goal post.
-        let beside = (table.size.x - table.goalWidth(for: side)) / 4
-        let inset = table.malletRadius * 1.6
+        // The number is ~15 world units tall, so its center must sit clear of
+        // both the short wall (above/below) and the side wall (a wide doubles
+        // goal narrows the strip beside the post, pulling it toward the side).
+        let halfGlyph = 8.0
+        // The middle of the strip between the side wall and the goal post, but
+        // never closer to the side wall than the glyph's own half-width.
+        let strip = (table.size.x - table.goalWidth(for: side)) / 4
+        let beside = max(strip, halfGlyph + 2)
+        let inset = halfGlyph + 4
         let spot =
             side == .top ? Vec2(table.size.x - beside, inset) : Vec2(beside, table.size.y - inset)
         var ctx = context
