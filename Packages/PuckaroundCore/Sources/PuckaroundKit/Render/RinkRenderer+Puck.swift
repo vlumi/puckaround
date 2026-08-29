@@ -9,17 +9,63 @@ extension RinkRenderer {
         _ puck: Puck, radius: Double, shape: PuckShape, projection: Projection,
         in context: inout GraphicsContext
     ) {
-        drawPuckInstance(puck, radius: radius, shape: shape, projection: projection, in: &context)
-        // On a wrap table, a puck straddling a side edge shows a ghost entering
-        // the far side, so the crossing reads as continuous, not a pop.
-        guard projection.table.sideWalls == .wrap else { return }
+        // Off a wrap table, or well away from a side edge, the puck draws plainly.
         let width = projection.table.size.x
-        let nearLeft = puck.position.x < radius
-        let nearRight = puck.position.x > width - radius
-        guard nearLeft || nearRight else { return }
-        var ghost = puck
-        ghost.position.x += nearLeft ? width : -width
-        drawPuckInstance(ghost, radius: radius, shape: shape, projection: projection, in: &context)
+        let edgeGap = min(puck.position.x, width - puck.position.x)  // dist to nearest side
+        guard projection.table.sideWalls == .wrap, edgeGap < radius else {
+            drawPuckInstance(
+                puck, radius: radius, shape: shape, projection: projection, in: &context)
+            return
+        }
+        // Crossing the seam. The puck itself stays its own shape on each side —
+        // the real one here, its copy emerging opposite — both clipped to the
+        // table. A stretched warp beam bridges them across the openings, so it
+        // reads as the puck being pulled through the portal, not teleporting.
+        var wrapped = puck
+        wrapped.position.x += (puck.position.x < width / 2) ? width : -width
+        let clip = Path(roundedRect: projection.rect, cornerRadius: 8 * projection.scale)
+        context.drawLayer { layer in
+            layer.clip(to: clip)
+            drawWarpBeam(puck, radius: radius, projection: projection, in: &layer)
+            drawPuckInstance(puck, radius: radius, shape: shape, projection: projection, in: &layer)
+            drawPuckInstance(
+                wrapped, radius: radius, shape: shape, projection: projection, in: &layer)
+        }
+    }
+
+    /// The warp beam: a bright, blurred band at the puck's height running from
+    /// the puck toward its near wall (and, clipped, its mirror runs in from the
+    /// far wall) — the stretched-rectangle tether that makes a wrap crossing read
+    /// as one continuous streak through the portal.
+    private static func drawWarpBeam(
+        _ puck: Puck, radius: Double, projection: Projection, in context: inout GraphicsContext
+    ) {
+        let width = projection.table.size.x
+        let toLeft = puck.position.x < width / 2
+        // World band from the puck out to its near wall, then the mirror running
+        // in from the far wall — together they span the full crossing.
+        let nearWall = toLeft ? 0.0 : width
+        let farWall = toLeft ? width : 0.0
+        let bands = [
+            (puck.position.x, nearWall),
+            (farWall, puck.position.x + (toLeft ? width : -width)),
+        ]
+        let r = radius * projection.scale
+        for (x0, x1) in bands {
+            let a = projection.point(Vec2(x0, puck.position.y))
+            let b = projection.point(Vec2(x1, puck.position.y))
+            var beam = Path()
+            beam.move(to: a)
+            beam.addLine(to: b)
+            var haze = context
+            haze.addFilter(.blur(radius: r * 0.9))
+            haze.stroke(
+                beam, with: .color(RinkRenderer.puck.opacity(0.5)),
+                style: StrokeStyle(lineWidth: r * 1.6, lineCap: .round))
+            context.stroke(
+                beam, with: .color(RinkRenderer.puck.opacity(0.9)),
+                style: StrokeStyle(lineWidth: r * 0.7, lineCap: .round))
+        }
     }
 
     /// Draws one copy of the puck — its trail, glowing body, and (for a disc) the

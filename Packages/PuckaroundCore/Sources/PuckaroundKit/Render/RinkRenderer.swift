@@ -87,7 +87,9 @@ enum RinkRenderer {
         guard rect.width > 0 else { return }
         let projection = Projection(table: table, rect: rect, scale: rect.width / table.size.x)
 
-        drawRink(projection: projection, in: &context)
+        drawRink(
+            projection: projection, time: scene.time, reducedMotion: scene.reducedMotion,
+            in: &context)
         drawLaneDividers(scene, projection: projection, in: &context)
         drawSides(scene, projection: projection, in: &context)
         // The menu glyph is always there — the center ring is always the menu.
@@ -158,7 +160,10 @@ enum RinkRenderer {
 
     /// The ice, a faint neutral grid clipped to it, and a glowing border +
     /// center line — all neutral, so the rink belongs to no player.
-    private static func drawRink(projection: Projection, in context: inout GraphicsContext) {
+    private static func drawRink(
+        projection: Projection, time: Double, reducedMotion: Bool,
+        in context: inout GraphicsContext
+    ) {
         let rect = projection.rect
         let corner = 8 * projection.scale
         let iceShape = Path(roundedRect: rect, cornerRadius: corner)
@@ -184,7 +189,8 @@ enum RinkRenderer {
         }
 
         if projection.table.sideWalls == .wrap {
-            drawWrapBorder(rect: rect, corner: corner, projection: projection, in: &context)
+            drawWrapBorder(
+                time: time, reducedMotion: reducedMotion, projection: projection, in: &context)
         } else {
             glowStroke(
                 iceShape, color: line.opacity(0.9), lineWidth: max(1.5, 1.4 * projection.scale),

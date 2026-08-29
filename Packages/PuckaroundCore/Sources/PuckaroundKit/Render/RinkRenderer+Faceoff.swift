@@ -5,13 +5,15 @@ import SwiftUI
 
 extension RinkRenderer {
     /// The border for a wrap table: solid glowing top and bottom (the goal
-    /// walls), but dashed and faint down the long sides — so the openings read
-    /// as portals, and a puck vanishing off one edge to reappear on the other
-    /// looks intended, not broken.
+    /// walls), and a glowing cyan energy portal down each long side — so the
+    /// openings read as sci-fi gates the puck flows through, not broken boards.
     static func drawWrapBorder(
-        rect: CGRect, corner: CGFloat, projection: Projection, in context: inout GraphicsContext
+        time: Double, reducedMotion: Bool, projection: Projection,
+        in context: inout GraphicsContext
     ) {
-        var shortWalls = Path()  // top + bottom, solid
+        let rect = projection.rect
+        let corner = 8 * projection.scale
+        var shortWalls = Path()  // top + bottom, solid boards
         shortWalls.move(to: CGPoint(x: rect.minX + corner, y: rect.minY))
         shortWalls.addLine(to: CGPoint(x: rect.maxX - corner, y: rect.minY))
         shortWalls.move(to: CGPoint(x: rect.minX + corner, y: rect.maxY))
@@ -20,15 +22,38 @@ extension RinkRenderer {
             shortWalls, color: line.opacity(0.9), lineWidth: max(1.5, 1.4 * projection.scale),
             blur: 4 * projection.scale, in: &context)
 
-        var sideWalls = Path()  // left + right, the portals
-        sideWalls.move(to: CGPoint(x: rect.minX, y: rect.minY + corner))
-        sideWalls.addLine(to: CGPoint(x: rect.minX, y: rect.maxY - corner))
-        sideWalls.move(to: CGPoint(x: rect.maxX, y: rect.minY + corner))
-        sideWalls.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY - corner))
-        let dash = 6 * projection.scale
+        drawPortalWall(
+            x: rect.minX, time: time, reducedMotion: reducedMotion,
+            projection: projection, in: &context)
+        drawPortalWall(
+            x: rect.maxX, time: time, reducedMotion: reducedMotion,
+            projection: projection, in: &context)
+    }
+
+    /// One side portal: a cyan energy gate, not a board. A soft glow band, plus a
+    /// dashed core scrolling along the wall (so it reads as live, flowing energy
+    /// the puck passes through). Reduced motion holds the dashes still.
+    private static func drawPortalWall(
+        x: CGFloat, time: Double, reducedMotion: Bool, projection: Projection,
+        in context: inout GraphicsContext
+    ) {
+        let rect = projection.rect
+        let corner = 8 * projection.scale
+        var wall = Path()
+        wall.move(to: CGPoint(x: x, y: rect.minY + corner))
+        wall.addLine(to: CGPoint(x: x, y: rect.maxY - corner))
+        let energy = SeatPalette.cyan
+        // Soft outer glow band — the portal's field.
+        var haze = context
+        haze.addFilter(.blur(radius: 6 * projection.scale))
+        haze.stroke(wall, with: .color(energy.opacity(0.5)), lineWidth: 5 * projection.scale)
+        // Scrolling dashed core: the energy flowing along the gate.
+        let dash = 7 * projection.scale
+        let phase = reducedMotion ? 0 : CGFloat(time.truncatingRemainder(dividingBy: 2)) * dash
         context.stroke(
-            sideWalls, with: .color(line.opacity(0.3)),
-            style: StrokeStyle(lineWidth: max(1, projection.scale), dash: [dash, dash]))
+            wall, with: .color(energy.opacity(0.9)),
+            style: StrokeStyle(
+                lineWidth: max(1, 1.5 * projection.scale), dash: [dash, dash], dashPhase: phase))
     }
 
     /// The lane line down a doubles side: neutral furniture marking where its
