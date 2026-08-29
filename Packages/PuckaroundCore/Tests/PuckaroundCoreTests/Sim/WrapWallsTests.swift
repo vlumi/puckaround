@@ -18,6 +18,46 @@ final class WrapWallsTests: XCTestCase {
         return r
     }
 
+    func testAMalletHitsAPuckThatWrappedToItsSide() {
+        var r = rink(wrapTable)
+        let bottom = MalletSlot.bottomSingle
+        // A puck that just wrapped in is near the LEFT wall; the left mallet is
+        // just to its right and sweeps into it — a normal same-side hit that must
+        // work after wrapping (the puck near x≈0 is real, not a phantom).
+        r.place(Puck(position: Vec2(r.table.puckRadius + 1, 120)))
+        r.placeMallet(at: bottom, position: Vec2(r.table.malletRadius + 8, 120))
+        r.advance(inputs: [bottom: SeatInput(malletDrag: Vec2(-8, 0))])
+        XCTAssertNotEqual(r.puck.velocity, .zero, "the mallet strikes the freshly-wrapped puck")
+    }
+
+    func testAMalletReachesAPuckAcrossTheSeam() {
+        var r = rink(wrapTable)
+        let bottom = MalletSlot.bottomSingle
+        // A puck mid-wrap sits with its center just PAST the right wall (about to
+        // reappear on the left). The left mallet, at its wall, overlaps it across
+        // the seam — the collision must see across the portal and connect.
+        r.place(Puck(position: Vec2(r.table.size.x + 1, 120)))
+        r.placeMallet(at: bottom, position: Vec2(r.table.malletRadius + 5, 120))
+        r.advance(inputs: [bottom: SeatInput(malletDrag: Vec2(-5, 0))])
+        XCTAssertNotEqual(r.puck.velocity, .zero, "the mallet reaches across the portal")
+    }
+
+    func testAPuckIsNotStuckSlidingAlongAWrapWall() {
+        var r = rink(wrapTable)
+        let bottom = MalletSlot.bottomSingle
+        // Mallet shoves the puck straight at the right wall. On a solid table it
+        // would pin and slide; on a wrap table it must pass through and wrap.
+        r.place(Puck(position: Vec2(r.table.size.x - r.table.puckRadius - 1, 120)))
+        r.placeMallet(at: bottom, position: Vec2(r.table.size.x - r.table.puckRadius - 1 - 6, 120))
+        var wrapped = false
+        for _ in 0..<Rink.tickRate {
+            let xBefore = r.puck.position.x
+            r.advance(inputs: [bottom: SeatInput(malletDrag: Vec2(6, 0))])
+            if xBefore > 80, r.puck.position.x < 20 { wrapped = true; break }
+        }
+        XCTAssertTrue(wrapped, "the shoved puck passes through the portal, not stuck on it")
+    }
+
     func testTheDefaultTableIsSolid() {
         XCTAssertEqual(Playfield.duel.sideWalls, .solid)
     }

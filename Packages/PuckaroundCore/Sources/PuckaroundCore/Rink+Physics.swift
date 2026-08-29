@@ -55,11 +55,15 @@ extension Rink {
         withMalletAt center: Vec2, velocity malletVelocity: Vec2, by slot: MalletSlot? = nil
     ) {
         let reach = table.puckRadius + table.malletRadius
-        let offset = puck.position - center
+        // On a wrap table a mallet at one side edge can touch a puck at the
+        // other, since the sides are joined — so measure to the puck across the
+        // seam too and treat whichever image is nearer as the real contact.
+        let mallet = malletSeeingAcrossSeam(from: center)
+        let offset = puck.position - mallet
         let distance = offset.length
         guard distance < reach else { return }
         let normal = distance > 0 ? offset * (1 / distance) : Vec2(0, -1)
-        let clear = pushedClear(of: center, along: normal, reach: reach)
+        let clear = pushedClear(of: mallet, along: normal, reach: reach)
         puck.position = clear.position
         let closing = (puck.velocity - malletVelocity).dot(normal)
         if closing < 0 {
@@ -84,11 +88,23 @@ extension Rink {
         if let wall = clear.wall {
             let into = puck.velocity.dot(wall)
             if into > 0 {
-                let along = (puck.position - center - wall * (puck.position - center).dot(wall))
+                let along = (puck.position - mallet - wall * (puck.position - mallet).dot(wall))
                     .normalized
                 puck.velocity = puck.velocity - wall * into + along * into
             }
         }
+    }
+
+    /// The mallet's position as the puck sees it — its own place normally, but on
+    /// a wrap table its image shifted a table-width toward the puck when that is
+    /// nearer, so a mallet at one side edge collides with a puck at the other.
+    private func malletSeeingAcrossSeam(from center: Vec2) -> Vec2 {
+        guard table.sideWalls == .wrap else { return center }
+        let width = table.size.x
+        let dx = puck.position.x - center.x
+        if dx > width / 2 { return Vec2(center.x + width, center.y) }
+        if dx < -width / 2 { return Vec2(center.x - width, center.y) }
+        return center
     }
 
     /// Peel a stuck puck off a wall. A puck resting on a wall with no speed off
@@ -141,7 +157,15 @@ extension Rink {
     private func pushedClear(of center: Vec2, along normal: Vec2, reach: Double) -> (
         position: Vec2, wall: Vec2?
     ) {
-        let field = table.puckField
+        // On a wrap table the sides aren't walls, so the puck may be pushed past
+        // an edge (it wraps afterward). Widen the clamp's x so a side is never
+        // treated as a wall to slide along — only the goal walls confine y.
+        var field = table.puckField
+        if table.sideWalls == .wrap {
+            field = Rect(
+                x: field.minX - table.size.x, y: field.minY,
+                width: field.width + 2 * table.size.x, height: field.height)
+        }
         let free = center + normal * reach
         guard !field.contains(free) else { return (free, nil) }
         var target = field.clamping(free)

@@ -9,69 +9,43 @@ extension RinkRenderer {
         _ puck: Puck, radius: Double, shape: PuckShape, projection: Projection,
         in context: inout GraphicsContext
     ) {
-        // Off a wrap table, or well clear of a side, the puck draws plainly. The
-        // warp beam reaches out as the puck nears a portal — a wide-enough window
-        // (a few radii) that it's actually seen, since the puck clears the last
-        // radius in a tick or two.
+        // Off a wrap table, or not yet straddling a side, the puck draws plainly.
+        // It only warps while its disc actually spans the seam (center within a
+        // radius of a wall), so part shows on each side.
         let width = projection.table.size.x
-        let reach = radius * 3
         let edgeGap = min(puck.position.x, width - puck.position.x)  // dist to nearest side
-        guard projection.table.sideWalls == .wrap, edgeGap < reach else {
+        guard projection.table.sideWalls == .wrap, edgeGap < radius else {
             drawPuckInstance(
                 puck, radius: radius, shape: shape, projection: projection, in: &context)
             return
         }
-        // Approaching/crossing the seam. The puck keeps its own shape on each
-        // side — the real one here, its copy emerging opposite — both clipped to
-        // the table, with a cyan warp beam stretching between them across the
-        // openings, so it reads as the puck pulled through the portal.
+        // Straddling the seam: the puck is warping through at light speed, so the
+        // GAP between its two halves (the part racing off each screen edge)
+        // stretches outward. Each side keeps the puck at its own position but
+        // elongated toward its near edge; both are clipped to the table, so it
+        // reads as one streak snapping across the portal.
         var wrapped = puck
         wrapped.position.x += (puck.position.x < width / 2) ? width : -width
-        let intensity = 1 - edgeGap / reach  // 0 far out → 1 at the wall
+        // Deeper into the crossing (center nearer the wall) → longer streak.
+        let stretch = 1 + (1 - edgeGap / radius) * 2.5  // 1 → 3.5 at the wall
         let clip = Path(roundedRect: projection.rect, cornerRadius: 8 * projection.scale)
         context.drawLayer { layer in
             layer.clip(to: clip)
-            drawWarpBeam(
-                puck, radius: radius, intensity: intensity, projection: projection, in: &layer)
-            drawPuckInstance(puck, radius: radius, shape: shape, projection: projection, in: &layer)
-            drawPuckInstance(
-                wrapped, radius: radius, shape: shape, projection: projection, in: &layer)
-        }
-    }
-
-    /// The warp beam: a cyan energy tether at the puck's height, from the puck to
-    /// its near portal and (clipped) mirrored in from the far one — so a crossing
-    /// reads as one continuous streak. `intensity` (0→1) brightens and thickens
-    /// it as the puck nears the wall. Cyan (the portal color), so it stands out
-    /// against the white puck rather than washing into its bloom.
-    private static func drawWarpBeam(
-        _ puck: Puck, radius: Double, intensity: Double, projection: Projection,
-        in context: inout GraphicsContext
-    ) {
-        let width = projection.table.size.x
-        let toLeft = puck.position.x < width / 2
-        let nearWall = toLeft ? 0.0 : width
-        let farWall = toLeft ? width : 0.0
-        let bands = [
-            (puck.position.x, nearWall),
-            (farWall, puck.position.x + (toLeft ? width : -width)),
-        ]
-        let r = radius * projection.scale
-        let energy = SeatPalette.cyan
-        for (x0, x1) in bands {
-            let a = projection.point(Vec2(x0, puck.position.y))
-            let b = projection.point(Vec2(x1, puck.position.y))
-            var beam = Path()
-            beam.move(to: a)
-            beam.addLine(to: b)
-            var haze = context
-            haze.addFilter(.blur(radius: r * 1.1))
-            haze.stroke(
-                beam, with: .color(energy.opacity(0.55 * intensity)),
-                style: StrokeStyle(lineWidth: r * (1 + intensity), lineCap: .round))
-            context.stroke(
-                beam, with: .color(energy.opacity(0.95 * intensity)),
-                style: StrokeStyle(lineWidth: r * 0.6, lineCap: .round))
+            for image in [puck, wrapped] {
+                // Each half stretches along x toward its near wall — the
+                // light-speed smear. Anchor at the trailing rim (away from the
+                // wall) so the leading edge races off the screen edge, widening
+                // the gap between the two halves.
+                let p = projection.point(image.position)
+                let towardWall: CGFloat = image.position.x < 0 ? -1 : 1
+                let anchorX = p.x - towardWall * radius * projection.scale
+                var ctx = layer
+                ctx.translateBy(x: anchorX, y: p.y)
+                ctx.scaleBy(x: stretch, y: 1)
+                ctx.translateBy(x: -anchorX, y: -p.y)
+                drawPuckInstance(
+                    image, radius: radius, shape: shape, projection: projection, in: &ctx)
+            }
         }
     }
 
