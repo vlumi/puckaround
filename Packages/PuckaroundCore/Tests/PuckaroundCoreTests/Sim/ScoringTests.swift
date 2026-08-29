@@ -69,20 +69,31 @@ final class ScoringTests: XCTestCase {
         XCTAssertGreaterThan(r.puck.velocity.y, 0, "now heading into the bottom half")
     }
 
-    func testThePostsAreWall() {
+    func testAPostClipDeflectsIntoTheGoalNotBackOntoTheField() {
+        // A puck that enters the opening but clips a post deflects off the post's
+        // inner face (its x pushed back toward the mouth) and carries into the
+        // goal — it does NOT get warped back onto the ice. A straight shot just
+        // inside the opening edge still ends up scoring.
         var r = rink()
-        let postX = r.table.center.x + r.table.goalWidth / 2  // dead on the post
-        shoot(&r, at: .top, x: postX)
+        let mouthEdge = r.table.center.x + r.table.goalMouthWidth(for: .top) / 2
+        shoot(&r, at: .top, x: mouthEdge + 1)  // 1 past the mouth: clips the post
+        XCTAssertEqual(r.score, [1, 0], "the post deflected it in, not out")
+    }
+
+    func testAShotFullyClearOfThePostScores() {
+        var r = rink()
+        let postX = r.table.center.x + r.table.goalWidth / 2
+        shoot(&r, at: .top, x: postX - r.table.puckRadius)  // whole puck clear
+        XCTAssertEqual(r.score, [1, 0])
+    }
+
+    func testAShotWideOfTheOpeningBouncesOffTheShortWall() {
+        // Outside the opening entirely: the short wall bounces it straight back.
+        var r = rink()
+        let outside = r.table.center.x + r.table.goalWidth / 2 + r.table.puckRadius + 2
+        shoot(&r, at: .top, x: outside)
         XCTAssertEqual(r.score, [0, 0])
-        XCTAssertGreaterThan(r.puck.velocity.y, 0, "bounced back")
-        // Just inside the mouth, but not clear of the post by a puck radius: still a post.
-        var r2 = rink()
-        shoot(&r2, at: .top, x: postX - r.table.puckRadius + 0.5)
-        XCTAssertEqual(r2.score, [0, 0])
-        // Clear of the post by a full radius: a goal.
-        var r3 = rink()
-        shoot(&r3, at: .top, x: postX - r.table.puckRadius)
-        XCTAssertEqual(r3.score, [1, 0])
+        XCTAssertGreaterThan(r.puck.velocity.y, 0, "bounced back off the short wall")
     }
 
     func testAGoalNeedsTheWholePuckPastTheLine() {

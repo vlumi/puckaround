@@ -117,6 +117,13 @@ public struct Playfield: Equatable, Codable, Sendable {
         abs(x - center.x) <= goalMouthWidth(for: side) / 2
     }
 
+    /// Whether a puck center at `x` is within the goal OPENING — the full drawn
+    /// gap between the posts, not the narrower whole-puck mouth. Inside this but
+    /// outside the mouth is the post-clip zone (the puck touches a post).
+    public func isInGoalOpening(x: Double, of side: Side) -> Bool {
+        abs(x - center.x) <= goalWidth(for: side) / 2
+    }
+
     /// The y a puck center must reach for the WHOLE puck to be past a short wall
     /// — the goal line fully crossed (soccer rules), so it warps back only after
     /// it is all the way in, not when its nose touches the line.

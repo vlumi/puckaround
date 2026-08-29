@@ -79,35 +79,24 @@ final class WrapWallsTests: XCTestCase {
         XCTAssertTrue(scored, "a shot just inside the drawn goal edge scores")
     }
 
-    func testAShotIntoAGoalCornerDoesNotWrapAway() {
-        // A shallow shot into the bottom goal's post corner (just outside the
-        // mouth, near the left wall) must bounce off the post and stay near the
-        // left — NOT warp out the side to the far corner. (Reported: a near-goal
-        // shot warped away instead of scoring or bouncing.)
+    func testASteepShotClippingAPostScoresOnAWrapTable() {
+        // The reported bug: a steep disc shot into a goal corner (clipping a post)
+        // warped back onto the field on a wrap doubles table. It must deflect off
+        // the post and go IN.
         var t = Playfield.duel.with(format: .twoVsTwo)
         t.sideWalls = .wrap
         var r = Rink(table: t, seed: 1)
         r.startPlaying()
         for slot in r.slots { r.placeMallet(at: slot, position: Vec2(50, 80)) }
         let mouthEdge = t.center.x - t.goalMouthWidth(for: .bottom) / 2
-        // Just OUTSIDE the mouth (post side), heading down toward the corner.
-        let startX = mouthEdge - 3
-        r.place(Puck(position: Vec2(startX, t.size.y - 12), velocity: Vec2(-20, 320)))
-        // Step until it clears the goal pocket (bounces back up past the line).
-        var maxXInPocket = startX
+        // Enter the mouth then drift onto the post at a steep downward angle.
+        r.place(Puck(position: Vec2(mouthEdge + 2, t.size.y - 20), velocity: Vec2(-60, 340)))
+        var scored = false
         for _ in 0..<Rink.tickRate {
             r.advance(inputs: [:])
-            if r.puck.position.y > t.puckField.maxY {
-                maxXInPocket = max(maxXInPocket, r.puck.position.x)
-            }
-            if r.puck.velocity.y < 0, r.puck.position.y < t.puckField.maxY { break }
+            if r.score(of: .top) == 1 { scored = true; break }
         }
-        XCTAssertEqual(r.score(of: .top), 0, "it wasn't a goal (it clipped the post)")
-        // While in the goal pocket the puck never jumped to the far side — the
-        // post bounced it, no warp. (Once back on the open field it may wrap, as
-        // designed; that's a separate, legitimate crossing.)
-        XCTAssertLessThan(maxXInPocket, t.size.x / 2, "it did not warp across inside the goal")
-        XCTAssertLessThan(r.puck.velocity.y, 0, "the post bounced it back up the table")
+        XCTAssertTrue(scored, "the post deflected it in — it did not warp out")
     }
 
     func testTheDefaultTableIsSolid() {

@@ -123,15 +123,16 @@ extension Rink {
             if puck.position.x <= field.minX + 1e-6 { inward.x = 1 }
             if puck.position.x >= field.maxX - 1e-6 { inward.x = -1 }
         }
-        // The short walls are open across each side's own mouth — never peel a
+        // The short walls are open across each side's goal opening — never peel a
         // puck off one there, or a puck heading into the goal gets shoved back
-        // onto the ice. Each short wall checks its own side's mouth.
-        if puck.position.y <= field.minY + 1e-6, !table.isInGoalMouth(x: puck.position.x, of: .top)
+        // onto the ice. Each short wall checks its own side's opening.
+        if puck.position.y <= field.minY + 1e-6,
+            !table.isInGoalOpening(x: puck.position.x, of: .top)
         {
             inward.y = 1
         }
         if puck.position.y >= field.maxY - 1e-6,
-            !table.isInGoalMouth(x: puck.position.x, of: .bottom)
+            !table.isInGoalOpening(x: puck.position.x, of: .bottom)
         {
             inward.y = -1
         }
@@ -240,21 +241,33 @@ extension Rink {
     /// opposite side at the same height, keeping its velocity — the puck slides
     /// fully off one edge and appears on the other, like the goal line's
     /// whole-puck rule. A no-op on a solid table.
-    ///
-    /// It does NOT fire in the goal region (past a goal line in y): there the
-    /// puck is heading in or clipping a post, and must score or bounce, never
-    /// teleport out the side — otherwise a shot into a goal corner warps away
-    /// instead of counting.
     private mutating func wrapSideWalls() {
         guard table.sideWalls == .wrap else { return }
-        let field = table.puckField
-        guard puck.position.y >= field.minY, puck.position.y <= field.maxY else { return }
         let width = table.size.x
         if puck.position.x < 0 {
             puck.position.x += width
         } else if puck.position.x > width {
             puck.position.x -= width
         }
+    }
+
+    /// If the puck at `p` is inside a goal recess — its center past a short wall,
+    /// lined up with that side's opening — returns which side's goal it is in.
+    /// There the puck is between the goal's walls, not on the open field. Nil
+    /// otherwise.
+    private func goalRecessSide(of p: Vec2) -> Side? {
+        let field = table.puckField
+        if p.y < field.minY, table.isInGoalOpening(x: p.x, of: .top) { return .top }
+        if p.y > field.maxY, table.isInGoalOpening(x: p.x, of: .bottom) { return .bottom }
+        return nil
+    }
+
+    /// If the puck at `p` has entered a goal opening but clipped a post — its
+    /// center past the short wall and within the opening, yet not fully through
+    /// the mouth — returns that side. There it bounces off the post's inner face.
+    private func postClipSide(of p: Vec2) -> Side? {
+        guard let side = goalRecessSide(of: p) else { return nil }
+        return table.isInGoalMouth(x: p.x, of: side) ? nil : side
     }
 
     /// A circle bounces off each wall by mirroring the position back inside and
@@ -267,60 +280,82 @@ extension Rink {
         var p = puck.position
         var v = puck.velocity
         var bounced = false
-        // The short walls are open across each side's own mouth — a puck lined
-        // up with a goal passes through (to be scored once fully in) instead of
-        // bouncing. The two mouths can differ in width, so each wall checks its
-        // own side.
-        if p.y < field.minY, !table.isInGoalMouth(x: p.x, of: .top) {
+        // The short walls are open across each side's goal OPENING — a puck lined
+        // up passes through (to be scored once its center clears the posts). Only
+        // a puck fully clear of the opening bounces off the short wall.
+        if p.y < field.minY, !table.isInGoalOpening(x: p.x, of: .top) {
             p.y = field.minY + (field.minY - p.y)
             events.append(.wallBounce(speed: abs(v.y)))
             v.y = -v.y * table.restitution
             bounced = true
-        } else if p.y > field.maxY, !table.isInGoalMouth(x: p.x, of: .bottom) {
+        } else if p.y > field.maxY, !table.isInGoalOpening(x: p.x, of: .bottom) {
             p.y = field.maxY - (p.y - field.maxY)
             events.append(.wallBounce(speed: abs(v.y)))
             v.y = -v.y * table.restitution
             bounced = true
         }
-        // The side walls bounce only when solid; a wrap table lets the puck pass
-        // (it re-enters the far side in `wrapSideWalls`, called after this) —
-        // EXCEPT in the goal pocket (past a goal line), where the sides must act
-        // solid so a shot clipping a post's corner bounces rather than warping.
-        let sidesSolidHere = table.sideWalls == .solid || p.y < field.minY || p.y > field.maxY
-        if sidesSolidHere {
-            if p.x < field.minX {
-                p.x = field.minX + (field.minX - p.x)
-                events.append(.wallBounce(speed: abs(v.x)))
-                v.x = -v.x * table.restitution
-                bounced = true
-            } else if p.x > field.maxX {
-                p.x = field.maxX - (p.x - field.maxX)
-                events.append(.wallBounce(speed: abs(v.x)))
-                v.x = -v.x * table.restitution
-                bounced = true
-            }
-        }
+        if bounceCircleXWalls(p: &p, v: &v) { bounced = true }
         // Spin steers the outgoing angle and is bled by the wall's grip. Done
         // once for the whole tick's bounce, on the already-reflected velocity.
         if bounced, puck.angularVelocity != 0 {
             v = v.rotated(by: puck.angularVelocity * Rink.discSteerPerSpin)
             puck.angularVelocity *= Rink.discSpinKeptOnBounce
         }
-        // Clamp X to the field where the sides act solid — a wrap table lets the
-        // puck travel past the edge on the open field, but not in the goal pocket
-        // (it must bounce, above). Clamp Y only when the mouth the puck is heading
-        // for is closed, else a puck flying into the goal is dragged back onto
-        // the ice. Each short wall has its own side's mouth.
-        if sidesSolidHere {
+        // Clamp X: to the mouth's posts inside a goal recess (so a post-clipping
+        // puck can't leak past the post), else to the field on a solid table (a
+        // wrap table lets the puck travel past the edge).
+        let recessNow = goalRecessSide(of: p)
+        if let recessSide = recessNow {
+            let half = table.goalMouthWidth(for: recessSide) / 2
+            p.x = min(max(p.x, table.center.x - half), table.center.x + half)
+        } else if table.sideWalls == .solid {
             p.x = min(max(p.x, field.minX), field.maxX)
         }
-        let intoOpenTop = p.y < field.minY && table.isInGoalMouth(x: p.x, of: .top)
-        let intoOpenBottom = p.y > field.maxY && table.isInGoalMouth(x: p.x, of: .bottom)
-        if !intoOpenTop, !intoOpenBottom {
+        // Clamp Y only when the puck is NOT in a goal opening — a puck heading
+        // into the goal (mouth or clipping a post) stays in the recess to score
+        // or bounce off the post, rather than being dragged back onto the ice.
+        if recessNow == nil {
             p.y = min(max(p.y, field.minY), field.maxY)
         }
         puck.position = p
         puck.velocity = v
+    }
+
+    /// The circle's x-wall bounce: off a POST inside a goal opening (deflecting
+    /// it into the goal, not back onto the field), or off a solid side wall on
+    /// the open field. Returns whether it bounced.
+    private mutating func bounceCircleXWalls(p: inout Vec2, v: inout Vec2) -> Bool {
+        // Clipped a post inside the opening: bounce off the post's inner face.
+        if let side = postClipSide(of: p) {
+            let half = table.goalMouthWidth(for: side) / 2
+            let left = table.center.x - half
+            let right = table.center.x + half
+            if p.x < left {
+                p.x = left + (left - p.x)
+                v.x = -v.x * table.restitution
+                return true
+            } else if p.x > right {
+                p.x = right - (p.x - right)
+                v.x = -v.x * table.restitution
+                return true
+            }
+            return false
+        }
+        // Open field: the side walls bounce only when solid.
+        guard goalRecessSide(of: p) == nil, table.sideWalls == .solid else { return false }
+        let field = table.puckField
+        if p.x < field.minX {
+            p.x = field.minX + (field.minX - p.x)
+            events.append(.wallBounce(speed: abs(v.x)))
+            v.x = -v.x * table.restitution
+            return true
+        } else if p.x > field.maxX {
+            p.x = field.maxX - (p.x - field.maxX)
+            events.append(.wallBounce(speed: abs(v.x)))
+            v.x = -v.x * table.restitution
+            return true
+        }
+        return false
     }
 
     /// A polygon bounces off its deepest-penetrating corner against each wall in
@@ -328,24 +363,27 @@ extension Rink {
     /// in a fixed order so a corner-in-corner resolves deterministically.
     private mutating func bouncePolygonOffWalls() {
         let field = table.puckField
-        // The side walls bounce only when solid; a wrap table lets the puck pass
-        // (it re-enters the far side in `wrapSideWalls`) — except in the goal
-        // pocket (past a goal line), where they act solid so a post-clipping shot
-        // bounces rather than warping.
         let p = puck.position
-        let sidesSolidHere = table.sideWalls == .solid || p.y < field.minY || p.y > field.maxY
         var walls: [PolygonCollision.Wall] = []
-        if sidesSolidHere {
+        // In a goal recess the x-walls are the mouth's posts (keeping the puck in
+        // the goal to score or deflect off a post); elsewhere they're the side
+        // walls, and only when solid (a wrap table lets the puck pass, re-entering
+        // in `wrapSideWalls`).
+        if let side = goalRecessSide(of: p) {
+            let half = table.goalMouthWidth(for: side) / 2
+            walls.append(.init(normal: Vec2(-1, 0), limit: -(table.center.x - half)))
+            walls.append(.init(normal: Vec2(1, 0), limit: table.center.x + half))
+        } else if table.sideWalls == .solid {
             walls.append(.init(normal: Vec2(-1, 0), limit: -field.minX))
             walls.append(.init(normal: Vec2(1, 0), limit: field.maxX))
         }
-        // The short walls are open across each side's own mouth — a puck lined
-        // up with a goal passes through instead of bouncing off the boards. The
-        // two mouths can differ in width, so each short wall checks its side.
-        if !table.isInGoalMouth(x: puck.position.x, of: .top) {
+        // The short walls are open across each side's goal OPENING — a puck lined
+        // up passes through instead of bouncing off the boards. Each short wall
+        // checks its own side.
+        if !table.isInGoalOpening(x: p.x, of: .top) {
             walls.append(.init(normal: Vec2(0, -1), limit: -field.minY))
         }
-        if !table.isInGoalMouth(x: puck.position.x, of: .bottom) {
+        if !table.isInGoalOpening(x: p.x, of: .bottom) {
             walls.append(.init(normal: Vec2(0, 1), limit: field.maxY))
         }
         for wall in walls {
