@@ -37,4 +37,13 @@ public struct Rect: Equatable, Hashable, Sendable, Codable {
     public func contains(_ p: Vec2) -> Bool {
         p.x >= minX && p.x <= maxX && p.y >= minY && p.y <= maxY
     }
+
+    /// How close a coordinate must be to an edge to count as resting on it — a
+    /// hair, to absorb floating-point dust from clamping.
+    static let edgeTolerance = 1e-6
+
+    public func isAtLeftEdge(_ p: Vec2) -> Bool { p.x <= minX + Rect.edgeTolerance }
+    public func isAtRightEdge(_ p: Vec2) -> Bool { p.x >= maxX - Rect.edgeTolerance }
+    public func isAtTopEdge(_ p: Vec2) -> Bool { p.y <= minY + Rect.edgeTolerance }
+    public func isAtBottomEdge(_ p: Vec2) -> Bool { p.y >= maxY - Rect.edgeTolerance }
 }

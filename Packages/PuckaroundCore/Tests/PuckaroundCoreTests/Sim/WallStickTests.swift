@@ -79,6 +79,22 @@ final class WallStickTests: XCTestCase {
         XCTAssertTrue(freed, "a contact must knock the puck off the bottom wall too")
     }
 
+    /// A puck left at rest against the TOP wall (off the goal opening, nothing
+    /// holding it) peels itself off inward — the sim frees it, since no mallet
+    /// can reach between it and the boards. Mirrors the bottom-wall case for the
+    /// other short wall.
+    func testARestingPuckPeelsOffTheTopWall() {
+        var r = rink()
+        // Top-right, clear of both the centered goal mouth and the parked mallets
+        // (which sit in the top-left / bottom corners).
+        let x = r.table.puckField.maxX - 6
+        r.place(Puck(position: Vec2(x, r.table.puckField.minY)))  // dead on the top wall
+        r.advance(inputs: [:])
+        XCTAssertGreaterThan(
+            r.puck.position.y, r.table.puckField.minY, "peeled downward off the top wall")
+        XCTAssertGreaterThan(r.puck.velocity.y, 0, "and carries speed off it")
+    }
+
     /// And it clears the wall within a beat when the mallet lets go — proving
     /// "moving along the wall" really does become "off the wall", not a
     /// permanent slide.

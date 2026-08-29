@@ -120,18 +120,16 @@ extension Rink {
         // Only solid side walls can trap a puck; a wrap table has no side wall to
         // peel off (and the puck is mid-crossing there, not stuck).
         if table.sideWalls == .solid {
-            if puck.position.x <= field.minX + 1e-6 { inward.x = 1 }
-            if puck.position.x >= field.maxX - 1e-6 { inward.x = -1 }
+            if field.isAtLeftEdge(puck.position) { inward.x = 1 }
+            if field.isAtRightEdge(puck.position) { inward.x = -1 }
         }
         // The short walls are open across each side's goal opening — never peel a
         // puck off one there, or a puck heading into the goal gets shoved back
         // onto the ice. Each short wall checks its own side's opening.
-        if puck.position.y <= field.minY + 1e-6,
-            !table.isInGoalOpening(x: puck.position.x, of: .top)
-        {
+        if field.isAtTopEdge(puck.position), !table.isInGoalOpening(x: puck.position.x, of: .top) {
             inward.y = 1
         }
-        if puck.position.y >= field.maxY - 1e-6,
+        if field.isAtBottomEdge(puck.position),
             !table.isInGoalOpening(x: puck.position.x, of: .bottom)
         {
             inward.y = -1
