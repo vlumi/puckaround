@@ -13,9 +13,10 @@ public struct GameView: View {
 
     public init(
         rules: Rules = .standard, puckShape: PuckShape = .circle,
-        onExit: @escaping () -> Void = {}
+        format: Format = .oneVsOne, onExit: @escaping () -> Void = {}
     ) {
-        _game = StateObject(wrappedValue: HockeyGame(rules: rules, puckShape: puckShape))
+        _game = StateObject(
+            wrappedValue: HockeyGame(rules: rules, puckShape: puckShape, format: format))
         self.onExit = onExit
     }
 
@@ -46,6 +47,9 @@ public struct GameView: View {
                 game.onMenuTap = { showingPause = true }
             }
             .onChangeCompat(of: geo.size) { size in game.layout(screen: size) }
+            // The menu freezes the sim: the puck holds while it is open, and
+            // resumes without a catch-up burst when it closes.
+            .onChangeCompat(of: showingPause) { open in game.isPaused = open }
         }
         .background(RinkRenderer.ground.ignoresSafeArea())
         .statusBarHiddenIfAvailable()

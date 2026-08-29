@@ -1,25 +1,6 @@
 import PuckaroundCore
 import SwiftUI
 
-/// Everything one frame needs, as plain values (the Canvas renderer closure is
-/// not MainActor, so it gets copies, not the session).
-struct RinkScene {
-    var rink: Rink
-    /// Where the table is placed on screen — the one primitive the renderer and
-    /// the touch mapping both key off.
-    var tableRect: CGRect
-    /// Decorative motion (the scanline breath, a longer puck trail) is off when
-    /// the viewer asks for reduced motion. The game itself still moves.
-    var reducedMotion = false
-    /// A rising time base for ambient effects; the view feeds it the frame time.
-    var time: Double = 0
-    /// 0→1 progress of the faceoff-clears burst, or nil when not bursting.
-    var faceoffBurst: Double?
-
-    /// How long the burst ring animates, in seconds.
-    static let burstDuration = 0.45
-}
-
 /// **Neon cabinet.** A dark playfield that glows: a neutral rink (ice, grid,
 /// centre line, puck) that belongs to no seat, and the two players' colours on
 /// exactly the three things that are theirs — mallet, goal, score. Glow is
@@ -90,7 +71,7 @@ enum RinkRenderer {
         context.fill(path, with: .color(color.opacity(core)))
     }
 
-    private static func glowStroke(
+    static func glowStroke(
         _ path: Path, color: Color, lineWidth: CGFloat, blur: CGFloat,
         in context: inout GraphicsContext
     ) {
@@ -107,6 +88,7 @@ enum RinkRenderer {
         let projection = Projection(table: table, rect: rect, scale: rect.width / table.size.x)
 
         drawRink(projection: projection, in: &context)
+        drawLaneDividers(scene, projection: projection, in: &context)
         drawSides(scene, projection: projection, in: &context)
         // The menu glyph is always there — the centre ring is always the menu.
         // It sits UNDER the puck (drawn next), so during a faceoff the frozen
@@ -158,14 +140,9 @@ enum RinkRenderer {
                 drawVerdict(
                     won: winner == side, in: half, facing: side, color: color, in: &context)
             }
-            // A side is prompted until all its mallets have readied — "Ready?"
-            // to open, or a rematch invite once a game is over.
-            let sideReady = scene.rink.slots.filter { $0.side == side }
-                .allSatisfy(faceoffReady.contains)
-            if scene.rink.isFaceoff, !sideReady {
-                drawReadyPrompt(
-                    rematch: scene.rink.finalWinner != nil, in: half, facing: side, color: color,
-                    in: &context)
+            if scene.rink.isFaceoff {
+                drawSideReadiness(
+                    scene, side: side, half: half, color: color, in: &context)
             }
         }
         for slot in scene.rink.slots {
@@ -293,7 +270,7 @@ enum RinkRenderer {
         ctx.draw(coloured(text, color), at: .zero, anchor: .center)
     }
 
-    private static func coloured(
+    static func coloured(
         _ text: GraphicsContext.ResolvedText, _ color: Color
     ) -> GraphicsContext.ResolvedText {
         var copy = text
@@ -331,7 +308,7 @@ enum RinkRenderer {
     /// unmistakably that player's.
     /// Whether a mallet ripples (a not-yet-readied seat during faceoff), and the
     /// clock + reduced-motion state that shape it.
-    private struct Ripple {
+    struct Ripple {
         var active = false
         var time: Double = 0
         var reducedMotion = false
@@ -384,67 +361,5 @@ enum RinkRenderer {
                     startPoint: CGPoint(x: 0, y: band.minY),
                     endPoint: CGPoint(x: 0, y: band.maxY)))
         }
-    }
-}
-
-// MARK: - Faceoff overlay
-
-extension RinkRenderer {
-    /// "Ready?" on the board in the side's half, facing its player — the prompt
-    /// to tap in. Disappears the moment that side has readied.
-    private static func drawReadyPrompt(
-        rematch: Bool, in half: CGRect, facing side: Side, color: Color,
-        in context: inout GraphicsContext
-    ) {
-        var ctx = context
-        // On a rematch the verdict sits near the centre line, so the prompt
-        // drops toward the player to clear it; the opening faceoff centres it.
-        let fraction = rematch ? 0.6 : 0.5
-        let y =
-            side == .top ? half.maxY - half.height * fraction : half.minY + half.height * fraction
-        ctx.translateBy(x: half.midX, y: y)
-        if side == .top {
-            ctx.rotate(by: .degrees(180))
-        }
-        let text = ctx.resolve(
-            Text("Ready?", bundle: .module).font(
-                .system(size: half.height * 0.1, weight: .bold, design: .rounded)))
-        var haze = ctx
-        haze.addFilter(.blur(radius: half.height * 0.012))
-        haze.draw(coloured(text, color.opacity(0.85)), at: .zero, anchor: .center)
-        ctx.draw(coloured(text, color.opacity(0.85)), at: .zero, anchor: .center)
-    }
-
-    /// The field BURSTING as play begins: a ring expanding out from the bubble
-    /// and fading — the visual "GO". Paired with the whistle sound and haptic.
-    private static func drawFaceoffBurst(
-        at centre: CGPoint, from startRadius: CGFloat, progress: Double,
-        in context: inout GraphicsContext
-    ) {
-        let eased = 1 - (1 - progress) * (1 - progress)  // ease-out
-        let radius = startRadius * (1 + CGFloat(eased) * 2.2)
-        let alpha = (1 - progress) * 0.8
-        let ring = Path(
-            ellipseIn: CGRect(
-                x: centre.x - radius, y: centre.y - radius, width: 2 * radius, height: 2 * radius))
-        glowStroke(
-            ring, color: line.opacity(alpha), lineWidth: max(1, CGFloat(2 * (1 - progress)) + 1),
-            blur: 6, in: &context)
-    }
-
-    /// The faceoff force field: a glowing ring around the frozen puck that no
-    /// mallet may enter, breathing slowly so it reads as "live, not yet open".
-    private static func drawFaceoffBubble(
-        around centre: Vec2, radius: Double, ripple: Ripple, projection: Projection,
-        in context: inout GraphicsContext
-    ) {
-        let p = projection.point(centre)
-        let pulse = ripple.reducedMotion ? 0 : sin(ripple.time * 3) * 0.06
-        let r = radius * projection.scale * (1 + pulse)
-        let ring = projection.disc(at: p, radius: r)
-        context.fill(ring, with: .color(line.opacity(0.06)))
-        glowStroke(
-            ring, color: line.opacity(0.7), lineWidth: max(1.5, 1.2 * projection.scale),
-            blur: 5 * projection.scale, in: &context)
     }
 }

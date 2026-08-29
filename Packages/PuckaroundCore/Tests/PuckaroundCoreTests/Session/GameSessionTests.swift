@@ -64,6 +64,24 @@ final class GameSessionTests: XCTestCase {
             s.rink.mallets, seedState.mallets, "nobody has moved, so the mallets are still home")
     }
 
+    func testPausedSessionHoldsTheSimAndResumesWithoutABurst() {
+        let s = session()
+        s.ready(.bottomSingle)
+        s.ready(.topSingle)
+        s.update(to: 0)
+        s.update(to: Rink.dt * 2)
+        let held = s.rink.tick
+        XCTAssertGreaterThan(held, 0, "play has started")
+        s.paused = true
+        // A long time passes with the menu open — the sim must not step.
+        s.update(to: Rink.dt * 2 + 10)
+        XCTAssertEqual(s.rink.tick, held, "a paused sim steps nothing")
+        // Resuming owes only real elapsed time since the resume, not the 10s gap.
+        s.paused = false
+        s.update(to: Rink.dt * 2 + 10 + Rink.dt * 3.5)
+        XCTAssertEqual(s.rink.tick, held + 3, "three ticks' worth, not the whole paused gap")
+    }
+
     func testReadyForwardsToTheRinkAndStartsPlay() {
         let s = session()
         XCTAssertTrue(s.rink.isFaceoff, "a fresh session opens in a faceoff")
