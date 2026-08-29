@@ -8,87 +8,51 @@ The implementation plan, as **named milestones in rough order** — and *only op
 
 Guiding order: **the mallet is the game**, and **what comes early is whatever answers a question that changes the plan**.
 
-## Settled — *2026-08-27*
+Shipped so far (in TestFlight, detail in [CHANGELOG.md](CHANGELOG.md)): 1v1/1v2/2v2 air hockey with the faceoff/rematch flow, round/square/triangle pucks with spin (polygon and disc), wrap-wall tables, sound + haptics, and a front door. What's left is below.
 
-**Air hockey, with mallets, plain 1v1 under the standard rules first.** The swipe-through strike model is gone; the reasons and the parked four-seat question are in [docs/air-hockey-plan.md](docs/air-hockey-plan.md).
-
-**The mallet follows the finger's movement and never leaves the ice** (settled after the first build, on device). Direct placement under the finger was the alternative; it means lifting the mallet off the deck and putting it back, and putting it back can land it on top of the puck. Movement-drag has no such moment. Still open: team seating (partners across or adjacent), which only matters once four seats have a table.
-
-## Air hockey 1v1 — *find the fun*
-
-The game is built and this milestone is about driving it on hardware: two thumbs on a phone, two hands on an iPad.
+## Tune & fit — *the table on real hardware*
 
 - [ ] **Tune the table on device.** Drag, wall restitution, the speed cap, mallet and goal sizes are constants in `Playfield`; turn them into on-device dials (a tuning panel, the sibling projects' pattern) so feel gets settled by play rather than by editing numbers.
 - [ ] **iPad sizing.** A portrait table on a 13-inch screen may want margins, or may want to be as big as it can; and a table held landscape needs a decision.
-- [ ] **A way out mid-game.** Nothing on screen faces one player only now — the score (in the corner by each goal, out of the mallet's way) and the WIN/LOSE verdict turn toward their seat, and the restart ring is symmetric — but a game in progress can only be finished by playing it. The idea: a dim button near the middle of the board that opens a menu (quit, settings), readable from both ends.
+- [ ] **Pace levels.** A pick in setup for how fast the table plays — the puck's speed cap (and probably drag with it), a few presets from a gentle warm-up to a frantic one. `maxSpeed` is already a `Playfield` constant, so this is a value setup chooses, not a physics change. **Frame it as pace, not difficulty**: both sides share the same table, so a faster cap raises the intensity for everyone equally — it is not an easier/harder opponent. Real per-side difficulty only means something once there's an AI hand or a solo mode, and then it lives in *those*. Belongs to setup, never a mid-game control.
 
 ## The couch — *who is playing*
 
-Built against [singles & doubles](#singles--doubles--multiplayer-on-the-oblong): the setup asks singles or doubles, then who takes each mallet.
+The front door sets each side's hand count and the table variant. What's missing is identity beyond a bare count.
 
-- [x] **A front door (first cut).** A title screen with a first-to-N pick and Play; a rematch that IS the faceoff (ready up again, score resets on start); and the center ring as an always-available menu (resume / quit). Deliberately minimal for a 1v1-only game — **still to come as more seats and modes land**: who is at the table, player count, seat colors chosen by the players, and mode selection.
+- [ ] **Who's playing, remembered.** Names and colors that belong to a person, not just a side — so a result is *someone's*. Purely on-device. Gates the session tally and tournaments.
 - [ ] **A record of the session.** A running tally across games, so the last twenty minutes happened.
 
-## Feel — *sound & haptics*
+## Puck & table variety — *what changes how it plays*
 
-Not polish to leave for last: haptics are part of how a hit reads, so this comes right after the first build. Procedural, no assets, in the sibling projects' pattern — a deterministic event stream out of the sim, one synthesizer node for the sound, `UIFeedbackGenerator` for the taps.
+- [ ] **Shaped-puck follow-ons, if play asks for them.** Triangle-specific feel; **per-vertex goals** (today a goal needs the puck CENTER fully past the line, so a corner poked in early doesn't count — fine so far); more shapes only if they behave distinctly (a hexagon is basically a disc).
+- [ ] **Grip-spin that rides the wall** — the coupling that makes a low, wall-hugging shot with forward spin accelerate toward the goal. Its real home is the **ellipse table** ([docs/table-and-modes-plan.md](docs/table-and-modes-plan.md)): a curved wall can carry the puck along it, which a flat wall can't. Builds on the shipped disc spin. A later spike.
+- [ ] **More table variants.** Bumpers on the ice, two pucks, a moving goal — each a table variant beside solid/wrap, grouped under one picker (`SideWalls` is the seam for that grouping).
 
-- [ ] **Events out of the sim** — mallet hit (with closing speed), wall bounce, goal, game over — as data the feedback layers consume; replays get them for free.
-- [ ] **Haptics**: a tap per hit scaled by speed, a softer one per wall bounce, a flourish on a goal. One engine per device is a constraint worth designing around: the device buzzes for everyone.
-- [ ] **Sound**: a click per hit, a duller one per wall, a horn on a goal. Ambient audio session, so the silent switch is honored and the players' music keeps playing.
-- [ ] **Pace levels.** A pick in setup for how fast the table plays — the puck's speed cap (and probably drag with it), a few presets from a gentle warm-up to a frantic one. `maxSpeed` is already a `Playfield` constant, so this is a value setup chooses, not a physics change. **Frame it as pace, not difficulty**: in a two-player game both players share the same table, so a faster cap raises the intensity for both equally — it is not an easier/harder opponent (the opponent is the other person). Real per-side difficulty only means something once there's an AI seat or a solo mode, and then it lives in *those*, not here. Belongs to the setup step (see *The couch*), never a mid-game control.
+## Release & submission — *1.0 by definition*
 
-## Puck variety — *shaped pucks*
+The lane is in place (see [RELEASING.md](RELEASING.md)) and builds are shipping to TestFlight.
 
-The one addition that changes how the game plays rather than what is around it. A square or triangular puck skitters unpredictably off walls and mallets.
-
-- [x] **The physics (spiked, shipped).** A polygon puck that rotates and tumbles, with a deterministic wall collision (`PolygonCollision`) tuned for feel over exact realism: a disc-like linear bounce (never a launch) while the spin steers the outgoing direction off-axis. Proven fun on a device — that was the whole question. Round / square / triangle are pickable on the front page. See [ARCHITECTURE.md](ARCHITECTURE.md).
-- [ ] **Follow-ons, if play asks for them.** Triangle-specific feel; **per-vertex goals** (today a goal needs the puck CENTER fully past the line, so a corner poked in early doesn't count — fine so far); tuning the three feel dials on more play; more shapes only if they behave distinctly (a hexagon is basically a disc).
-- [x] **Spin on the ROUND puck (flat-table version).** A glancing mallet hit now puts english on the disc, and its spin steers the outgoing wall-bounce while the wall bleeds some of it — gentler than a polygon (a disc has no corner to catch, and a flat wall can't roll it along). Spin is invisible on a circle, so the disc wears a small mark that turns with it. Dials: `discSpinBite`, `discSteerPerSpin`, `discSpinKeptOnBounce`. The wall-*rolling* payoff still waits on the ellipse's curved walls — that's the next bullet.
-- [ ] **Grip-spin that rides the wall** — the coupling that makes a low, wall-hugging shot with forward spin accelerate toward the goal. Its real home is the **ellipse table** ([docs/table-and-modes-plan.md](docs/table-and-modes-plan.md)): a curved wall can carry the puck along it, which a flat wall can't. Builds on the disc spin above. A later spike, independent of singles/doubles.
-
-## Singles & doubles — *multiplayer on the oblong*
-
-The near-term multiplayer answer, decided in [docs/table-and-modes-plan.md](docs/table-and-modes-plan.md): not a player count but **how many mallets a side has** (singles = one, doubles = two) and **how many hands drive them** — so 2v2, 1v1-with-two-mallets, 1v2 and soloing-both are one game, not four, and there is no awkward three-player case. Same oblong, near-zero new geometry.
-
-- [ ] **A side can have two mallets** (doubles), each in its own left/right quadrant of the half; a hand may own one mallet or both.
-- [ ] **The doubles goal is wider** (toward the whole end) — two defenders make a narrow goal trivial. One number.
-- [ ] **The couch flow drives it** (see below): singles/doubles, then who takes each mallet. This is what unblocks who-is-playing and seat colors.
-
-Deferred, non-rectangle tables (square/corners/triangle/circle) and their trade-offs are recorded in the plan; the exciting one is the ellipse spike below.
-
-## Release lane & TestFlight
-
-The lane is in place (see [RELEASING.md](RELEASING.md)); what's missing is the first cut.
-
-- [ ] First TestFlight build once the sandbox is fun on a device.
-- [ ] Icon polish pass (the base icon ships with every build already).
-- [ ] The App Store Connect record is created; listing text, screenshots, and the privacy/age answers still are not.
-
-## Polish & submission — *this one is 1.0 by definition*
-
+- [ ] The App Store Connect listing: text, screenshots, and the privacy/age answers.
 - [ ] Final balancing pass with the dials, then bake the defaults.
 - [ ] Submit, await review, release.
 
 ## Backlog (unversioned)
 
-- [ ] An **AI seat** to fill an empty edge — a `ControlSource` like any other. Not the premise (this is a game for people in a room), so only if it costs little.
-- [x] **Wrap-around side walls** — a table variant where the long walls are portals (exit one side, enter the other at the same height, keeping speed); goals stay solid. A `SideWalls` on `Playfield`, chosen by a "Walls" picker, orthogonal to puck and format. The seam for grouping table variants under one picker later.
-- [ ] More variants: bumpers on the table, two pucks, a moving goal.
+- [ ] An **AI hand** to fill an empty slot — a `ControlSource` like any other. Not the premise (this is a game for people in a room), so only if it costs little.
 - [ ] Finnish/Japanese localization (String Catalog makes this translation-only).
 
 ## Ideas to evaluate — *not scheduled*
 
-A parking lot for what could flesh the game out before 1.0. None of these is committed; each earns a milestone only if, tried on a device, it makes a game between two people better. Ordered roughly by how much they lean on what already exists.
+A parking lot for what could flesh the game out before 1.0. None of these is committed; each earns a milestone only if, tried on a device, it makes a game between people better. Ordered roughly by how much they lean on what already exists.
 
-- [ ] **Pinball-style obstacles.** Bumpers on the ice — fixed discs (or pads) the puck bounces off, maybe with a kick. Cheapest of the lot: the mallet collision is already a kinematic circle, so a bumper is a mallet that never moves and adds speed. The design question is placement — a few table layouts to choose from, not an editor. Once bumpers exist, more pinball furniture is the same idea: spinners, one-way gates, targets that light up, a multiplier lane — each a fixed piece the puck interacts with, all riding the one collision routine.
-- [ ] **Multiple pucks.** Two or three pucks on the table at once — chaos in a good way, and nearly free: the sim already steps one puck through walls and mallets, so this is an array instead of a single value, plus puck–puck collision (the same circle–circle math the mallets use). Scoring needs a rule for who a goal counts for when several are live. A natural pairing with bumpers, and with a "multiball" beat if any solo mode lands.
-- [ ] **A single-player mode — a different game sharing the physics.** Ideas from pinball and breakout: a wall of bricks the puck chips away, a table dressed with bumpers and targets to rack up a score, a survival mode where you keep the puck off your own goal. Worth flagging honestly: this **changes what the app is** — the premise everywhere else is "the device is the table, two-plus people around one screen," and a solo score-attack is a genuinely different game that happens to reuse the puck sim. So it earns a mode, never the front door, and only if the two-player game is proven first. The engine is ready for it (deterministic sim, event stream, kinematic-circle collisions already carry bumpers and a paddle); the question is whether it's a game worth being, not whether it's buildable.
-- [ ] **A curved table (the ellipse).** Slice goals and curved walls where the bounce angle depends on where you hit — and the payoff mechanic, a forward-spun puck rolling the wall toward the goal (needs round-puck spin, above). A whole table's worth of physics, so a spike, not a variant; iPad-forgiving. Design in [docs/table-and-modes-plan.md](docs/table-and-modes-plan.md).
-- [ ] **Tournaments.** A series of games across a session with standings — the thing that gives a two-minute game a reason to be played ten times. Skid's tournament model (fixed number of rounds, points table, persisted across quits) is the pattern to copy and adapt; it wants player cards under it first.
-- [ ] **Player cards.** Local profiles — a name and a color, wins and losses, maybe a best streak — so results belong to a person rather than to a seat. Purely on-device (no accounts); Skid's profiles are the reference. The gate for tournaments and for anything that remembers who you are.
-- [ ] **Nearby multiplayer.** Two devices, each its own table half, over the local network — no server, no accounts. The sim was built for it: inputs are data and the state is deterministic, so either host-authoritative snapshots or lockstep over MultipeerConnectivity (as Skid does) is reachable without a rewrite. Changes the premise (one shared screen) enough that it needs its own decision before any code; listed here so it isn't forgotten, not because it is planned.
-- [ ] **Multi-device tournaments.** Several tables in the same room, each a device, feeding one bracket — so a bigger group plays more than one game at a time. Recorded because it follows naturally from tournaments plus nearby play; judged *not important*: it is hard to see the game drawing crowds large enough to need it, and it costs a network layer the game otherwise doesn't have.
+- [ ] **Pinball-style obstacles.** Bumpers on the ice — fixed discs (or pads) the puck bounces off, maybe with a kick. Cheap: the mallet collision is already a kinematic circle, so a bumper is a mallet that never moves and adds speed. The design question is placement — a few table layouts to choose from, not an editor. Once bumpers exist, more pinball furniture is the same idea: spinners, one-way gates, targets, a multiplier lane — each a fixed piece riding the one collision routine.
+- [ ] **Multiple pucks.** Two or three pucks at once — chaos in a good way, and nearly free: the sim already steps one puck through walls and mallets, so this is an array plus puck–puck collision (the same circle–circle math the mallets use). Scoring needs a rule for who a goal counts for when several are live. A natural pairing with bumpers.
+- [ ] **A single-player mode — a different game sharing the physics.** Ideas from pinball and breakout: a wall of bricks the puck chips away, a table of bumpers and targets to rack up a score, a survival mode where you keep the puck off your own goal. Honestly: this **changes what the app is** — the premise everywhere else is "the device is the table, people around one screen," and a solo score-attack is a genuinely different game that reuses the puck sim. So it earns a mode, never the front door, and only if the multiplayer game is proven first. The engine is ready (deterministic sim, event stream, kinematic-circle collisions); the question is whether it's a game worth being.
+- [ ] **A curved table (the ellipse).** Slice goals and curved walls where the bounce angle depends on where you hit — and the payoff, a forward-spun puck rolling the wall toward the goal (needs grip-spin, above). A whole table's worth of physics, so a spike, not a variant; iPad-forgiving. Design in [docs/table-and-modes-plan.md](docs/table-and-modes-plan.md).
+- [ ] **Tournaments.** A series of games across a session with standings — the thing that gives a two-minute game a reason to be played ten times. Skid's tournament model (fixed rounds, points table, persisted across quits) is the pattern to copy; wants remembered players under it first.
+- [ ] **Nearby multiplayer.** Two devices, each its own table half, over the local network — no server, no accounts. The sim was built for it: inputs are data and the state is deterministic, so host-authoritative snapshots or lockstep over MultipeerConnectivity (as Skid does) is reachable without a rewrite. Changes the premise (one shared screen) enough that it needs its own decision before any code; listed so it isn't forgotten, not because it is planned.
+- [ ] **Multi-device tournaments.** Several tables in the same room, each a device, feeding one bracket. Recorded because it follows from tournaments plus nearby play; judged *not important*: hard to see the game drawing crowds that need it, and it costs a network layer otherwise unneeded.
 
 ## Deliberately out of scope
 

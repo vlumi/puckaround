@@ -174,8 +174,8 @@ final class ShapedPuckTests: XCTestCase {
             let out = !r.table.puckField.insetBy(-2).contains(r.puck.position)
             if out {
                 let inAMouth =
-                    r.table.isInGoalMouth(x: r.puck.position.x, of: .top)
-                    || r.table.isInGoalMouth(x: r.puck.position.x, of: .bottom)
+                    r.table.goal(.top).admitsMouth(r.puck.position.x)
+                    || r.table.goal(.bottom).admitsMouth(r.puck.position.x)
                 XCTAssertTrue(inAMouth, "only escapes via a goal")
             }
         }
