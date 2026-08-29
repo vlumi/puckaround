@@ -14,6 +14,7 @@ The `## vX.Y.Z` heading is written by the release lane too, whenever a release c
 
 ### Unreleased (next build)
 
+- **The round puck takes spin now.** Clip it with a moving mallet and it picks up english — a little dot on the puck shows which way it's turning — and a spinning puck skews off the walls instead of bouncing straight. It's a gentler effect than the square or triangle (a disc has no corners to catch), a finesse tool rather than a big swing.
 - **Grabbing your mallet is more forgiving.** Put your finger on or near the mallet and it snaps under your thumb; land far from it and nothing happens until you swipe over to it — so coming back to the table after lifting your hand no longer drives the mallet from an awkward offset.
 - **A stray edge swipe won't yank you out mid-rally.** Fingers skating along the bottom of the screen during play no longer trip the app-switch gesture on the first brush — it now takes a deliberate second swipe to leave. (iOS never lets an app fully block that swipe; this makes it much harder to hit by accident.)
 - **The score no longer touches the wall.** It sits clear of the boards now, including in doubles where the wider goal used to crowd it into the corner.

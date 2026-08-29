@@ -61,6 +61,22 @@ public struct Rink: Equatable, Sendable {
     /// How strongly a glancing mallet hit spins a shaped puck (0 = none). A feel
     /// dial for the shaped-puck spike.
     static let spinBite = 0.6
+    /// The same for a round puck — english on the disc. Gentler than a polygon's:
+    /// a disc has no corners to catch, so it takes spin less readily. A feel dial.
+    static let discSpinBite = 0.3
+    /// How much a spinning disc's bounce angle is skewed by its spin, per rad/s
+    /// (0 = a plain mirror bounce). Gentler than the polygon steer model; a flat
+    /// wall can't curve the puck along it the way the ellipse's will. Feel dial.
+    static let discSteerPerSpin = 0.015
+    /// Fraction of a disc's spin that survives a wall bounce — the wall's grip
+    /// bleeds the rest. Below 1 so spin doesn't persist forever off the boards.
+    static let discSpinKeptOnBounce = 0.8
+
+    /// The spin bite for the puck's own shape.
+    var spinBite: Double {
+        if case .circle = table.puckShape { return Rink.discSpinBite }
+        return Rink.spinBite
+    }
 
     public let table: Playfield
     public let rules: Rules
