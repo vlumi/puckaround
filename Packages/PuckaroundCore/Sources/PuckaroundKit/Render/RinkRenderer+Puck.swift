@@ -36,18 +36,21 @@ extension RinkRenderer {
         }
     }
 
-    /// The disc's spin mark: a dot set into the puck, offset toward the rim along
-    /// `angle`, so a spinning disc visibly turns and a still one holds steady.
+    /// The disc's spin mark: a dark "clock hand" from the center to the rim,
+    /// turning with `angle` — so a spinning disc visibly rotates AND shows which
+    /// way (an asymmetric hand completes one turn per rotation, unlike a spoke
+    /// through the center). Dark (the cabinet ground) for contrast against the
+    /// bright core.
     private static func drawDiscSpinMark(
         at p: CGPoint, radius r: CGFloat, angle: Double, in context: inout GraphicsContext
     ) {
-        let reach = r * 0.5
-        let dotR = r * 0.2
-        let cx = p.x + cos(angle) * reach
-        let cy = p.y + sin(angle) * reach
-        let dot = Path(
-            ellipseIn: CGRect(x: cx - dotR, y: cy - dotR, width: 2 * dotR, height: 2 * dotR))
-        context.fill(dot, with: .color(.white))
+        let tip = CGPoint(x: p.x + cos(angle) * r * 0.72, y: p.y + sin(angle) * r * 0.72)
+        var hand = Path()
+        hand.move(to: p)
+        hand.addLine(to: tip)
+        context.stroke(
+            hand, with: .color(RinkRenderer.ground.opacity(0.75)),
+            style: StrokeStyle(lineWidth: max(1, r * 0.26), lineCap: .round))
     }
 
     /// The puck's outline on screen: a disc, or the rotated polygon.
