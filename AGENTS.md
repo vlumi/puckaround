@@ -89,10 +89,12 @@ puckaround/
 ├── Sources/iOS/                    Thin @main app shell (+ generated Info.plist, entitlements)
 ├── Sources/Shared/                 The asset catalog (AppIcon) + an empty app-level String Catalog
 └── Packages/PuckaroundCore/        Swift package — all the code
-    ├── Sources/PuckaroundCore/     Pure logic: Vec2/Rect/SeededRNG, Lineup + seats, Playfield/Puck/Mallet,
-    │                               PuckShape + PolygonCollision (shaped pucks), Rink (+Rink+Physics),
-    │                               Rink (the air-hockey sim + Rules), SeatInput + ControlSource,
-    │                               MalletControlSource, GameSession — tested, coverage-gated
+    ├── Sources/PuckaroundCore/     Pure logic — tested, coverage-gated; grouped by domain:
+    │   ├── Math/                   Vec2, Rect, SeededRNG, Tick
+    │   ├── Sim/                    Rink (+Rink+Physics) the air-hockey sim, Puck, Mallet,
+    │   │                           PolygonCollision (shaped pucks), GameSession, SideWalls
+    │   ├── Table/                  Playfield + Goal geometry, Table (Side/Lane/MalletSlot/Format), PuckShape
+    │   └── Input/                  SeatInput + ControlSource, SeatZones, MalletControlSource
     ├── Sources/PuckaroundKit/      SwiftUI + UIKit, depends on Core; coverage-ignored
     │   ├── App/                    GameView, HockeyGame (one table of 1v1), Compat (iOS 16 wrappers)
     │   ├── Feedback/               Haptics + SoundEngine — procedural, off the sim's GameEvent stream
