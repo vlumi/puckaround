@@ -86,10 +86,18 @@ public final class HockeyGame: ObservableObject {
             haptics.play(session.rink.events)
             sound.play(session.rink.events)
             lastFedTick = session.rink.tick
+            if session.rink.events.contains(.faceoffCleared) {
+                faceoffBurstStart = time  // the field bursts — kick off the visual
+            }
         }
+        let burst = faceoffBurstStart.map { min(1, (time - $0) / RinkScene.burstDuration) }
         return RinkScene(
-            rink: session.rink, tableRect: tableRect, reducedMotion: reducedMotion, time: time)
+            rink: session.rink, tableRect: tableRect, reducedMotion: reducedMotion, time: time,
+            faceoffBurst: (burst ?? 1) < 1 ? burst : nil)
     }
+
+    /// When the last faceoff cleared, so the burst ring can be animated from it.
+    private var faceoffBurstStart: TimeInterval?
 
     // MARK: - Touches (screen points in, world points on)
 

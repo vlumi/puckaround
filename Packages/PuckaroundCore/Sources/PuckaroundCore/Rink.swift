@@ -12,6 +12,8 @@ public enum GameEvent: Equatable, Sendable {
     case goal(scorer: PlayerID, conceder: PlayerID)
     /// The game just ended.
     case gameOver(winner: PlayerID)
+    /// The faceoff cleared and play begins this tick — the "GO".
+    case faceoffCleared
 }
 
 /// The rules that aren't geometry.
@@ -65,6 +67,10 @@ public struct Rink: Equatable, Sendable {
     /// What happened this tick — cleared at the start of each `advance`, so it
     /// only ever describes the latest step. The feedback layers read it.
     public internal(set) var events: [GameEvent] = []
+    /// Set when the faceoff clears (`ready` fills the last seat), so the next
+    /// `advance` — the first tick of play — emits the "GO". `ready` runs between
+    /// ticks, outside the event stream, so it can't emit directly.
+    private var announceFaceoffCleared = false
     /// Reserved seam: seeded, deterministic randomness for a sim that has none
     /// yet (the faceoff opening replaced the old random serve). The first
     /// randomised event — a bumper kick, a puck-variety wobble — draws from
@@ -115,6 +121,7 @@ public struct Rink: Equatable, Sendable {
                 score = lineup.players.map { _ in 0 }
             }
             phase = .playing
+            announceFaceoffCleared = true
         } else {
             phase = .faceoff(ready: ready, afterWin: afterWin)
         }
@@ -154,6 +161,10 @@ public struct Rink: Equatable, Sendable {
         defer { tick += 1 }
         events.removeAll(keepingCapacity: true)
         let playing = phase == .playing
+        if announceFaceoffCleared {
+            events.append(.faceoffCleared)
+            announceFaceoffCleared = false
+        }
         // Seats apply in lineup order, never dictionary order — the order hits
         // land in is part of the state.
         for player in lineup.players {
