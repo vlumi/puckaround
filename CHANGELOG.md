@@ -14,6 +14,8 @@ The `## vX.Y.Z` heading is written by the release lane too, whenever a release c
 
 ### Unreleased (next build)
 
+- **The edge-swipe guard actually works now.** Build 5's attempt to make a bottom-edge swipe take a deliberate second try didn't take effect — the first swipe still dropped you to the app switcher. It's wired up correctly now, and only while a game is on the table, not on the menu. (iOS still never lets an app fully block the swipe.)
+
 ### build 5 — 2026-08-29
 
 - **The round puck takes spin now.** Clip it with a moving mallet and it picks up english — a little dot on the puck shows which way it's turning — and a spinning puck skews off the walls instead of bouncing straight. It's a gentler effect than the square or triangle (a disc has no corners to catch), a finesse tool rather than a big swing.

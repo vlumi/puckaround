@@ -62,13 +62,18 @@ final class TouchCaptureView: UIView {
     }
 }
 
-/// A zero-size host whose view controller defers the system edge gestures and
-/// hides the home indicator, so a stray swipe from a table edge doesn't yank
-/// the player out mid-rally. iOS never lets an app *block* the home swipe — the
-/// first deliberate swipe still leaves — but this makes it take a second, so a
-/// fingertip skating along the bottom edge during play won't trigger it. SwiftUI's
-/// own `defersSystemGestures` under-delivers beneath a representable, so we set
-/// the controller preferences directly, which is reliable.
+/// Defers the system edge gestures (home indicator, control/notification
+/// center) and hides the home indicator while the table is on screen, so a
+/// fingertip skating along a screen edge mid-rally doesn't trip the app switcher
+/// on the first brush. iOS never lets an app *block* the home swipe — a
+/// deliberate swipe still leaves — but deferring makes it take a second.
+///
+/// Why not just override the preferences on a representable's controller: those
+/// getters are only consulted on the controller that owns the screen (the
+/// window's root hosting controller), never on a nested SwiftUI child, and the
+/// root doesn't forward to arbitrary children. So the controller installs itself
+/// as the root's forwarded child (`childFor…`), which UIKit *does* consult, via
+/// a one-time swizzle of those two getters, then asks the root to re-query.
 struct EdgeGestureGuard: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> GestureGuardController {
         GestureGuardController()
@@ -85,7 +90,56 @@ final class GestureGuardController: UIViewController {
         view.backgroundColor = .clear
         view.isUserInteractionEnabled = false  // never eat the game's touches
     }
+
+    override func didMove(toParent parent: UIViewController?) {
+        super.didMove(toParent: parent)
+        UIViewController.enableGestureGuardForwarding()
+        GestureGuardController.active = (parent == nil) ? nil : self
+        root?.setNeedsUpdateOfScreenEdgesDeferringSystemGestures()
+        root?.setNeedsUpdateOfHomeIndicatorAutoHidden()
+    }
+
+    private var root: UIViewController? { view.window?.rootViewController }
+
+    /// The guard currently on screen, if any — the root forwards its preferences
+    /// to this while the table is up.
+    fileprivate weak static var active: GestureGuardController?
 }
+
+extension UIViewController {
+    /// Swizzle the two `childFor…` getters once so every controller forwards to
+    /// the active guard — the mechanism the root uses to honor the guard's
+    /// deferral. Idempotent.
+    static func enableGestureGuardForwarding() {
+        guard !gestureGuardForwardingEnabled else { return }
+        gestureGuardForwardingEnabled = true
+        swizzle(
+            #selector(getter: childForScreenEdgesDeferringSystemGestures),
+            to: #selector(getter: paChildForScreenEdges))
+        swizzle(
+            #selector(getter: childForHomeIndicatorAutoHidden),
+            to: #selector(getter: paChildForHomeIndicator))
+    }
+
+    private static func swizzle(_ original: Selector, to replacement: Selector) {
+        guard let a = class_getInstanceMethod(UIViewController.self, original),
+            let b = class_getInstanceMethod(UIViewController.self, replacement)
+        else { return }
+        method_exchangeImplementations(a, b)
+    }
+
+    @objc private var paChildForScreenEdges: UIViewController? {
+        // After the exchange this calls the ORIGINAL getter; fall back to the
+        // active guard when the controller has no child of its own to defer to.
+        paChildForScreenEdges ?? GestureGuardController.active
+    }
+
+    @objc private var paChildForHomeIndicator: UIViewController? {
+        paChildForHomeIndicator ?? GestureGuardController.active
+    }
+}
+
+private var gestureGuardForwardingEnabled = false
 #endif
 
 /// The input surface over the table: real multitouch on iOS, a single-pointer
