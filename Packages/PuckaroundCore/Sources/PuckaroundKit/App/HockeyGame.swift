@@ -7,7 +7,6 @@ import SwiftUI
 /// phase and score from the frame it draws (see `GameSession`).
 @MainActor
 public final class HockeyGame: ObservableObject {
-    public let lineup = Lineup.duel
     public private(set) var session: GameSession
     public private(set) var controls: MalletControlSource
     private let sound = SoundEngine()
@@ -38,13 +37,16 @@ public final class HockeyGame: ObservableObject {
         seed: UInt64 = UInt64.random(in: 0...UInt64.max)
     ) {
         self.rules = rules
+        // Singles by default — `Playfield.duel` carries `.oneVsOne`; a format
+        // picker is a later task. The zones follow the table's own format.
         var table = Playfield.duel
         table.puckShape = puckShape
-        let rink = Rink(table: table, lineup: lineup, rules: rules, seed: seed)
-        let controls = MalletControlSource(zones: SeatZones(lineup: lineup, bounds: table.bounds))
+        let rink = Rink(table: table, rules: rules, seed: seed)
+        let controls = MalletControlSource(
+            zones: SeatZones(format: table.format, bounds: table.bounds))
         self.controls = controls
-        self.session = GameSession(rink: rink) { player, tick in
-            controls.input(for: player, at: tick)
+        self.session = GameSession(rink: rink) { slot, tick in
+            controls.input(for: slot, at: tick)
         }
     }
 
@@ -147,7 +149,7 @@ public final class HockeyGame: ObservableObject {
     }
 
     /// Begin an ordinary play touch: grab/drive a mallet, and — during a faceoff
-    /// — ready that seat, since grabbing the mallet IS declaring ready.
+    /// — ready that mallet, since grabbing it IS declaring ready.
     private func startPlay(id: TouchID, at p: CGPoint) {
         let world = world(fromScreen: p)
         if session.rink.isFaceoff {

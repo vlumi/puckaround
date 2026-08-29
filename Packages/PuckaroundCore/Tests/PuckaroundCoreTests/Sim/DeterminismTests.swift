@@ -5,20 +5,22 @@ import XCTest
 /// The sim's foundational promise: same seed + same inputs → same states,
 /// bit-for-bit. Replays stand on this.
 final class DeterminismTests: XCTestCase {
-    /// Both hands waving their mallets about in tick-dependent loops.
-    private func scripted(player: PlayerID, tick: Tick) -> SeatInput {
-        let phase = Double(tick) / 17 + Double(player.rawValue) * 2
+    /// Both hands waving their mallets about in tick-dependent loops. The two
+    /// singles slots differ by side, so each gets its own phase offset (bottom
+    /// 0, top 1) — the way the old two players did.
+    private func scripted(slot: MalletSlot, tick: Tick) -> SeatInput {
+        let phase = Double(tick) / 17 + (slot.side == .bottom ? 0 : 1) * 2
         return SeatInput(malletDrag: Vec2(sin(phase) * 3, cos(phase * 1.3) * 3))
     }
 
     private func run(seed: UInt64, ticks: Int) -> (rink: Rink, trail: [Vec2]) {
-        var rink = Rink(table: .duel, lineup: .duel, seed: seed)
+        var rink = Rink(table: .duel, seed: seed)
         rink.startPlaying()
         var trail: [Vec2] = []
         for _ in 0..<ticks {
-            var inputs: [PlayerID: SeatInput] = [:]
-            for player in rink.lineup.players {
-                inputs[player] = scripted(player: player, tick: rink.tick)
+            var inputs: [MalletSlot: SeatInput] = [:]
+            for slot in rink.slots {
+                inputs[slot] = scripted(slot: slot, tick: rink.tick)
             }
             rink.advance(inputs: inputs)
             trail.append(rink.puck.position)
@@ -41,8 +43,8 @@ final class DeterminismTests: XCTestCase {
     func testEveryGameOpensTheSameWay() {
         // No chance in the opening now — a faceoff, puck frozen at centre — so
         // the seed does not change how a game begins.
-        let a = Rink(table: .duel, lineup: .duel, seed: 1)
-        let b = Rink(table: .duel, lineup: .duel, seed: 999)
+        let a = Rink(table: .duel, seed: 1)
+        let b = Rink(table: .duel, seed: 999)
         XCTAssertTrue(a.isFaceoff)
         XCTAssertEqual(a.puck.position, a.table.center)
         XCTAssertEqual(a.puck.position, b.puck.position)
@@ -50,8 +52,8 @@ final class DeterminismTests: XCTestCase {
     }
 
     func testNewGameIsReproducibleFromTheSeed() {
-        var a = Rink(table: .duel, lineup: .duel, seed: 5)
-        var b = Rink(table: .duel, lineup: .duel, seed: 5)
+        var a = Rink(table: .duel, seed: 5)
+        var b = Rink(table: .duel, seed: 5)
         a.newGame()
         b.newGame()
         XCTAssertEqual(a, b)

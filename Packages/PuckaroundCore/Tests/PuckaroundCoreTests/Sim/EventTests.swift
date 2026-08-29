@@ -5,11 +5,11 @@ import XCTest
 /// The `GameEvent` stream the sound and haptics consume — a pure function of
 /// the sim, so these run headless.
 final class EventTests: XCTestCase {
-    private let bottom = PlayerID(0)
-    private let top = PlayerID(1)
+    private let bottom = MalletSlot.bottomSingle
+    private let top = MalletSlot.topSingle
 
     private func rink(rules: Rules = .standard) -> Rink {
-        var r = Rink(table: .duel, lineup: .duel, rules: rules, seed: 1)
+        var r = Rink(table: .duel, rules: rules, seed: 1)
         r.startPlaying()
         r.park()
         r.place(Puck(position: r.table.center))
@@ -35,20 +35,20 @@ final class EventTests: XCTestCase {
         var r = rink()
         let reach = r.table.puckRadius + r.table.malletRadius
         // Just inside reach, then shoved further into the puck.
-        r.placeMallet(of: bottom, at: r.table.center + Vec2(0, reach - 0.5))
+        r.placeMallet(at: bottom, position: r.table.center + Vec2(0, reach - 0.5))
         r.advance(inputs: [bottom: SeatInput(malletDrag: Vec2(0, -3))])
         let hits = r.events.filter { if case .malletHit = $0 { return true } else { return false } }
         XCTAssertEqual(hits.count, 1)
-        guard case .malletHit(let player, let speed) = hits.first else {
+        guard case .malletHit(let slot, let speed) = hits.first else {
             return XCTFail("expected exactly one mallet-hit event, got \(r.events)")
         }
-        XCTAssertEqual(player, bottom)
+        XCTAssertEqual(slot, bottom)
         XCTAssertGreaterThan(speed, 0)
     }
 
     func testARestingMalletThePuckDriftsIntoIsNotAHit() {
         var r = rink()
-        let m = r.mallet(of: bottom).position
+        let m = r.mallet(at: bottom)!.position
         r.place(Puck(position: m - Vec2(0, 20), velocity: Vec2(0, 200)))
         var mallletHits = 0
         for _ in 0..<Rink.tickRate {
@@ -93,7 +93,7 @@ final class EventTests: XCTestCase {
             goalEvents = r.events.filter { $0 != .faceoffCleared }
         }
         XCTAssertEqual(
-            goalEvents, [.goal(scorer: bottom, conceder: top), .gameOver(winner: bottom)])
+            goalEvents, [.goal(scorer: .bottom, conceder: .top), .gameOver(winner: .bottom)])
     }
 
     func testANonWinningGoalEmitsNoGameOver() {
@@ -110,12 +110,12 @@ final class EventTests: XCTestCase {
             r.advance(inputs: [:])
             goalEvents = r.events.filter { $0 != .faceoffCleared }
         }
-        XCTAssertEqual(goalEvents, [.goal(scorer: bottom, conceder: top)])
+        XCTAssertEqual(goalEvents, [.goal(scorer: .bottom, conceder: .top)])
     }
 
     func testEventsAreDeterministic() {
         func run() -> [[GameEvent]] {
-            var r = Rink(table: .duel, lineup: .duel, seed: 7)
+            var r = Rink(table: .duel, seed: 7)
             var trail: [[GameEvent]] = []
             for tick in 0..<600 {
                 let drag = Vec2(sin(Double(tick) / 9) * 4, cos(Double(tick) / 7) * 4)
@@ -130,11 +130,11 @@ final class EventTests: XCTestCase {
     }
 
     func testTheFaceoffClearingEmitsAGo() {
-        var r = Rink(table: .duel, lineup: .duel, seed: 1)
+        var r = Rink(table: .duel, seed: 1)
         r.park()
         r.ready(bottom)
         r.advance(inputs: [:])
-        XCTAssertFalse(r.events.contains(.faceoffCleared), "one seat readied is not GO")
+        XCTAssertFalse(r.events.contains(.faceoffCleared), "one slot readied is not GO")
         r.ready(top)  // clears the faceoff → play begins
         XCTAssertTrue(r.isFaceoff == false)
         r.advance(inputs: [:])

@@ -4,11 +4,11 @@ import XCTest
 
 final class MalletControlTests: XCTestCase {
     private let table = Playfield.duel
-    private let bottom = PlayerID(0)
-    private let top = PlayerID(1)
+    private let bottom = MalletSlot.bottomSingle
+    private let top = MalletSlot.topSingle
 
     private func source() -> MalletControlSource {
-        MalletControlSource(zones: SeatZones(lineup: .duel, bounds: table.bounds))
+        MalletControlSource(zones: SeatZones(format: .oneVsOne, bounds: table.bounds))
     }
 
     func testMovementBecomesOneDragThenNothing() {
@@ -20,7 +20,7 @@ final class MalletControlTests: XCTestCase {
         XCTAssertEqual(s.input(for: bottom, at: 1), .none, "consumed")
     }
 
-    func testAFingerBelongsToTheSeatItBeganIn() {
+    func testAFingerBelongsToTheSlotItBeganIn() {
         let s = source()
         s.touchBegan(id: 1, at: Vec2(50, 120))  // bottom half
         s.touchMoved(id: 1, at: Vec2(50, 20))  // crosses into the top half
@@ -45,7 +45,7 @@ final class MalletControlTests: XCTestCase {
         XCTAssertEqual(s.input(for: bottom, at: 3).malletDrag, Vec2(0, -2))
     }
 
-    func testEachSeatHasItsOwnFinger() {
+    func testEachSlotHasItsOwnFinger() {
         let s = source()
         s.touchBegan(id: 1, at: Vec2(50, 120))
         s.touchBegan(id: 2, at: Vec2(50, 40))

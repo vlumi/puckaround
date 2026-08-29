@@ -105,11 +105,33 @@ fun before committing, and keep it off the singles/doubles path.
 2. **The ellipse + slice goals + rolling spin** (a later spike, any time).
    Independent; the exciting exploration; iPad-forgiving.
 
-## Open questions, recorded
+## Settled at build time (2026-08-29)
 
-- Do singles and doubles share a goal width? (Default: no — doubles wider.)
-- Is 1v2 (doubles, a side short a player) offered, or must doubles be 2+2?
-- Is a soloing-both-mallets mode surfaced, or only a side effect of who shows
-  up?
+Building it clarified the model further:
+
+- **Formats are per-side hand counts: 1v1, 1v2, 2v2.** Not a single
+  singles/doubles switch — each side independently fields one or two mallets,
+  so 1v2 is first-class, not an awkward "doubles short a player". `Format` is
+  `(bottom: Hands, top: Hands)`.
+- **Goal width is per side, and follows that side's hand count.** A one-hand
+  side keeps the narrow goal; a two-hand side gets the wide one. So in 1v2 the
+  lone defender faces a tight goal and the pair a broad one — the harder goal
+  to keep goes to the better-staffed side. Fairer than a table-wide width, and
+  it falls out of the per-side model for free.
+- **No player/team identity in the sim.** A mallet is only its slot (side +
+  lane); a goal is only its side. The sim tracks score per side and knows
+  nothing of who holds what — "who's playing" is a couch/UI matter that ends
+  when you leave the table. Own goals are allowed and need no special case: the
+  puck crossing a side's own line is the other side's point, whoever touched it.
+- **One colour per side.** Both mallets of a side and its goal and its score
+  share one colour (bottom magenta, top cyan) — a side reads as one team.
+- **The "1.5"/asymmetric worry is gone** — per-side hand counts ARE the
+  asymmetry, handled uniformly. A three-player table (one side singles, other
+  doubles) is exactly 1v2.
+
+## Open questions, still
+
+- Is soloing both mallets of a side surfaced as its own harder mode, or only a
+  side effect of who shows up at the couch?
 - On the ellipse: hidden spin, or a drawn puck symbol to make rotation
   readable?

@@ -3,13 +3,13 @@ import XCTest
 @testable import PuckaroundCore
 
 /// The opening ceremony: puck frozen at centre behind a force field, mallets
-/// held out of the bubble, play beginning the instant every seat readies.
+/// held out of the bubble, play beginning the instant every slot readies.
 final class FaceoffTests: XCTestCase {
-    private let bottom = PlayerID(0)
-    private let top = PlayerID(1)
+    private let bottom = MalletSlot.bottomSingle
+    private let top = MalletSlot.topSingle
 
     private func rink() -> Rink {
-        var r = Rink(table: .duel, lineup: .duel, seed: 1)
+        var r = Rink(table: .duel, seed: 1)
         r.park()
         return r
     }
@@ -50,17 +50,17 @@ final class FaceoffTests: XCTestCase {
         }
         let keepOut = r.table.faceoffBubbleRadius + r.table.malletRadius
         XCTAssertGreaterThanOrEqual(
-            r.mallet(of: bottom).position.distance(to: r.puck.position), keepOut - 1e-6,
+            r.mallet(at: bottom)!.position.distance(to: r.puck.position), keepOut - 1e-6,
             "the mallet is held at the force-field rim")
     }
 
     func testAMalletIsFreeOutsideTheBubble() {
         var r = rink()
-        let home = r.table.malletZone(for: .bottom).center
-        r.placeMallet(of: bottom, at: home)
+        let home = r.table.malletZone(for: bottom).center
+        r.placeMallet(at: bottom, position: home)
         r.advance(inputs: [bottom: SeatInput(malletDrag: Vec2(5, 3))])
         // Well away from the puck, so it moves exactly as asked.
-        XCTAssertEqual(r.mallet(of: bottom).position, home + Vec2(5, 3))
+        XCTAssertEqual(r.mallet(at: bottom)!.position, home + Vec2(5, 3))
     }
 
     func testTheFieldDropsAndPlayIsLiveOnReady() {
@@ -69,13 +69,14 @@ final class FaceoffTests: XCTestCase {
         XCTAssertFalse(r.isFaceoff)
         // Now a mallet may drive right up to (and strike) the puck.
         r.placeMallet(
-            of: bottom, at: r.table.center + Vec2(0, r.table.puckRadius + r.table.malletRadius))
+            at: bottom,
+            position: r.table.center + Vec2(0, r.table.puckRadius + r.table.malletRadius))
         r.advance(inputs: [bottom: SeatInput(malletDrag: Vec2(0, -3))])
         XCTAssertTrue(r.puck.isMoving, "the field is gone; the puck can be struck")
     }
 
     func testEveryNewGameOpensAFreshFaceoff() {
-        var r = Rink(table: .duel, lineup: .duel, rules: Rules(pointsToWin: 1), seed: 1)
+        var r = Rink(table: .duel, rules: Rules(pointsToWin: 1), seed: 1)
         r.startPlaying()
         r.park()
         // End the game: drive the puck fully through the bottom goal.
@@ -86,18 +87,18 @@ final class FaceoffTests: XCTestCase {
         for _ in 0..<6 where !r.isFaceoff { r.advance(inputs: [:]) }
         // A win opens a rematch faceoff remembering the winner…
         XCTAssertTrue(r.isFaceoff)
-        XCTAssertEqual(r.finalWinner, top)
+        XCTAssertEqual(r.finalWinner, .top)
         // …and a full new game clears that, a fresh faceoff with no result shown.
         r.newGame()
         XCTAssertTrue(r.isFaceoff)
         XCTAssertNil(r.finalWinner)
-        XCTAssertEqual(r.readySeats, [])
+        XCTAssertEqual(r.readyMallets, [])
     }
 
-    func testNoReadySeatsOncePlaying() {
+    func testNoReadyMalletsOncePlaying() {
         var r = rink()
         r.startPlaying()
         XCTAssertFalse(r.isFaceoff)
-        XCTAssertEqual(r.readySeats, [], "readySeats is empty during play")
+        XCTAssertEqual(r.readyMallets, [], "readyMallets is empty during play")
     }
 }
