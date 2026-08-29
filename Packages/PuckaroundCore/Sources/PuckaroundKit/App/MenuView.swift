@@ -18,19 +18,29 @@ struct MenuView: View {
     var body: some View {
         ZStack {
             Neon.ground.ignoresSafeArea()
-            VStack(spacing: 36) {
-                Spacer()
-                wordmark
-                Spacer()
-                formatPicker
-                firstToPicker
-                puckPicker
-                NeonButton(title: "Play", tint: Neon.cyan, prominent: true, action: onPlay)
-                    .padding(.horizontal, 40)
-                Spacer()
+            // A scroll view so a short screen (SE) can reach Play instead of
+            // clipping it. The content centres itself when the screen is tall
+            // enough (minHeight = the viewport) and scrolls when it isn't.
+            GeometryReader { geo in
+                ScrollView {
+                    VStack(spacing: 28) {
+                        // Spacers centre the content on a tall screen but collapse
+                        // to nothing when it overflows, so nothing ever clips.
+                        Spacer(minLength: 0)
+                        wordmark
+                        formatPicker
+                        firstToPicker
+                        puckPicker
+                        NeonButton(title: "Play", tint: Neon.cyan, prominent: true, action: onPlay)
+                            .padding(.horizontal, 40)
+                        Spacer(minLength: 0)
+                    }
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 24)
+                    .frame(maxWidth: 440)
+                    .frame(minHeight: geo.size.height)
+                }
             }
-            .padding(.horizontal, 24)
-            .frame(maxWidth: 440)
         }
     }
 
