@@ -31,7 +31,12 @@ struct NeonButton: View {
                         .overlay(
                             RoundedRectangle(cornerRadius: 14).strokeBorder(tint, lineWidth: 2)
                         )
-                        .shadow(color: tint.opacity(0.7), radius: prominent ? 12 : 8))
+                        .shadow(color: tint.opacity(0.7), radius: prominent ? 12 : 8)
+                )
+                // The whole pill is the tap target — without this, an outline
+                // (non-prominent) button only registers hits on the glyphs, not
+                // the empty interior of the rounded rectangle.
+                .contentShape(RoundedRectangle(cornerRadius: 14))
         }
         .buttonStyle(.plain)
     }
