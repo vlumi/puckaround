@@ -19,14 +19,14 @@ public struct SeatZones: Equatable, Sendable {
     }
 
     /// The slot that owns a touch: its side's half, and — when that side fields
-    /// two mallets — the lane (left/right of centre) the touch falls in. A touch
+    /// two mallets — the lane (left/right of center) the touch falls in. A touch
     /// always belongs to some mallet on the table.
     public func owner(of point: Vec2) -> MalletSlot {
         let side = side(of: point)
         let sideSlots = slots.filter { $0.side == side }
         // One mallet on this side: it owns the whole half.
         if sideSlots.count == 1 { return sideSlots[0] }
-        // Two: left of centre is the left lane, right of centre the right.
+        // Two: left of center is the left lane, right of center the right.
         let lane: Lane = point.x < bounds.center.x ? .left : .right
         return sideSlots.first { $0.lane == lane } ?? sideSlots[0]
     }

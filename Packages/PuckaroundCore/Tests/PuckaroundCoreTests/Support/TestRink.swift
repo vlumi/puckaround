@@ -12,7 +12,7 @@ extension Rink {
         setMalletForTesting(Mallet(position: position), at: slot)
     }
 
-    /// Mallets into their far goal-side corners, clear of the centre.
+    /// Mallets into their far goal-side corners, clear of the center.
     mutating func park() {
         for slot in slots {
             let zone = table.malletZone(for: slot)

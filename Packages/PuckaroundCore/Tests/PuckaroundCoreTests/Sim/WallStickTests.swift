@@ -65,7 +65,7 @@ final class WallStickTests: XCTestCase {
     /// escape, not a goal, is what frees it.)
     func testAContactFreesThePuckOffTheBottomWall() {
         var r = rink()
-        let x = r.table.puckField.minX + 8  // clear of the centred goal mouth
+        let x = r.table.puckField.minX + 8  // clear of the centerd goal mouth
         r.place(Puck(position: Vec2(x, r.table.puckField.maxY)))
         let reach = r.table.malletRadius + r.table.puckRadius
         r.placeMallet(at: bottom, position: Vec2(x + 10, r.table.puckField.maxY - reach + 1))

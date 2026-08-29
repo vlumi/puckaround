@@ -68,7 +68,7 @@ enum PolygonCollision {
         let positionShift = wall.normal * -contact.depth
         let closing = body.velocity.dot(wall.normal)  // the puck's own approach
         guard closing > 0 else {
-            // The centre is not heading into the wall — a glancing corner touch.
+            // The center is not heading into the wall — a glancing corner touch.
             // Unpenetrate only.
             return Result(
                 velocity: body.velocity, angularVelocity: body.angularVelocity,
@@ -89,7 +89,7 @@ enum PolygonCollision {
         outgoing = outgoing.rotated(by: body.angularVelocity * lever * steerPerSpin)
 
         // A corner hit also STARTS a spin even from rest: the wall catches the
-        // off-centre corner and torques it, scaled by how hard it hit. The
+        // off-center corner and torques it, scaled by how hard it hit. The
         // linear bounce above stays disc-like; this only adds tumble.
         let started = -closing * lever * spinFromCorner
         // …and the incoming spin bleeds a little for the steering it did.

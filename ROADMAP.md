@@ -26,7 +26,7 @@ The game is built and this milestone is about driving it on hardware: two thumbs
 
 Built against [singles & doubles](#singles--doubles--multiplayer-on-the-oblong): the setup asks singles or doubles, then who takes each mallet.
 
-- [x] **A front door (first cut).** A title screen with a first-to-N pick and Play; a rematch that IS the faceoff (ready up again, score resets on start); and the centre ring as an always-available menu (resume / quit). Deliberately minimal for a 1v1-only game — **still to come as more seats and modes land**: who is at the table, player count, seat colours chosen by the players, and mode selection.
+- [x] **A front door (first cut).** A title screen with a first-to-N pick and Play; a rematch that IS the faceoff (ready up again, score resets on start); and the center ring as an always-available menu (resume / quit). Deliberately minimal for a 1v1-only game — **still to come as more seats and modes land**: who is at the table, player count, seat colors chosen by the players, and mode selection.
 - [ ] **A record of the session.** A running tally across games, so the last twenty minutes happened.
 
 ## Feel — *sound & haptics*
@@ -35,7 +35,7 @@ Not polish to leave for last: haptics are part of how a hit reads, so this comes
 
 - [ ] **Events out of the sim** — mallet hit (with closing speed), wall bounce, goal, game over — as data the feedback layers consume; replays get them for free.
 - [ ] **Haptics**: a tap per hit scaled by speed, a softer one per wall bounce, a flourish on a goal. One engine per device is a constraint worth designing around: the device buzzes for everyone.
-- [ ] **Sound**: a click per hit, a duller one per wall, a horn on a goal. Ambient audio session, so the silent switch is honoured and the players' music keeps playing.
+- [ ] **Sound**: a click per hit, a duller one per wall, a horn on a goal. Ambient audio session, so the silent switch is honored and the players' music keeps playing.
 - [ ] **Pace levels.** A pick in setup for how fast the table plays — the puck's speed cap (and probably drag with it), a few presets from a gentle warm-up to a frantic one. `maxSpeed` is already a `Playfield` constant, so this is a value setup chooses, not a physics change. **Frame it as pace, not difficulty**: in a two-player game both players share the same table, so a faster cap raises the intensity for both equally — it is not an easier/harder opponent (the opponent is the other person). Real per-side difficulty only means something once there's an AI seat or a solo mode, and then it lives in *those*, not here. Belongs to the setup step (see *The couch*), never a mid-game control.
 
 ## Puck variety — *shaped pucks*
@@ -43,7 +43,7 @@ Not polish to leave for last: haptics are part of how a hit reads, so this comes
 The one addition that changes how the game plays rather than what is around it. A square or triangular puck skitters unpredictably off walls and mallets.
 
 - [x] **The physics (spiked, shipped).** A polygon puck that rotates and tumbles, with a deterministic wall collision (`PolygonCollision`) tuned for feel over exact realism: a disc-like linear bounce (never a launch) while the spin steers the outgoing direction off-axis. Proven fun on a device — that was the whole question. Round / square / triangle are pickable on the front page. See [ARCHITECTURE.md](ARCHITECTURE.md).
-- [ ] **Follow-ons, if play asks for them.** Triangle-specific feel; **per-vertex goals** (today a goal needs the puck CENTRE fully past the line, so a corner poked in early doesn't count — fine so far); tuning the three feel dials on more play; more shapes only if they behave distinctly (a hexagon is basically a disc).
+- [ ] **Follow-ons, if play asks for them.** Triangle-specific feel; **per-vertex goals** (today a goal needs the puck CENTER fully past the line, so a corner poked in early doesn't count — fine so far); tuning the three feel dials on more play; more shapes only if they behave distinctly (a hexagon is basically a disc).
 - [ ] **Grip-spin on a ROUND puck** — english coupling back into linear motion. Its real home is the **ellipse table** ([docs/table-and-modes-plan.md](docs/table-and-modes-plan.md)): a low, wall-hugging shot with forward spin rides the curved wall and accelerates toward the goal — a skill shot the flat table can't express, and the reason the ellipse is worth building. Spin on a disc is invisible, so it either stays hidden state or gets a small drawn puck symbol (open). A later spike, independent of singles/doubles.
 
 ## Singles & doubles — *multiplayer on the oblong*
@@ -52,7 +52,7 @@ The near-term multiplayer answer, decided in [docs/table-and-modes-plan.md](docs
 
 - [ ] **A side can have two mallets** (doubles), each in its own left/right quadrant of the half; a hand may own one mallet or both.
 - [ ] **The doubles goal is wider** (toward the whole end) — two defenders make a narrow goal trivial. One number.
-- [ ] **The couch flow drives it** (see below): singles/doubles, then who takes each mallet. This is what unblocks who-is-playing and seat colours.
+- [ ] **The couch flow drives it** (see below): singles/doubles, then who takes each mallet. This is what unblocks who-is-playing and seat colors.
 
 Deferred, non-rectangle tables (square/corners/triangle/circle) and their trade-offs are recorded in the plan; the exciting one is the ellipse spike below.
 
@@ -84,7 +84,7 @@ A parking lot for what could flesh the game out before 1.0. None of these is com
 - [ ] **A single-player mode — a different game sharing the physics.** Ideas from pinball and breakout: a wall of bricks the puck chips away, a table dressed with bumpers and targets to rack up a score, a survival mode where you keep the puck off your own goal. Worth flagging honestly: this **changes what the app is** — the premise everywhere else is "the device is the table, two-plus people around one screen," and a solo score-attack is a genuinely different game that happens to reuse the puck sim. So it earns a mode, never the front door, and only if the two-player game is proven first. The engine is ready for it (deterministic sim, event stream, kinematic-circle collisions already carry bumpers and a paddle); the question is whether it's a game worth being, not whether it's buildable.
 - [ ] **A curved table (the ellipse).** Slice goals and curved walls where the bounce angle depends on where you hit — and the payoff mechanic, a forward-spun puck rolling the wall toward the goal (needs round-puck spin, above). A whole table's worth of physics, so a spike, not a variant; iPad-forgiving. Design in [docs/table-and-modes-plan.md](docs/table-and-modes-plan.md).
 - [ ] **Tournaments.** A series of games across a session with standings — the thing that gives a two-minute game a reason to be played ten times. Skid's tournament model (fixed number of rounds, points table, persisted across quits) is the pattern to copy and adapt; it wants player cards under it first.
-- [ ] **Player cards.** Local profiles — a name and a colour, wins and losses, maybe a best streak — so results belong to a person rather than to a seat. Purely on-device (no accounts); Skid's profiles are the reference. The gate for tournaments and for anything that remembers who you are.
+- [ ] **Player cards.** Local profiles — a name and a color, wins and losses, maybe a best streak — so results belong to a person rather than to a seat. Purely on-device (no accounts); Skid's profiles are the reference. The gate for tournaments and for anything that remembers who you are.
 - [ ] **Nearby multiplayer.** Two devices, each its own table half, over the local network — no server, no accounts. The sim was built for it: inputs are data and the state is deterministic, so either host-authoritative snapshots or lockstep over MultipeerConnectivity (as Skid does) is reachable without a rewrite. Changes the premise (one shared screen) enough that it needs its own decision before any code; listed here so it isn't forgotten, not because it is planned.
 - [ ] **Multi-device tournaments.** Several tables in the same room, each a device, feeding one bracket — so a bigger group plays more than one game at a time. Recorded because it follows naturally from tournaments plus nearby play; judged *not important*: it is hard to see the game drawing crowds large enough to need it, and it costs a network layer the game otherwise doesn't have.
 

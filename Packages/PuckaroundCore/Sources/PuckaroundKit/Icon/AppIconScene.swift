@@ -2,8 +2,8 @@ import PuckaroundCore
 import SwiftUI
 
 /// The app icon, drawn by the game's own recipe — the neon cabinet shrunk to a
-/// tile: the glowing rink, its two goal mouths in the seat colours, the two
-/// mallets facing off across the centre line, and a white-hot puck in the
+/// tile: the glowing rink, its two goal mouths in the seat colors, the two
+/// mallets facing off across the center line, and a white-hot puck in the
 /// slot. No image assets: `make icon` renders this at 1024×1024 into the asset
 /// catalog. It must keep matching how `RinkRenderer` draws the real table.
 public struct AppIconScene: View {
@@ -42,7 +42,7 @@ public struct AppIconScene: View {
                 iceShape, color: RinkRenderer.line.opacity(0.85), width: 10 * s, blur: 20 * s,
                 in: &context)
 
-            // Centre line + ring.
+            // Center line + ring.
             let mid = size.height / 2
             var midline = Path()
             midline.move(to: CGPoint(x: rink.minX, y: mid))
@@ -55,7 +55,7 @@ public struct AppIconScene: View {
                 ring, color: RinkRenderer.line.opacity(0.5), width: 6 * s, blur: 14 * s,
                 in: &context)
 
-            // Goal mouths, each in its seat colour.
+            // Goal mouths, each in its seat color.
             let goalW = 300.0 * s
             func goal(y: CGFloat, color: Color) {
                 var bar = Path()
@@ -67,8 +67,8 @@ public struct AppIconScene: View {
             goal(y: rink.maxY, color: SeatPalette.cyan)
 
             // Two mallets, facing off — magenta top, cyan bottom, matching the
-            // goals. Set off-centre and NOT mirrored: the top one drawn back and
-            // to one side, the bottom one nearer the centre on the other, so the
+            // goals. Set off-center and NOT mirrored: the top one drawn back and
+            // to one side, the bottom one nearer the center on the other, so the
             // icon reads as a moment of play rather than a symmetric diagram.
             mallet(
                 CGPoint(x: size.width * 0.37, y: rink.minY + rink.height * 0.23), 96 * s,
@@ -77,7 +77,7 @@ public struct AppIconScene: View {
                 CGPoint(x: size.width * 0.61, y: rink.minY + rink.height * 0.63), 96 * s,
                 SeatPalette.cyan, s: s, in: &context)
 
-            // The white-hot puck, off centre toward the cyan mallet, trailing
+            // The white-hot puck, off center toward the cyan mallet, trailing
             // back toward the magenta one.
             let puckAt = CGPoint(x: size.width * 0.53, y: mid - 26 * s)
             var streak = Path()

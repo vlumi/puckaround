@@ -41,7 +41,7 @@ final class DeterminismTests: XCTestCase {
     }
 
     func testEveryGameOpensTheSameWay() {
-        // No chance in the opening now — a faceoff, puck frozen at centre — so
+        // No chance in the opening now — a faceoff, puck frozen at center — so
         // the seed does not change how a game begins.
         let a = Rink(table: .duel, seed: 1)
         let b = Rink(table: .duel, seed: 999)

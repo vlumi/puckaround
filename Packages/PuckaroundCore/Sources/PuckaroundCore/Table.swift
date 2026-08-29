@@ -23,7 +23,7 @@ public enum Lane: Codable, Sendable {
 }
 
 /// One mallet's identity: which side it defends and which lane it keeps. The
-/// unit the sim tracks, the touch layer routes to, and the renderer colours.
+/// unit the sim tracks, the touch layer routes to, and the renderer colors.
 public struct MalletSlot: Hashable, Codable, Sendable {
     public let side: Side
     public let lane: Lane

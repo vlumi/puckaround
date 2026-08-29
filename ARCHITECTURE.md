@@ -62,7 +62,7 @@ mallet each, the player scored on gets the puck, first to seven
 [docs/air-hockey-plan.md](docs/air-hockey-plan.md).
 
 **The table** (`Playfield`) is a walled rectangle in world units, a goal mouth
-centred in each short wall, plus the constants: puck and mallet radii, goal
+centerd in each short wall, plus the constants: puck and mallet radii, goal
 width, wall restitution, surface drag, a speed cap (so no hit can carry the
 puck through a wall in one tick), and a rest speed below which the puck stops
 instead of creeping on floating-point dust, and the `puckShape` (below). The
@@ -81,18 +81,18 @@ deterministic — vertices in fixed index order, ties broken by that order) is
 not a rigid impulse but a **feel model** chosen to play well, not to be exactly
 physical: the linear bounce is disc-like (speed preserved, never a launch off
 the wall), while the puck's **spin steers the outgoing direction off-axis** —
-which way and how much set by the spin's sign and speed and how off-centre the
+which way and how much set by the spin's sign and speed and how off-center the
 corner hit is. A corner catch also *starts* a little spin from rest; a flat
 face bounces clean. A glancing mallet hit puts english on it. Three dials tune
 the feel: `PolygonCollision.steerPerSpin`, `spinFromCorner`, `spinSpent`. The
 circle path is untouched, so the shipped round game is byte-identical.
 
 **The look is a neon cabinet, and single-theme by choice.** A dark violet-black
-ground, a glowing neutral rink (ice, grid, centre line, puck) that belongs to
-no seat, and each player's neon colour on exactly the three things that are
+ground, a glowing neutral rink (ice, grid, center line, puck) that belongs to
+no seat, and each player's neon color on exactly the three things that are
 theirs — mallet, goal mouth, score — so table furniture never competes with
 player identity. Magenta and cyan lead the 1v1 palette: the max-contrast pair,
-and colour-blind-safe (they separate on lightness and the red–green axis). Glow
+and color-blind-safe (they separate on lightness and the red–green axis). Glow
 is drawn as a blurred pass under a solid core, so a hard puck and a readable
 score survive the bloom; decorative motion (the puck's speed-scaled trail, a CRT
 scanline breath) backs off under `accessibilityReduceMotion`. All procedural, no
@@ -110,7 +110,7 @@ a pure function of the sim, the events are deterministic and a replay gets them
 for free.
 
 **Mallets are kinematic.** A mallet goes exactly where the hand's movement
-puts it, clamped to its own half (it may touch the centre line, never cross
+puts it, clamped to its own half (it may touch the center line, never cross
 it), and is infinitely heavy as far as the puck is concerned: the puck is
 pushed clear along the contact normal and, if they were closing, bounces with
 the mallet's velocity added (`(1 + restitution)` of the closing speed). A fast
@@ -134,7 +134,7 @@ each seat a band along its edge to be drawn in.
 **A touch belongs to the seat it began in for its whole life**, and **the
 first finger down in a half drives that half's mallet** — further fingers of
 the same seat are ignored until the driver lifts. Decided at touch-down, never
-revisited, so a finger crossing the centre line never becomes the other
+revisited, so a finger crossing the center line never becomes the other
 player's. `MalletControlSource` holds the ownership and turns the driving
 finger's movement since the last tick into that seat's drag.
 
@@ -150,7 +150,7 @@ per team — and whether four hands fit round a phone at all are open; see
 [docs/air-hockey-plan.md](docs/air-hockey-plan.md).
 
 **The couch's tail.** The front door shipped (title, first-to-N, puck pick,
-Play; the centre ring is the always-available menu; a rematch is the faceoff
+Play; the center ring is the always-available menu; a rematch is the faceoff
 returning). Still planned: who is playing, seat colors, per-seat HUD facing its
 player, side-by-side vs. face-to-face seating on iPad — the parts that need
 more seats and profiles.

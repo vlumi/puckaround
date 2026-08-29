@@ -26,7 +26,7 @@ final class SlotZonesTests: XCTestCase {
 
     func testAMixedFormatSplitsOnlyTheDoublesSide() {
         // Bottom fields one hand, top two: the bottom half is one mallet's, the
-        // top half splits at centre-x.
+        // top half splits at center-x.
         let zones = SeatZones(format: .oneVsTwo, bounds: table.bounds)
         XCTAssertEqual(zones.owner(of: Vec2(30, 100)), .bottomSingle)
         XCTAssertEqual(
@@ -37,7 +37,7 @@ final class SlotZonesTests: XCTestCase {
 
     func testSinglesGivesEachHalfToItsFullSlot() {
         let zones = SeatZones(format: .oneVsOne, bounds: table.bounds)
-        // Anywhere in a half, either side of centre-x, is that side's one mallet.
+        // Anywhere in a half, either side of center-x, is that side's one mallet.
         XCTAssertEqual(zones.owner(of: Vec2(10, 90)), .bottomSingle)
         XCTAssertEqual(zones.owner(of: Vec2(110, 90)), .bottomSingle)
         XCTAssertEqual(zones.owner(of: Vec2(10, 30)), .topSingle)

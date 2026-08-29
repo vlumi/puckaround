@@ -2,7 +2,7 @@ import Foundation
 
 /// The puck's silhouette. A circle is the classic; polygons (a square, a
 /// triangle) bounce and tumble differently — corners deflect at steep angles
-/// and off-centre hits impart spin.
+/// and off-center hits impart spin.
 ///
 /// A polygon is stored as unit-scale vertices in the puck's own frame, in a
 /// FIXED order — collision iterates them in that order so tie-breaking between
@@ -11,7 +11,7 @@ public enum PuckShape: Equatable, Codable, Sendable {
     case circle
     case polygon(vertices: [Vec2])
 
-    /// A square whose corners reach `radius` from the centre.
+    /// A square whose corners reach `radius` from the center.
     public static let square = PuckShape.regular(sides: 4, cornerRadius: 1)
     /// An upward-pointing triangle whose corners reach `radius`.
     public static let triangle = PuckShape.regular(sides: 3, cornerRadius: 1)
@@ -39,7 +39,7 @@ public enum PuckShape: Equatable, Codable, Sendable {
 
     /// The rotational inertia factor `I / (m · r²)` for a unit-mass, unit-radius
     /// shape — how much a given torque spins it. A solid disc is 1/2; a square
-    /// about its centre is 1/3 of its half-diagonal² … we keep it simple and
+    /// about its center is 1/3 of its half-diagonal² … we keep it simple and
     /// deterministic with a per-shape constant that reads well in play, not a
     /// physically exact integral.
 }

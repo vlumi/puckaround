@@ -115,10 +115,10 @@ public final class HockeyGame: ObservableObject {
 
     // MARK: - Touches (screen points in, world points on)
 
-    /// Opens the centre-ring menu. The view sets this.
+    /// Opens the center-ring menu. The view sets this.
     var onMenuTap: (() -> Void)?
 
-    /// A touch that began in the centre ring and hasn't moved yet — a pending
+    /// A touch that began in the center ring and hasn't moved yet — a pending
     /// menu tap. It only becomes the menu if it ends without moving; the moment
     /// it moves it is ordinary play (grab/drive a mallet), so a drag THROUGH the
     /// ring never gets stolen by the menu.
@@ -127,9 +127,9 @@ public final class HockeyGame: ObservableObject {
     private static let tapSlop: CGFloat = 10
 
     func touchBegan(id: TouchID, at p: CGPoint) {
-        // A touch starting in the centre ring is a candidate menu tap — held
+        // A touch starting in the center ring is a candidate menu tap — held
         // back from the game until we know it's a tap, not the start of a drag.
-        if hitsCentreRing(p) {
+        if hitsCenterRing(p) {
             pendingMenuTouch = (id, p)
             return
         }
@@ -152,7 +152,7 @@ public final class HockeyGame: ObservableObject {
 
     func touchEnded(id: TouchID) {
         if let pending = pendingMenuTouch, pending.id == id {
-            // Ended without moving: a tap on the centre ring → open the menu.
+            // Ended without moving: a tap on the center ring → open the menu.
             pendingMenuTouch = nil
             onMenuTap?()
             return
@@ -170,11 +170,11 @@ public final class HockeyGame: ObservableObject {
         controls.touchBegan(id: id, at: world)
     }
 
-    /// Whether a screen point lands within the centre-ring menu button.
-    private func hitsCentreRing(_ p: CGPoint) -> Bool {
+    /// Whether a screen point lands within the center-ring menu button.
+    private func hitsCenterRing(_ p: CGPoint) -> Bool {
         guard tableRect.width > 0 else { return false }
         let scale = tableRect.width / session.rink.table.size.x
-        let radius = RinkRenderer.centreRingRadius * scale
+        let radius = RinkRenderer.centerRingRadius * scale
         return hypot(p.x - tableRect.midX, p.y - tableRect.midY) <= radius
     }
 }

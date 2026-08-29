@@ -5,7 +5,7 @@ import Foundation
 /// feedback layers consume them and the sim never imports AVFoundation or UIKit.
 public enum GameEvent: Equatable, Sendable {
     /// A mallet struck the puck; `speed` is the closing speed of the hit. The
-    /// slot says which mallet — the feedback layers colour by its side.
+    /// slot says which mallet — the feedback layers color by its side.
     case malletHit(MalletSlot, speed: Double)
     /// The puck bounced off a wall; `speed` is how fast it was going into it.
     case wallBounce(speed: Double)
@@ -42,7 +42,7 @@ public struct Rules: Equatable, Codable, Sendable {
 /// identity ends when the table does.
 public struct Rink: Equatable, Sendable {
     public enum Phase: Equatable, Sendable {
-        /// The faceoff ceremony: the puck is frozen at centre behind a force
+        /// The faceoff ceremony: the puck is frozen at center behind a force
         /// field, and play begins the instant every mallet has readied. Carries
         /// which mallets have readied so far, and — after a finished game — who
         /// just won, so the result stays on screen while the table decides on a
@@ -112,7 +112,7 @@ public struct Rink: Equatable, Sendable {
         score[Rink.scoreOrder.firstIndex(of: side)!]
     }
 
-    /// Scores to zero, and open with a faceoff: the puck sits frozen at centre
+    /// Scores to zero, and open with a faceoff: the puck sits frozen at center
     /// behind the force field until every mallet readies. No chance decides the
     /// opening — the players do, by all grabbing in. The mallets stay where the
     /// hands left them.
@@ -161,7 +161,7 @@ public struct Rink: Equatable, Sendable {
         return false
     }
 
-    /// After a goal: the puck is served from centre, gliding slowly into the
+    /// After a goal: the puck is served from center, gliding slowly into the
     /// conceder's half. It moves AWAY from the far side — a puck heading into
     /// the conceder's own end is unreachable by the opponent until it settles.
     private mutating func serve(to side: Side) {

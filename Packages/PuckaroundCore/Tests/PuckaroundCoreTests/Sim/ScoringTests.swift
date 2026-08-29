@@ -29,12 +29,12 @@ final class ScoringTests: XCTestCase {
         }
     }
 
-    func testAGameOpensWithAFaceoffAtCentre() {
+    func testAGameOpensWithAFaceoffAtCenter() {
         let r = Rink(table: .duel, seed: 1)
         XCTAssertEqual(r.score, [0, 0])
         XCTAssertTrue(r.isFaceoff)
         XCTAssertEqual(r.readyMallets, [])
-        XCTAssertEqual(r.puck.position, r.table.center, "frozen at centre behind the field")
+        XCTAssertEqual(r.puck.position, r.table.center, "frozen at center behind the field")
         XCTAssertFalse(r.puck.isMoving)
     }
 
@@ -46,7 +46,7 @@ final class ScoringTests: XCTestCase {
         XCTAssertGreaterThan(r.puck.velocity.y, 0, "gliding down into the conceder's half")
         XCTAssertLessThan(r.puck.velocity.length, r.table.serveSpeed + 1, "a gentle serve")
         // A step later it is further into the conceder's half, and no opponent
-        // (stuck on the far side of the centre line) could have reached it.
+        // (stuck on the far side of the center line) could have reached it.
         r.advance(inputs: [:])
         XCTAssertGreaterThan(r.puck.position.y, r.table.center.y, "in the bottom half now")
     }
@@ -61,7 +61,7 @@ final class ScoringTests: XCTestCase {
     func testTheConcederGetsThePuck() {
         var r = rink()
         shoot(&r, at: .top, x: r.table.center.x)
-        // Top conceded: the puck leaves centre gliding up into the top half.
+        // Top conceded: the puck leaves center gliding up into the top half.
         XCTAssertEqual(r.puck.position, r.table.center)
         XCTAssertLessThan(r.puck.velocity.y, 0, "heading into the top half")
         shoot(&r, at: .bottom, x: r.table.center.x)

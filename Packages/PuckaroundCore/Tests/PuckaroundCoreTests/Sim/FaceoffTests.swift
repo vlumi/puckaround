@@ -2,7 +2,7 @@ import XCTest
 
 @testable import PuckaroundCore
 
-/// The opening ceremony: puck frozen at centre behind a force field, mallets
+/// The opening ceremony: puck frozen at center behind a force field, mallets
 /// held out of the bubble, play beginning the instant every slot readies.
 final class FaceoffTests: XCTestCase {
     private let bottom = MalletSlot.bottomSingle
