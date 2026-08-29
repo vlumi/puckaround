@@ -240,8 +240,15 @@ extension Rink {
     /// opposite side at the same height, keeping its velocity — the puck slides
     /// fully off one edge and appears on the other, like the goal line's
     /// whole-puck rule. A no-op on a solid table.
+    ///
+    /// It does NOT fire in the goal region (past a goal line in y): there the
+    /// puck is heading in or clipping a post, and must score or bounce, never
+    /// teleport out the side — otherwise a shot into a goal corner warps away
+    /// instead of counting.
     private mutating func wrapSideWalls() {
         guard table.sideWalls == .wrap else { return }
+        let field = table.puckField
+        guard puck.position.y >= field.minY, puck.position.y <= field.maxY else { return }
         let width = table.size.x
         if puck.position.x < 0 {
             puck.position.x += width
@@ -276,8 +283,11 @@ extension Rink {
             bounced = true
         }
         // The side walls bounce only when solid; a wrap table lets the puck pass
-        // (it re-enters the far side in `wrapSideWalls`, called after this).
-        if table.sideWalls == .solid {
+        // (it re-enters the far side in `wrapSideWalls`, called after this) —
+        // EXCEPT in the goal pocket (past a goal line), where the sides must act
+        // solid so a shot clipping a post's corner bounces rather than warping.
+        let sidesSolidHere = table.sideWalls == .solid || p.y < field.minY || p.y > field.maxY
+        if sidesSolidHere {
             if p.x < field.minX {
                 p.x = field.minX + (field.minX - p.x)
                 events.append(.wallBounce(speed: abs(v.x)))
@@ -296,11 +306,12 @@ extension Rink {
             v = v.rotated(by: puck.angularVelocity * Rink.discSteerPerSpin)
             puck.angularVelocity *= Rink.discSpinKeptOnBounce
         }
-        // Clamp X to the field only on a solid side wall — a wrap table needs the
-        // puck to keep travelling past the edge. Clamp Y only when the mouth the
-        // puck is heading for is closed, else a puck flying into the goal is
-        // dragged back onto the ice. Each short wall has its own side's mouth.
-        if table.sideWalls == .solid {
+        // Clamp X to the field where the sides act solid — a wrap table lets the
+        // puck travel past the edge on the open field, but not in the goal pocket
+        // (it must bounce, above). Clamp Y only when the mouth the puck is heading
+        // for is closed, else a puck flying into the goal is dragged back onto
+        // the ice. Each short wall has its own side's mouth.
+        if sidesSolidHere {
             p.x = min(max(p.x, field.minX), field.maxX)
         }
         let intoOpenTop = p.y < field.minY && table.isInGoalMouth(x: p.x, of: .top)
@@ -318,9 +329,13 @@ extension Rink {
     private mutating func bouncePolygonOffWalls() {
         let field = table.puckField
         // The side walls bounce only when solid; a wrap table lets the puck pass
-        // (it re-enters the far side in `wrapSideWalls`).
+        // (it re-enters the far side in `wrapSideWalls`) — except in the goal
+        // pocket (past a goal line), where they act solid so a post-clipping shot
+        // bounces rather than warping.
+        let p = puck.position
+        let sidesSolidHere = table.sideWalls == .solid || p.y < field.minY || p.y > field.maxY
         var walls: [PolygonCollision.Wall] = []
-        if table.sideWalls == .solid {
+        if sidesSolidHere {
             walls.append(.init(normal: Vec2(-1, 0), limit: -field.minX))
             walls.append(.init(normal: Vec2(1, 0), limit: field.maxX))
         }
