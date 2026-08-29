@@ -31,12 +31,15 @@ public struct Playfield: Equatable, Codable, Sendable {
     public var serveSpeed: Double
     /// The puck's silhouette — circle by default; a polygon tumbles.
     public var puckShape: PuckShape
+    /// How the long side walls behave — solid (bounce) by default, or wrap.
+    public var sideWalls: SideWalls
 
     public init(
         size: Vec2, puckRadius: Double, malletRadius: Double, goalWidth: Double,
         restitution: Double, drag: Double, maxSpeed: Double, restSpeed: Double,
         faceoffBubbleRadius: Double, serveSpeed: Double, puckShape: PuckShape = .circle,
-        doublesGoalWidth: Double? = nil, format: Format = .oneVsOne
+        doublesGoalWidth: Double? = nil, format: Format = .oneVsOne,
+        sideWalls: SideWalls = .solid
     ) {
         self.size = size
         self.puckRadius = puckRadius
@@ -51,6 +54,7 @@ public struct Playfield: Equatable, Codable, Sendable {
         self.puckShape = puckShape
         self.doublesGoalWidth = doublesGoalWidth ?? goalWidth * 2.2
         self.format = format
+        self.sideWalls = sideWalls
     }
 
     /// The one table there is: two players facing each other.

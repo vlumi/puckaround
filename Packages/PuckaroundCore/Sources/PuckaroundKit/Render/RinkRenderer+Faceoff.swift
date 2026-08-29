@@ -1,9 +1,36 @@
 import PuckaroundCore
 import SwiftUI
 
-// MARK: - Lanes & faceoff overlay
+// MARK: - Lanes, walls & faceoff overlay
 
 extension RinkRenderer {
+    /// The border for a wrap table: solid glowing top and bottom (the goal
+    /// walls), but dashed and faint down the long sides — so the openings read
+    /// as portals, and a puck vanishing off one edge to reappear on the other
+    /// looks intended, not broken.
+    static func drawWrapBorder(
+        rect: CGRect, corner: CGFloat, projection: Projection, in context: inout GraphicsContext
+    ) {
+        var shortWalls = Path()  // top + bottom, solid
+        shortWalls.move(to: CGPoint(x: rect.minX + corner, y: rect.minY))
+        shortWalls.addLine(to: CGPoint(x: rect.maxX - corner, y: rect.minY))
+        shortWalls.move(to: CGPoint(x: rect.minX + corner, y: rect.maxY))
+        shortWalls.addLine(to: CGPoint(x: rect.maxX - corner, y: rect.maxY))
+        glowStroke(
+            shortWalls, color: line.opacity(0.9), lineWidth: max(1.5, 1.4 * projection.scale),
+            blur: 4 * projection.scale, in: &context)
+
+        var sideWalls = Path()  // left + right, the portals
+        sideWalls.move(to: CGPoint(x: rect.minX, y: rect.minY + corner))
+        sideWalls.addLine(to: CGPoint(x: rect.minX, y: rect.maxY - corner))
+        sideWalls.move(to: CGPoint(x: rect.maxX, y: rect.minY + corner))
+        sideWalls.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY - corner))
+        let dash = 6 * projection.scale
+        context.stroke(
+            sideWalls, with: .color(line.opacity(0.3)),
+            style: StrokeStyle(lineWidth: max(1, projection.scale), dash: [dash, dash]))
+    }
+
     /// The lane line down a doubles side: neutral furniture marking where its
     /// two mallets' zones meet, so a mallet stopping mid-half reads as a boundary,
     /// not an invisible wall. Runs that side's wall → center line, only where the

@@ -13,10 +13,12 @@ public struct GameView: View {
 
     public init(
         rules: Rules = .standard, puckShape: PuckShape = .circle,
-        format: Format = .oneVsOne, onExit: @escaping () -> Void = {}
+        format: Format = .oneVsOne, sideWalls: SideWalls = .solid,
+        onExit: @escaping () -> Void = {}
     ) {
         _game = StateObject(
-            wrappedValue: HockeyGame(rules: rules, puckShape: puckShape, format: format))
+            wrappedValue: HockeyGame(
+                rules: rules, puckShape: puckShape, format: format, sideWalls: sideWalls))
         self.onExit = onExit
     }
 

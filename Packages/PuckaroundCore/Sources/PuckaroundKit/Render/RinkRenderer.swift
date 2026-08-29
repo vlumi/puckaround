@@ -183,9 +183,13 @@ enum RinkRenderer {
             layer.stroke(grid, with: .color(line.opacity(0.10)), lineWidth: 1)
         }
 
-        glowStroke(
-            iceShape, color: line.opacity(0.9), lineWidth: max(1.5, 1.4 * projection.scale),
-            blur: 4 * projection.scale, in: &context)
+        if projection.table.sideWalls == .wrap {
+            drawWrapBorder(rect: rect, corner: corner, projection: projection, in: &context)
+        } else {
+            glowStroke(
+                iceShape, color: line.opacity(0.9), lineWidth: max(1.5, 1.4 * projection.scale),
+                blur: 4 * projection.scale, in: &context)
+        }
 
         // The center line is INTERRUPTED by the center circle — as on a real
         // rink — so it runs edge → ring on each side and leaves the ring's

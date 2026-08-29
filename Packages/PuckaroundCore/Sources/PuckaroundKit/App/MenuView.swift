@@ -10,6 +10,7 @@ struct MenuView: View {
     @Binding var puckShapeKey: String
     @Binding var bottomHands: Int
     @Binding var topHands: Int
+    @Binding var wrapWalls: Bool
     let onPlay: () -> Void
 
     /// The offered targets — a short, sane range.
@@ -31,6 +32,7 @@ struct MenuView: View {
                         formatPicker
                         firstToPicker
                         puckPicker
+                        wallsPicker
                         NeonButton(title: "Play", tint: Neon.cyan, prominent: true, action: onPlay)
                             .padding(.horizontal, 40)
                         Spacer(minLength: 0)
@@ -46,6 +48,31 @@ struct MenuView: View {
                 }
             }
         }
+    }
+
+    /// Solid or wrap side walls — the table variant. Two labeled pills.
+    private var wallsPicker: some View {
+        VStack(spacing: 12) {
+            sectionLabel("Walls")
+            HStack(spacing: 10) {
+                wallOption("Solid", wrap: false)
+                wallOption("Wrap", wrap: true)
+            }
+        }
+    }
+
+    private func wallOption(_ label: LocalizedStringKey, wrap: Bool) -> some View {
+        let selected = wrapWalls == wrap
+        return Button {
+            wrapWalls = wrap
+        } label: {
+            Text(label, bundle: .module)
+                .font(.system(size: 16, weight: .bold, design: .rounded))
+                .foregroundStyle(selected ? Neon.ground : Neon.ink)
+                .frame(width: 96, height: 44)
+                .background(pillBackground(selected: selected))
+        }
+        .buttonStyle(.plain)
     }
 
     /// The two teams face off across a "VS.", each its own color — so it reads

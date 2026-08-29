@@ -9,6 +9,26 @@ extension RinkRenderer {
         _ puck: Puck, radius: Double, shape: PuckShape, projection: Projection,
         in context: inout GraphicsContext
     ) {
+        drawPuckInstance(puck, radius: radius, shape: shape, projection: projection, in: &context)
+        // On a wrap table, a puck straddling a side edge shows a ghost entering
+        // the far side, so the crossing reads as continuous, not a pop.
+        guard projection.table.sideWalls == .wrap else { return }
+        let width = projection.table.size.x
+        let nearLeft = puck.position.x < radius
+        let nearRight = puck.position.x > width - radius
+        guard nearLeft || nearRight else { return }
+        var ghost = puck
+        ghost.position.x += nearLeft ? width : -width
+        drawPuckInstance(ghost, radius: radius, shape: shape, projection: projection, in: &context)
+    }
+
+    /// Draws one copy of the puck — its trail, glowing body, and (for a disc) the
+    /// spin mark — at its own position. `drawPuck` calls this once, plus a second
+    /// time for the wrap ghost.
+    private static func drawPuckInstance(
+        _ puck: Puck, radius: Double, shape: PuckShape, projection: Projection,
+        in context: inout GraphicsContext
+    ) {
         let p = projection.point(puck.position)
         let r = radius * projection.scale
         let speed = puck.velocity.length

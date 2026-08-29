@@ -34,7 +34,7 @@ public final class HockeyGame: ObservableObject {
 
     public init(
         rules: Rules = .standard, puckShape: PuckShape = .circle,
-        format: Format = .oneVsOne,
+        format: Format = .oneVsOne, sideWalls: SideWalls = .solid,
         seed: UInt64 = UInt64.random(in: 0...UInt64.max)
     ) {
         self.rules = rules
@@ -42,6 +42,7 @@ public final class HockeyGame: ObservableObject {
         // table's own format, so they split into lanes wherever a side fields two.
         var table = Playfield.duel.with(format: format)
         table.puckShape = puckShape
+        table.sideWalls = sideWalls
         let rink = Rink(table: table, rules: rules, seed: seed)
         let controls = MalletControlSource(
             zones: SeatZones(format: table.format, bounds: table.bounds))
