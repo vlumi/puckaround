@@ -103,11 +103,18 @@ public struct Playfield: Equatable, Codable, Sendable {
         }
     }
 
+    /// The scoring mouth's width for a side: the goal opening minus a puck
+    /// radius at each post, since the WHOLE disc must clear the posts to count.
+    /// This is the width to DRAW, so what looks like the goal is what scores.
+    public func goalMouthWidth(for side: Side) -> Double {
+        max(0, goalWidth(for: side) - 2 * puckRadius)
+    }
+
     /// Whether a puck center crossing `side`'s short wall at `x` goes cleanly
     /// into that side's goal mouth — clear of both posts, so the whole disc fits
     /// through. Each side's goal has its own width (wider for two defenders).
     public func isInGoalMouth(x: Double, of side: Side) -> Bool {
-        abs(x - center.x) <= goalWidth(for: side) / 2 - puckRadius
+        abs(x - center.x) <= goalMouthWidth(for: side) / 2
     }
 
     /// The y a puck center must reach for the WHOLE puck to be past a short wall

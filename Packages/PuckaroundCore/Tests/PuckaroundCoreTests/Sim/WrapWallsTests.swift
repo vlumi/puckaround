@@ -58,6 +58,27 @@ final class WrapWallsTests: XCTestCase {
         XCTAssertTrue(wrapped, "the shoved puck passes through the portal, not stuck on it")
     }
 
+    func testAShotJustInsideTheDrawnGoalScores() {
+        // What's drawn as the goal is exactly the scoring mouth now, so a shallow
+        // shot crossing just inside the drawn edge counts — no dead strip that
+        // looks in but bounces off a post. (Reported: a near-edge shot "warped"
+        // out instead of scoring; it had really clipped the post outside the
+        // narrower scoring mouth.)
+        var t = Playfield.duel.with(format: .twoVsTwo)
+        t.sideWalls = .wrap
+        var r = Rink(table: t, seed: 1)
+        r.startPlaying()
+        for slot in r.slots { r.placeMallet(at: slot, position: Vec2(50, 140)) }
+        let mouthEdge = t.center.x - t.goalMouthWidth(for: .top) / 2
+        r.place(Puck(position: Vec2(mouthEdge + 3, 18), velocity: Vec2(-30, -320)))
+        var scored = false
+        for _ in 0..<20 {
+            r.advance(inputs: [:])
+            if r.score(of: .bottom) == 1 { scored = true; break }
+        }
+        XCTAssertTrue(scored, "a shot just inside the drawn goal edge scores")
+    }
+
     func testTheDefaultTableIsSolid() {
         XCTAssertEqual(Playfield.duel.sideWalls, .solid)
     }

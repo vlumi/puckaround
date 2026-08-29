@@ -234,7 +234,9 @@ enum RinkRenderer {
         at side: Side, color: Color, projection: Projection, in context: inout GraphicsContext
     ) {
         let table = projection.table
-        let width = table.goalWidth(for: side) * projection.scale
+        // Draw the SCORING mouth (posts inset by a puck radius), not the raw
+        // opening, so a puck that reaches the drawn goal actually counts.
+        let width = table.goalMouthWidth(for: side) * projection.scale
         let x = projection.rect.midX - width / 2
         let y = side == .top ? projection.rect.minY : projection.rect.maxY
         var bar = Path()
