@@ -72,8 +72,8 @@ final class PuckPhysicsTests: XCTestCase {
             // A puck heading into a goal is legitimately past the boards; only
             // one NOT lined up with a mouth must stay inside.
             let inAMouth =
-                r.table.isInGoalMouth(x: r.puck.position.x, of: .top)
-                || r.table.isInGoalMouth(x: r.puck.position.x, of: .bottom)
+                r.table.goal(.top).admitsMouth(r.puck.position.x)
+                || r.table.goal(.bottom).admitsMouth(r.puck.position.x)
             if !inAMouth {
                 XCTAssertTrue(
                     field.contains(r.puck.position), "escaped at tick \(tick): \(r.puck.position)")
