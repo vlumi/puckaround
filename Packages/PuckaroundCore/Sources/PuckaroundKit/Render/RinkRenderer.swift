@@ -88,6 +88,7 @@ enum RinkRenderer {
         let projection = Projection(table: table, rect: rect, scale: rect.width / table.size.x)
 
         drawRink(projection: projection, in: &context)
+        drawLaneDividers(scene, projection: projection, in: &context)
         drawSides(scene, projection: projection, in: &context)
         // The menu glyph is always there — the centre ring is always the menu.
         // It sits UNDER the puck (drawn next), so during a faceoff the frozen

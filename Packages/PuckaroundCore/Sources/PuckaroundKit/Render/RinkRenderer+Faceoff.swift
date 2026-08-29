@@ -1,26 +1,42 @@
 import PuckaroundCore
 import SwiftUI
 
-// MARK: - Faceoff overlay
+// MARK: - Lanes & faceoff overlay
 
 extension RinkRenderer {
+    /// The lane line down a doubles side: neutral furniture marking where its
+    /// two mallets' zones meet, so a mallet stopping mid-half reads as a boundary,
+    /// not an invisible wall. Runs that side's wall → centre line, only where the
+    /// side fields two, and fainter than the centre line — a lesser boundary.
+    static func drawLaneDividers(
+        _ scene: RinkScene, projection: Projection, in context: inout GraphicsContext
+    ) {
+        let table = scene.rink.table
+        let rect = projection.rect
+        let centreY = projection.point(table.center).y
+        var lines = Path()
+        for side in Side.allCases where table.format.hands(on: side) == .two {
+            let wallY = side == .bottom ? rect.maxY : rect.minY
+            lines.move(to: CGPoint(x: rect.midX, y: wallY))
+            lines.addLine(to: CGPoint(x: rect.midX, y: centreY))
+        }
+        guard !lines.isEmpty else { return }
+        glowStroke(
+            lines, color: line.opacity(0.28), lineWidth: max(1, 0.7 * projection.scale),
+            blur: 3 * projection.scale, in: &context)
+    }
+
     /// A side's faceoff readiness: a "Ready?" in each of its mallets' lanes that
     /// hasn't readied yet — so in doubles each partner sees their own prompt and
-    /// knows which of them is holding up the start — with a hairline splitting
-    /// the two lanes when the side fields two.
+    /// knows which of them is holding up the start. The lane boundary itself is
+    /// drawn as persistent furniture (see `drawLaneDividers`), so it needs none
+    /// here.
     static func drawSideReadiness(
         _ scene: RinkScene, side: Side, half: CGRect, color: Color,
         in context: inout GraphicsContext
     ) {
         let slots = scene.rink.slots.filter { $0.side == side }
         let rematch = scene.rink.finalWinner != nil
-        if slots.count > 1 {
-            // Split the half down the centre line so each partner has a segment.
-            var rule = Path()
-            rule.move(to: CGPoint(x: half.midX, y: half.minY))
-            rule.addLine(to: CGPoint(x: half.midX, y: half.maxY))
-            context.stroke(rule, with: .color(color.opacity(0.25)), lineWidth: 1)
-        }
         for slot in slots where !scene.rink.readyMallets.contains(slot) {
             drawReadyPrompt(
                 rematch: rematch, in: laneRect(slot.lane, in: half), facing: side, color: color,
