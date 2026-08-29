@@ -2,7 +2,7 @@ import Foundation
 
 /// Drives the deterministic sim from render-loop time: accumulates elapsed
 /// wall time and steps the rink at its fixed timestep, however many ticks a
-/// frame owes. Rendering reads the latest state; per-player input comes from
+/// frame owes. Rendering reads the latest state; per-mallet input comes from
 /// the injected provider — the sim never knows which scheme or finger produced
 /// it.
 ///
@@ -16,11 +16,11 @@ public final class GameSession {
     public static let maxTicksPerFrame = 8
 
     public private(set) var rink: Rink
-    private let inputFor: (PlayerID, Tick) -> SeatInput
+    private let inputFor: (MalletSlot, Tick) -> SeatInput
     private var lastTime: TimeInterval?
     private var owed: Double = 0
 
-    public init(rink: Rink, inputFor: @escaping (PlayerID, Tick) -> SeatInput) {
+    public init(rink: Rink, inputFor: @escaping (MalletSlot, Tick) -> SeatInput) {
         self.rink = rink
         self.inputFor = inputFor
     }
@@ -45,17 +45,17 @@ public final class GameSession {
         }
     }
 
-    /// Exactly one tick, inputs gathered from every seat.
+    /// Exactly one tick, inputs gathered from every mallet.
     public func advance() {
-        var inputs: [PlayerID: SeatInput] = [:]
-        for player in rink.lineup.players {
-            inputs[player] = inputFor(player, rink.tick)
+        var inputs: [MalletSlot: SeatInput] = [:]
+        for slot in rink.slots {
+            inputs[slot] = inputFor(slot, rink.tick)
         }
         rink.advance(inputs: inputs)
     }
 
-    public func ready(_ player: PlayerID) {
-        rink.ready(player)
+    public func ready(_ slot: MalletSlot) {
+        rink.ready(slot)
     }
 
     public func newGame() {

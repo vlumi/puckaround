@@ -12,46 +12,46 @@ public protocol TouchDrivenControlSource: ControlSource, AnyObject {
     func releaseAll()
 }
 
-/// **Drag the mallet.** A finger belongs to the seat it came down in for its
+/// **Drag the mallet.** A finger belongs to the slot it came down in for its
 /// whole life — decided once at touch-down, never revisited, so a finger that
-/// crosses the centre line never becomes the other player's. The FIRST finger
-/// down in a seat's half drives that seat's mallet by its movement; any other
-/// finger of the same seat is ignored until it lifts. Each tick the driving
-/// finger's movement since the last read becomes the seat's drag.
+/// crosses into another zone never becomes another mallet's. The FIRST finger
+/// down in a slot's zone drives that mallet by its movement; any other finger
+/// of the same slot is ignored until it lifts. Each tick the driving finger's
+/// movement since the last read becomes the mallet's drag.
 public final class MalletControlSource: TouchDrivenControlSource {
     public var zones: SeatZones
-    /// The finger driving each seat's mallet.
-    private var driver: [PlayerID: TouchID] = [:]
+    /// The finger driving each mallet.
+    private var driver: [MalletSlot: TouchID] = [:]
     private var last: [TouchID: Vec2] = [:]
-    /// Movement accumulated since the seat was last read.
-    private var pending: [PlayerID: Vec2] = [:]
+    /// Movement accumulated since the mallet was last read.
+    private var pending: [MalletSlot: Vec2] = [:]
 
     public init(zones: SeatZones) {
         self.zones = zones
     }
 
-    private func seat(driving id: TouchID) -> PlayerID? {
+    private func slot(driving id: TouchID) -> MalletSlot? {
         driver.first(where: { $0.value == id })?.key
     }
 
     public func touchBegan(id: TouchID, at location: Vec2) {
-        let seat = zones.owner(of: location)
-        guard driver[seat] == nil else { return }
-        driver[seat] = id
+        let slot = zones.owner(of: location)
+        guard driver[slot] == nil else { return }
+        driver[slot] = id
         last[id] = location
     }
 
     public func touchMoved(id: TouchID, at location: Vec2) {
-        guard let previous = last[id], let seat = seat(driving: id) else { return }
+        guard let previous = last[id], let slot = slot(driving: id) else { return }
         last[id] = location
-        pending[seat, default: .zero] += location - previous
+        pending[slot, default: .zero] += location - previous
     }
 
     /// Movement not yet read is still delivered — a flick that ends between two
     /// ticks would otherwise lose its last, fastest segment.
     public func touchEnded(id: TouchID) {
-        if let seat = seat(driving: id) {
-            driver[seat] = nil
+        if let slot = slot(driving: id) {
+            driver[slot] = nil
         }
         last[id] = nil
     }
@@ -62,8 +62,8 @@ public final class MalletControlSource: TouchDrivenControlSource {
         pending.removeAll()
     }
 
-    public func input(for player: PlayerID, at tick: Tick) -> SeatInput {
-        guard let drag = pending.removeValue(forKey: player), drag != .zero else { return .none }
+    public func input(for slot: MalletSlot, at tick: Tick) -> SeatInput {
+        guard let drag = pending.removeValue(forKey: slot), drag != .zero else { return .none }
         return SeatInput(malletDrag: drag)
     }
 }

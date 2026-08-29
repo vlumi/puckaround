@@ -4,22 +4,22 @@ import XCTest
 
 /// Goals, serves, and the end of a game.
 final class ScoringTests: XCTestCase {
-    private let bottom = PlayerID(0)
-    private let top = PlayerID(1)
+    private let bottom = MalletSlot.bottomSingle
+    private let top = MalletSlot.topSingle
 
     private func rink(rules: Rules = .standard) -> Rink {
-        var r = Rink(table: .duel, lineup: .duel, rules: rules, seed: 1)
+        var r = Rink(table: .duel, rules: rules, seed: 1)
         r.startPlaying()
         r.park()
         return r
     }
 
-    /// Fires the puck at a short wall at `x`, from just inside it, and steps once
-    /// — which scores and serves in the same tick, so the served puck read after
-    /// this has already glided one step into the conceder's half.
-    private func shoot(_ r: inout Rink, at edge: Seat, x: Double) {
-        let y = edge == .top ? r.table.puckField.minY + 1 : r.table.puckField.maxY - 1
-        r.place(Puck(position: Vec2(x, y), velocity: Vec2(0, edge == .top ? -300 : 300)))
+    /// Fires the puck at a short wall on `side`, from just inside it, and steps
+    /// once — which scores and serves in the same tick, so the served puck read
+    /// after this has already glided one step into the conceder's half.
+    private func shoot(_ r: inout Rink, at side: Side, x: Double) {
+        let y = side == .top ? r.table.puckField.minY + 1 : r.table.puckField.maxY - 1
+        r.place(Puck(position: Vec2(x, y), velocity: Vec2(0, side == .top ? -300 : 300)))
         // A goal counts only once the whole puck is past the line, so drive it
         // in — until it scores, or a few ticks pass (a post hit that bounces).
         let before = r.score
@@ -30,10 +30,10 @@ final class ScoringTests: XCTestCase {
     }
 
     func testAGameOpensWithAFaceoffAtCentre() {
-        let r = Rink(table: .duel, lineup: .duel, seed: 1)
+        let r = Rink(table: .duel, seed: 1)
         XCTAssertEqual(r.score, [0, 0])
         XCTAssertTrue(r.isFaceoff)
-        XCTAssertEqual(r.readySeats, [])
+        XCTAssertEqual(r.readyMallets, [])
         XCTAssertEqual(r.puck.position, r.table.center, "frozen at centre behind the field")
         XCTAssertFalse(r.puck.isMoving)
     }
@@ -54,8 +54,8 @@ final class ScoringTests: XCTestCase {
     func testThePuckThroughTheTopGoalScoresForTheBottomSeat() {
         var r = rink()
         shoot(&r, at: .top, x: r.table.center.x)
-        XCTAssertEqual(r.score(of: bottom), 1)
-        XCTAssertEqual(r.score(of: top), 0)
+        XCTAssertEqual(r.score(of: .bottom), 1)
+        XCTAssertEqual(r.score(of: .top), 0)
     }
 
     func testTheConcederGetsThePuck() {
@@ -107,7 +107,7 @@ final class ScoringTests: XCTestCase {
         // The win goes straight to a faceoff that remembers the winner, so the
         // result stays on screen while the players decide on a rematch.
         XCTAssertTrue(r.isFaceoff)
-        XCTAssertEqual(r.finalWinner, top)
+        XCTAssertEqual(r.finalWinner, .top)
         XCTAssertEqual(r.score, [0, 2], "the final score is kept for display")
         XCTAssertEqual(r.puck.position, r.table.center)
         XCTAssertFalse(r.puck.isMoving, "frozen behind the field")
@@ -117,7 +117,7 @@ final class ScoringTests: XCTestCase {
         var r = rink(rules: Rules(pointsToWin: 2))
         shoot(&r, at: .bottom, x: r.table.center.x)
         shoot(&r, at: .bottom, x: r.table.center.x)
-        XCTAssertEqual(r.finalWinner, top)
+        XCTAssertEqual(r.finalWinner, .top)
         r.ready(bottom)
         XCTAssertEqual(r.score, [0, 2], "score holds until the rematch actually starts")
         r.ready(top)
@@ -141,7 +141,7 @@ final class ScoringTests: XCTestCase {
     func testNewGameResetsTheScoreAndOpensAFreshFaceoffLeavingTheMallets() {
         var r = rink(rules: Rules(pointsToWin: 1))
         shoot(&r, at: .bottom, x: r.table.center.x)
-        XCTAssertEqual(r.finalWinner, top)
+        XCTAssertEqual(r.finalWinner, .top)
         r.advance(inputs: [bottom: SeatInput(malletDrag: Vec2(3, -3))])
         let hands = r.mallets
         r.newGame()
@@ -153,19 +153,19 @@ final class ScoringTests: XCTestCase {
     }
 
     func testReadyingBothSeatsStartsPlay() {
-        var r = Rink(table: .duel, lineup: .duel, seed: 1)
+        var r = Rink(table: .duel, seed: 1)
         r.ready(bottom)
-        XCTAssertTrue(r.isFaceoff, "one seat readied is not enough")
-        XCTAssertEqual(r.readySeats, [bottom])
+        XCTAssertTrue(r.isFaceoff, "one slot readied is not enough")
+        XCTAssertEqual(r.readyMallets, [bottom])
         r.ready(top)
         XCTAssertEqual(r.phase, .playing, "both readied → play begins")
     }
 
     func testReadyIsALatchWithNoTakeBacks() {
-        var r = Rink(table: .duel, lineup: .duel, seed: 1)
+        var r = Rink(table: .duel, seed: 1)
         r.ready(bottom)
         r.ready(bottom)  // idempotent
-        XCTAssertEqual(r.readySeats, [bottom])
+        XCTAssertEqual(r.readyMallets, [bottom])
         // Once playing, readying does nothing.
         r.ready(top)
         XCTAssertEqual(r.phase, .playing)

@@ -5,8 +5,8 @@ import XCTest
 /// The rotating-polygon puck (Spike 1): it spins, tumbles off walls, and — the
 /// non-negotiable — stays deterministic.
 final class ShapedPuckTests: XCTestCase {
-    private let bottom = PlayerID(0)
-    private let top = PlayerID(1)
+    private let bottom = MalletSlot.bottomSingle
+    private let top = MalletSlot.topSingle
 
     private var squareTable: Playfield {
         var t = Playfield.duel
@@ -15,7 +15,7 @@ final class ShapedPuckTests: XCTestCase {
     }
 
     private func rink(_ table: Playfield) -> Rink {
-        var r = Rink(table: table, lineup: .duel, seed: 1)
+        var r = Rink(table: table, seed: 1)
         r.startPlaying()
         r.park()
         return r
@@ -107,7 +107,7 @@ final class ShapedPuckTests: XCTestCase {
         let reach = r.table.puckRadius + r.table.malletRadius
         // Mallet approaches from below and to the side, sweeping sideways — a
         // glancing hit, which should put spin on the square.
-        r.placeMallet(of: bottom, at: r.table.center + Vec2(0, reach - 0.5))
+        r.placeMallet(at: bottom, position: r.table.center + Vec2(0, reach - 0.5))
         r.advance(inputs: [bottom: SeatInput(malletDrag: Vec2(4, -2))])
         XCTAssertNotEqual(r.puck.angularVelocity, 0, "a glancing hit puts english on it")
     }
@@ -123,7 +123,7 @@ final class ShapedPuckTests: XCTestCase {
 
     func testASquarePuckRunIsDeterministic() {
         func run() -> [Puck] {
-            var r = Rink(table: squareTable, lineup: .duel, seed: 9)
+            var r = Rink(table: squareTable, seed: 9)
             r.startPlaying()
             r.park()
             // Launch it spinning and moving, then let it ricochet — this is the
@@ -150,7 +150,7 @@ final class ShapedPuckTests: XCTestCase {
         var t = Playfield.duel
         t.puckShape = .triangle
         func run() -> Rink {
-            var r = Rink(table: t, lineup: .duel, seed: 3)
+            var r = Rink(table: t, seed: 3)
             r.startPlaying(); r.park()
             r.place(Puck(position: Vec2(30, 40), velocity: Vec2(120, 90), angularVelocity: 2))
             for _ in 0..<600 { r.advance(inputs: [:]) }
@@ -173,8 +173,10 @@ final class ShapedPuckTests: XCTestCase {
             // The CENTRE can leave through a goal mouth; otherwise it stays in.
             let out = !r.table.puckField.insetBy(-2).contains(r.puck.position)
             if out {
-                XCTAssertTrue(
-                    r.table.isInGoalMouth(x: r.puck.position.x), "only escapes via a goal")
+                let inAMouth =
+                    r.table.isInGoalMouth(x: r.puck.position.x, of: .top)
+                    || r.table.isInGoalMouth(x: r.puck.position.x, of: .bottom)
+                XCTAssertTrue(inAMouth, "only escapes via a goal")
             }
         }
     }

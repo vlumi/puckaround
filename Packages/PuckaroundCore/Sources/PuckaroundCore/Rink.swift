@@ -4,14 +4,17 @@ import Foundation
 /// the sim, so replays and (any future) networked play get them for free — the
 /// feedback layers consume them and the sim never imports AVFoundation or UIKit.
 public enum GameEvent: Equatable, Sendable {
-    /// A mallet struck the puck; `speed` is the closing speed of the hit.
-    case malletHit(PlayerID, speed: Double)
+    /// A mallet struck the puck; `speed` is the closing speed of the hit. The
+    /// slot says which mallet — the feedback layers colour by its side.
+    case malletHit(MalletSlot, speed: Double)
     /// The puck bounced off a wall; `speed` is how fast it was going into it.
     case wallBounce(speed: Double)
-    /// A goal went in against `conceder`, scored by `scorer`.
-    case goal(scorer: PlayerID, conceder: PlayerID)
-    /// The game just ended.
-    case gameOver(winner: PlayerID)
+    /// A goal went in against `conceder`, scored by `scorer`. On an own goal the
+    /// two are opposite sides all the same — the puck crossing a side's own line
+    /// is the other side's point, whoever last touched it.
+    case goal(scorer: Side, conceder: Side)
+    /// The game just ended, won by a side.
+    case gameOver(winner: Side)
     /// The faceoff cleared and play begins this tick — the "GO".
     case faceoffCleared
 }
@@ -28,19 +31,24 @@ public struct Rules: Equatable, Codable, Sendable {
     public static let standard = Rules()
 }
 
-/// The whole simulation: a table, a puck, two mallets, the score, and a
-/// fixed-timestep step function. Deterministic by construction — same seed +
-/// same inputs → same state, bit-for-bit — so a replay is just seed + per-tick
-/// inputs.
+/// The whole simulation: a table, a puck, one mallet per slot, a score per
+/// side, and a fixed-timestep step function. Deterministic by construction —
+/// same seed + same inputs → same state, bit-for-bit — so a replay is just
+/// seed + per-tick inputs.
+///
+/// The sim knows nothing of players or teams: a mallet is only its slot, a goal
+/// is only its side. Who holds a mallet, and what "team" means, is a couch/UI
+/// matter that never reaches here — one side wins, the other loses, and that
+/// identity ends when the table does.
 public struct Rink: Equatable, Sendable {
     public enum Phase: Equatable, Sendable {
         /// The faceoff ceremony: the puck is frozen at centre behind a force
-        /// field, and play begins the instant every seat has readied. Carries
-        /// who has readied so far, and — after a finished game — who just won,
-        /// so the result stays on screen while the players decide on a rematch.
-        /// A faceoff that follows a win resets the score when it starts (the
-        /// rematch); the opening one has nothing to reset.
-        case faceoff(ready: Set<PlayerID>, afterWin: PlayerID?)
+        /// field, and play begins the instant every mallet has readied. Carries
+        /// which mallets have readied so far, and — after a finished game — who
+        /// just won, so the result stays on screen while the table decides on a
+        /// rematch. A faceoff that follows a win resets the score when it starts
+        /// (the rematch); the opening one has nothing to reset.
+        case faceoff(ready: Set<MalletSlot>, afterWin: Side?)
         case playing
 
         static var opening: Phase { .faceoff(ready: [], afterWin: nil) }
@@ -55,19 +63,22 @@ public struct Rink: Equatable, Sendable {
     static let spinBite = 0.6
 
     public let table: Playfield
-    public let lineup: Lineup
     public let rules: Rules
+    /// The mallet slots on the table this game, in `Format.slots` order. Fixed
+    /// for the life of the rink, so `mallets`, iteration, and hit order are all
+    /// deterministic.
+    public let slots: [MalletSlot]
     public internal(set) var puck: Puck
-    /// One per seat, in lineup order.
+    /// One per slot, in `slots` order.
     public internal(set) var mallets: [Mallet]
-    /// One per seat, in lineup order.
+    /// One score per side, indexed by `Rink.scoreOrder` (bottom, top).
     public internal(set) var score: [Int]
     public internal(set) var phase: Phase = .playing
     public private(set) var tick: Tick = 0
     /// What happened this tick — cleared at the start of each `advance`, so it
     /// only ever describes the latest step. The feedback layers read it.
     public internal(set) var events: [GameEvent] = []
-    /// Set when the faceoff clears (`ready` fills the last seat), so the next
+    /// Set when the faceoff clears (`ready` fills the last slot), so the next
     /// `advance` — the first tick of play — emits the "GO". `ready` runs between
     /// ticks, outside the event stream, so it can't emit directly.
     private var announceFaceoffCleared = false
@@ -78,47 +89,52 @@ public struct Rink: Equatable, Sendable {
     /// seed are unequal even before any draw.
     private var rng: SeededRNG
 
-    /// Only the duel is built: two seats, a goal each. `Lineup` models more
-    /// seats for later, but the table has nowhere to put their goals yet.
-    public init(table: Playfield, lineup: Lineup, rules: Rules = .standard, seed: UInt64) {
-        precondition(lineup.playerCount == 2, "only 1v1 air hockey is built")
+    /// The two sides in a fixed order, so `score` is a plain array the sim can
+    /// index deterministically.
+    static let scoreOrder: [Side] = [.bottom, .top]
+
+    public init(table: Playfield, rules: Rules = .standard, seed: UInt64) {
         self.table = table
-        self.lineup = lineup
         self.rules = rules
+        self.slots = table.format.slots
         self.rng = SeededRNG(seed: seed)
         self.puck = Puck(position: table.center)
-        self.mallets = lineup.players.map {
-            Mallet(position: table.malletZone(for: lineup.seat(of: $0)).center)
-        }
-        self.score = lineup.players.map { _ in 0 }
+        self.mallets = slots.map { Mallet(position: table.malletZone(for: $0).center) }
+        self.score = Rink.scoreOrder.map { _ in 0 }
         newGame()
     }
 
-    public func mallet(of player: PlayerID) -> Mallet { mallets[player.rawValue] }
-    public func score(of player: PlayerID) -> Int { score[player.rawValue] }
+    public func mallet(at slot: MalletSlot) -> Mallet? {
+        slots.firstIndex(of: slot).map { mallets[$0] }
+    }
+
+    public func score(of side: Side) -> Int {
+        score[Rink.scoreOrder.firstIndex(of: side)!]
+    }
 
     /// Scores to zero, and open with a faceoff: the puck sits frozen at centre
-    /// behind the force field until every seat readies. No chance decides the
-    /// opening — the players do, by both grabbing in. The mallets stay where the
+    /// behind the force field until every mallet readies. No chance decides the
+    /// opening — the players do, by all grabbing in. The mallets stay where the
     /// hands left them.
     public mutating func newGame() {
-        score = lineup.players.map { _ in 0 }
+        score = Rink.scoreOrder.map { _ in 0 }
         puck = Puck(position: table.center)
         phase = .opening
     }
 
-    /// A seat declares itself ready. No take-backs — readiness is a latch. When
-    /// the last seat readies, the force field drops and play begins that instant.
-    public mutating func ready(_ player: PlayerID) {
-        guard case .faceoff(var ready, let afterWin) = phase, lineup.contains(player) else {
+    /// A mallet declares itself ready. No take-backs — readiness is a latch.
+    /// When the last mallet readies, the force field drops and play begins that
+    /// instant.
+    public mutating func ready(_ slot: MalletSlot) {
+        guard case .faceoff(var ready, let afterWin) = phase, slots.contains(slot) else {
             return
         }
-        ready.insert(player)
-        if ready.count == lineup.playerCount {
+        ready.insert(slot)
+        if ready.count == slots.count {
             // The rematch begins: a faceoff that followed a win clears the score
             // the instant it starts, so the final result stayed up until now.
             if afterWin != nil {
-                score = lineup.players.map { _ in 0 }
+                score = Rink.scoreOrder.map { _ in 0 }
             }
             phase = .playing
             announceFaceoffCleared = true
@@ -127,15 +143,15 @@ public struct Rink: Equatable, Sendable {
         }
     }
 
-    /// Which seats have readied during the faceoff (empty otherwise).
-    public var readySeats: Set<PlayerID> {
+    /// Which mallets have readied during the faceoff (empty otherwise).
+    public var readyMallets: Set<MalletSlot> {
         if case .faceoff(let ready, _) = phase { return ready }
         return []
     }
 
-    /// The winner still shown during a post-game faceoff (nil for the opening
-    /// one, or during play). Drives the WIN/LOSE overlay.
-    public var finalWinner: PlayerID? {
+    /// The winning side still shown during a post-game faceoff (nil for the
+    /// opening one, or during play). Drives the WIN/LOSE overlay.
+    public var finalWinner: Side? {
         if case .faceoff(_, let afterWin) = phase { return afterWin }
         return nil
     }
@@ -146,18 +162,17 @@ public struct Rink: Equatable, Sendable {
     }
 
     /// After a goal: the puck is served from centre, gliding slowly into the
-    /// conceder's half. It moves AWAY from every opponent — a 1v1 opponent can't
-    /// cross the centre line, so a puck heading into the conceder's own end is
-    /// unreachable by anyone but them until it settles.
-    private mutating func serve(to player: PlayerID) {
-        let towardOwnGoal = -lineup.seat(of: player).inward
+    /// conceder's half. It moves AWAY from the far side — a puck heading into
+    /// the conceder's own end is unreachable by the opponent until it settles.
+    private mutating func serve(to side: Side) {
+        let towardOwnGoal = -side.inward
         puck = Puck(position: table.center, velocity: towardOwnGoal * table.serveSpeed)
     }
 
     /// One tick: every mallet moves (striking the puck on its way), then the
     /// puck moves. A finished game freezes only the puck — the mallets are the
     /// players' hands and stay live.
-    public mutating func advance(inputs: [PlayerID: SeatInput]) {
+    public mutating func advance(inputs: [MalletSlot: SeatInput]) {
         defer { tick += 1 }
         events.removeAll(keepingCapacity: true)
         let playing = phase == .playing
@@ -165,10 +180,10 @@ public struct Rink: Equatable, Sendable {
             events.append(.faceoffCleared)
             announceFaceoffCleared = false
         }
-        // Seats apply in lineup order, never dictionary order — the order hits
+        // Mallets apply in slot order, never dictionary order — the order hits
         // land in is part of the state.
-        for player in lineup.players {
-            moveMallet(of: player, by: inputs[player]?.malletDrag ?? .zero, strikes: playing)
+        for index in slots.indices {
+            moveMallet(at: index, by: inputs[slots[index]]?.malletDrag ?? .zero, strikes: playing)
         }
         // The puck may already be touching a resting mallet — but that is not a
         // NEW hit, so it emits no event; only a closing contact during a move does.
@@ -177,14 +192,14 @@ public struct Rink: Equatable, Sendable {
         }
     }
 
-    /// The other seat scores; the conceder gets the puck, or the game ends.
-    mutating func goal(against edge: Seat) {
-        guard let conceder = lineup.players.first(where: { lineup.seat(of: $0) == edge }),
-            let scorer = lineup.players.first(where: { $0 != conceder })
-        else { return }
-        score[scorer.rawValue] += 1
+    /// A goal against `side`: that side concedes, the opposite side scores; the
+    /// conceder gets the puck, or the game ends.
+    mutating func goal(against side: Side) {
+        let conceder = side
+        let scorer = side.opponent
+        score[Rink.scoreOrder.firstIndex(of: scorer)!] += 1
         events.append(.goal(scorer: scorer, conceder: conceder))
-        if score[scorer.rawValue] >= rules.pointsToWin {
+        if score(of: scorer) >= rules.pointsToWin {
             // The game is won: show the result and open the rematch faceoff at
             // once. Readying up starts a fresh game (score resets then).
             phase = .faceoff(ready: [], afterWin: scorer)
@@ -203,7 +218,8 @@ extension Rink {
         self.puck = puck
     }
 
-    mutating func setMalletForTesting(_ mallet: Mallet, of player: PlayerID) {
-        mallets[player.rawValue] = mallet
+    mutating func setMalletForTesting(_ mallet: Mallet, at slot: MalletSlot) {
+        guard let index = slots.firstIndex(of: slot) else { return }
+        mallets[index] = mallet
     }
 }

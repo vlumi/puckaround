@@ -14,8 +14,8 @@ public struct SeatInput: Equatable, Codable, Sendable {
 }
 
 /// A control scheme is an input source, not a game mode. Fingers on glass, an
-/// AI seat, anything else are all just ControlSources producing a `SeatInput`
-/// per player per tick. The sim never knows which.
+/// AI hand, anything else are all just ControlSources producing a `SeatInput`
+/// per mallet per tick. The sim never knows which.
 public protocol ControlSource {
-    func input(for player: PlayerID, at tick: Tick) -> SeatInput
+    func input(for slot: MalletSlot, at tick: Tick) -> SeatInput
 }

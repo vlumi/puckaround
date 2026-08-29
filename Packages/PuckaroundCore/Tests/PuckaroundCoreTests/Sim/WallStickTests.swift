@@ -11,10 +11,10 @@ import XCTest
 /// wall ends with the puck carrying real speed (off the wall, or fast along it
 /// so drag peels it away), never dead-stopped on the line.
 final class WallStickTests: XCTestCase {
-    private let bottom = PlayerID(0)
+    private let bottom = MalletSlot.bottomSingle
 
     private func rink() -> Rink {
-        var r = Rink(table: .duel, lineup: .duel, seed: 1)
+        var r = Rink(table: .duel, seed: 1)
         r.startPlaying()
         r.park()
         return r
@@ -30,7 +30,7 @@ final class WallStickTests: XCTestCase {
         var r = rink()
         r.place(Puck(position: Vec2(r.table.puckField.minX, r.table.center.y + 30)))
         let reach = r.table.malletRadius + r.table.puckRadius
-        r.placeMallet(of: bottom, at: r.puck.position + Vec2(reach - 1, -12))
+        r.placeMallet(at: bottom, position: r.puck.position + Vec2(reach - 1, -12))
         var freed = false
         for _ in 0..<8 {
             r.advance(inputs: [bottom: SeatInput(malletDrag: Vec2(0, 6))])
@@ -51,7 +51,8 @@ final class WallStickTests: XCTestCase {
             r.place(Puck(position: Vec2(r.table.puckField.minX, r.table.center.y + 30)))
             let a = Double(degrees) * .pi / 180
             let reach = r.table.malletRadius + r.table.puckRadius
-            r.placeMallet(of: bottom, at: r.puck.position + Vec2(cos(a), sin(a)) * (reach - 1))
+            r.placeMallet(
+                at: bottom, position: r.puck.position + Vec2(cos(a), sin(a)) * (reach - 1))
             r.advance(inputs: [bottom: SeatInput(malletDrag: Vec2(cos(a), sin(a)) * -2)])
             XCTAssertFalse(
                 onLeftWall(r) && r.puck.velocity.length < 1,
@@ -67,7 +68,7 @@ final class WallStickTests: XCTestCase {
         let x = r.table.puckField.minX + 8  // clear of the centred goal mouth
         r.place(Puck(position: Vec2(x, r.table.puckField.maxY)))
         let reach = r.table.malletRadius + r.table.puckRadius
-        r.placeMallet(of: bottom, at: Vec2(x + 10, r.table.puckField.maxY - reach + 1))
+        r.placeMallet(at: bottom, position: Vec2(x + 10, r.table.puckField.maxY - reach + 1))
         var freed = false
         for _ in 0..<8 {
             r.advance(inputs: [bottom: SeatInput(malletDrag: Vec2(-4, 3))])
@@ -86,10 +87,10 @@ final class WallStickTests: XCTestCase {
         r.place(Puck(position: Vec2(r.table.puckField.minX, r.table.center.y + 30)))
         // A shove straight at the wall from inward — the worst case, no along.
         let reach = r.table.malletRadius + r.table.puckRadius
-        r.placeMallet(of: bottom, at: r.puck.position + Vec2(reach - 1, 0))
+        r.placeMallet(at: bottom, position: r.puck.position + Vec2(reach - 1, 0))
         r.advance(inputs: [bottom: SeatInput(malletDrag: Vec2(-3, 0))])
         // Mallet gone; let it coast.
-        r.placeMallet(of: bottom, at: r.table.malletZone(for: .bottom).center)
+        r.placeMallet(at: bottom, position: r.table.malletZone(for: bottom).center)
         var left = false
         for _ in 0..<30 where !left {
             r.advance(inputs: [:])

@@ -105,38 +105,9 @@ enum RinkRenderer {
         let rect = scene.tableRect
         guard rect.width > 0 else { return }
         let projection = Projection(table: table, rect: rect, scale: rect.width / table.size.x)
-        let lineup = scene.rink.lineup
 
         drawRink(projection: projection, in: &context)
-        let faceoffReady = scene.rink.readySeats
-        for player in lineup.players {
-            let edge = lineup.seat(of: player)
-            let color = SeatPalette.color(for: player, in: lineup)
-            drawScore(
-                scene.rink.score(of: player), at: edge, color: color,
-                projection: projection, in: &context)
-            drawGoal(at: edge, color: color, projection: projection, in: &context)
-            let half = projection.rect(table.malletZone(for: edge))
-            // The result of the game just played stays up through the rematch
-            // faceoff, so players see who won while deciding to go again.
-            if let winner = scene.rink.finalWinner {
-                drawVerdict(
-                    won: winner == player, in: half, facing: edge, color: color, in: &context)
-            }
-            // A seat that hasn't readied is prompted to — "Ready?" to open, or a
-            // rematch invite once a game is over.
-            if scene.rink.isFaceoff, !faceoffReady.contains(player) {
-                drawReadyPrompt(
-                    rematch: scene.rink.finalWinner != nil, in: half, facing: edge, color: color,
-                    in: &context)
-            }
-            drawMallet(
-                scene.rink.mallet(of: player), radius: table.malletRadius, color: color,
-                ripple: Ripple(
-                    active: scene.rink.isFaceoff && !faceoffReady.contains(player),
-                    time: scene.time, reducedMotion: scene.reducedMotion),
-                projection: projection, in: &context)
-        }
+        drawSides(scene, projection: projection, in: &context)
         // The menu glyph is always there — the centre ring is always the menu.
         // It sits UNDER the puck (drawn next), so during a faceoff the frozen
         // puck rests on it; that's fine, it's furniture, and an empty ring would
@@ -159,6 +130,52 @@ enum RinkRenderer {
         }
         if !scene.reducedMotion {
             drawScanline(rect: rect, time: scene.time, in: &context)
+        }
+    }
+
+    /// Each side's coloured furniture (goal, score, verdict, ready prompt), then
+    /// every mallet — both mallets of a side share that side's colour.
+    private static func drawSides(
+        _ scene: RinkScene, projection: Projection, in context: inout GraphicsContext
+    ) {
+        let table = scene.rink.table
+        let faceoffReady = scene.rink.readyMallets
+        let halfHeight = table.size.y / 2
+        for side in Side.allCases {
+            let color = SeatPalette.color(for: side)
+            // A side's own half, full width (both doubles lanes), split at the
+            // centre line — the surface its verdict and ready prompt sit on.
+            let half = projection.rect(
+                Rect(
+                    x: 0, y: side == .bottom ? halfHeight : 0, width: table.size.x,
+                    height: halfHeight))
+            let score = scene.rink.score(of: side)
+            drawScore(score, at: side, color: color, projection: projection, in: &context)
+            drawGoal(at: side, color: color, projection: projection, in: &context)
+            // The result stays up through the rematch faceoff, so players see
+            // who won while deciding to go again.
+            if let winner = scene.rink.finalWinner {
+                drawVerdict(
+                    won: winner == side, in: half, facing: side, color: color, in: &context)
+            }
+            // A side is prompted until all its mallets have readied — "Ready?"
+            // to open, or a rematch invite once a game is over.
+            let sideReady = scene.rink.slots.filter { $0.side == side }
+                .allSatisfy(faceoffReady.contains)
+            if scene.rink.isFaceoff, !sideReady {
+                drawReadyPrompt(
+                    rematch: scene.rink.finalWinner != nil, in: half, facing: side, color: color,
+                    in: &context)
+            }
+        }
+        for slot in scene.rink.slots {
+            guard let mallet = scene.rink.mallet(at: slot) else { continue }
+            drawMallet(
+                mallet, radius: table.malletRadius, color: SeatPalette.color(for: slot.side),
+                ripple: Ripple(
+                    active: scene.rink.isFaceoff && !faceoffReady.contains(slot),
+                    time: scene.time, reducedMotion: scene.reducedMotion),
+                projection: projection, in: &context)
         }
     }
 
@@ -231,20 +248,16 @@ enum RinkRenderer {
             style: StrokeStyle(lineWidth: max(2, 2 * projection.scale), lineCap: .round))
     }
 
-    /// The goal mouth: a glowing bar in the seat's own colour, set into its
-    /// short wall — one of the three things that colour owns.
+    /// The goal mouth: a glowing bar in the side's own colour, set into its
+    /// short wall — one of the three things that colour owns. Its width is that
+    /// side's own (wider when two defenders share it).
     private static func drawGoal(
-        at edge: Seat, color: Color, projection: Projection, in context: inout GraphicsContext
+        at side: Side, color: Color, projection: Projection, in context: inout GraphicsContext
     ) {
         let table = projection.table
-        let width = table.goalWidth * projection.scale
+        let width = table.goalWidth(for: side) * projection.scale
         let x = projection.rect.midX - width / 2
-        let y: CGFloat
-        switch edge {
-        case .top: y = projection.rect.minY
-        case .bottom: y = projection.rect.maxY
-        case .left, .right: return
-        }
+        let y = side == .top ? projection.rect.minY : projection.rect.maxY
         var bar = Path()
         bar.move(to: CGPoint(x: x, y: y))
         bar.addLine(to: CGPoint(x: x + width, y: y))
@@ -253,22 +266,22 @@ enum RinkRenderer {
             blur: 5 * projection.scale, in: &context)
     }
 
-    /// The seat's score, in the corner beside its goal, turned to face its
+    /// The side's score, in the corner beside its goal, turned to face its
     /// player — a bright core over a glow, so a glanced number stays legible.
     private static func drawScore(
-        _ score: Int, at edge: Seat, color: Color, projection: Projection,
+        _ score: Int, at side: Side, color: Color, projection: Projection,
         in context: inout GraphicsContext
     ) {
         let table = projection.table
         // The middle of the strip between the side wall and the goal post.
-        let beside = (table.size.x - table.goalWidth) / 4
+        let beside = (table.size.x - table.goalWidth(for: side)) / 4
         let inset = table.malletRadius * 1.6
         let spot =
-            edge == .top ? Vec2(table.size.x - beside, inset) : Vec2(beside, table.size.y - inset)
+            side == .top ? Vec2(table.size.x - beside, inset) : Vec2(beside, table.size.y - inset)
         var ctx = context
         let at = projection.point(spot)
         ctx.translateBy(x: at.x, y: at.y)
-        if edge == .top {
+        if side == .top {
             ctx.rotate(by: .degrees(180))
         }
         let text = ctx.resolve(
@@ -288,17 +301,17 @@ enum RinkRenderer {
         return copy
     }
 
-    /// WIN or LOSE, on the seat's side of the centre line, turned to face its
-    /// player — so both verdicts read at once from opposite ends of the table.
+    /// WIN or LOSE, on the side's own half, turned to face its player — so both
+    /// verdicts read at once from opposite ends of the table.
     private static func drawVerdict(
-        won: Bool, in half: CGRect, facing edge: Seat, color: Color,
+        won: Bool, in half: CGRect, facing side: Side, color: Color,
         in context: inout GraphicsContext
     ) {
         var ctx = context
         let towardCentre = half.height * 0.22
-        let y = edge == .top ? half.maxY - towardCentre : half.minY + towardCentre
+        let y = side == .top ? half.maxY - towardCentre : half.minY + towardCentre
         ctx.translateBy(x: half.midX, y: y)
-        if edge == .top {
+        if side == .top {
             ctx.rotate(by: .degrees(180))
         }
         let word = won ? Text("WIN", bundle: .module) : Text("LOSE", bundle: .module)
@@ -377,10 +390,10 @@ enum RinkRenderer {
 // MARK: - Faceoff overlay
 
 extension RinkRenderer {
-    /// "Ready?" on the board in the seat's half, facing its player — the prompt
-    /// to tap in. Disappears the moment that seat has readied.
+    /// "Ready?" on the board in the side's half, facing its player — the prompt
+    /// to tap in. Disappears the moment that side has readied.
     private static func drawReadyPrompt(
-        rematch: Bool, in half: CGRect, facing edge: Seat, color: Color,
+        rematch: Bool, in half: CGRect, facing side: Side, color: Color,
         in context: inout GraphicsContext
     ) {
         var ctx = context
@@ -388,9 +401,9 @@ extension RinkRenderer {
         // drops toward the player to clear it; the opening faceoff centres it.
         let fraction = rematch ? 0.6 : 0.5
         let y =
-            edge == .top ? half.maxY - half.height * fraction : half.minY + half.height * fraction
+            side == .top ? half.maxY - half.height * fraction : half.minY + half.height * fraction
         ctx.translateBy(x: half.midX, y: y)
-        if edge == .top {
+        if side == .top {
             ctx.rotate(by: .degrees(180))
         }
         let text = ctx.resolve(

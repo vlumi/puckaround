@@ -8,7 +8,7 @@ final class PuckPhysicsTests: XCTestCase {
     /// A rink with the puck placed and pushed by hand, mallets parked in their
     /// far corners so nothing but the walls is in play.
     private func rink(puckAt position: Vec2, velocity: Vec2) -> Rink {
-        var r = Rink(table: .duel, lineup: .duel, seed: 1)
+        var r = Rink(table: .duel, seed: 1)
         r.startPlaying()
         r.park()
         r.place(Puck(position: position, velocity: velocity))
@@ -71,7 +71,10 @@ final class PuckPhysicsTests: XCTestCase {
             }
             // A puck heading into a goal is legitimately past the boards; only
             // one NOT lined up with a mouth must stay inside.
-            if !r.table.isInGoalMouth(x: r.puck.position.x) {
+            let inAMouth =
+                r.table.isInGoalMouth(x: r.puck.position.x, of: .top)
+                || r.table.isInGoalMouth(x: r.puck.position.x, of: .bottom)
+            if !inAMouth {
                 XCTAssertTrue(
                     field.contains(r.puck.position), "escaped at tick \(tick): \(r.puck.position)")
             }

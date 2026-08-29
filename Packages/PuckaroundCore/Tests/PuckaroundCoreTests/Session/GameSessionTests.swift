@@ -5,7 +5,7 @@ import XCTest
 @MainActor
 final class GameSessionTests: XCTestCase {
     private func session() -> GameSession {
-        GameSession(rink: Rink(table: .duel, lineup: .duel, seed: 3)) { _, _ in .none }
+        GameSession(rink: Rink(table: .duel, seed: 3)) { _, _ in .none }
     }
 
     func testFirstUpdateOnlyAnchorsTheClock() {
@@ -40,15 +40,15 @@ final class GameSessionTests: XCTestCase {
         XCTAssertEqual(s.rink.tick, 0)
     }
 
-    func testInputsAreGatheredPerSeatPerTick() {
-        var asked: [(PlayerID, Tick)] = []
-        let s = GameSession(rink: Rink(table: .duel, lineup: .duel, seed: 3)) { player, tick in
-            asked.append((player, tick))
+    func testInputsAreGatheredPerSlotPerTick() {
+        var asked: [(MalletSlot, Tick)] = []
+        let s = GameSession(rink: Rink(table: .duel, seed: 3)) { slot, tick in
+            asked.append((slot, tick))
             return .none
         }
         s.advance()
         s.advance()
-        XCTAssertEqual(asked.map(\.0), [PlayerID(0), PlayerID(1), PlayerID(0), PlayerID(1)])
+        XCTAssertEqual(asked.map(\.0), [.bottomSingle, .topSingle, .bottomSingle, .topSingle])
         XCTAssertEqual(asked.map(\.1), [0, 0, 1, 1])
     }
 
@@ -57,7 +57,7 @@ final class GameSessionTests: XCTestCase {
         s.update(to: 0)
         s.update(to: 1)
         XCTAssertGreaterThan(s.rink.tick, 0)
-        let seedState = Rink(table: .duel, lineup: .duel, seed: 3)
+        let seedState = Rink(table: .duel, seed: 3)
         s.newGame()
         XCTAssertEqual(s.rink.score, [0, 0])
         XCTAssertEqual(
@@ -67,9 +67,9 @@ final class GameSessionTests: XCTestCase {
     func testReadyForwardsToTheRinkAndStartsPlay() {
         let s = session()
         XCTAssertTrue(s.rink.isFaceoff, "a fresh session opens in a faceoff")
-        s.ready(PlayerID(0))
-        XCTAssertTrue(s.rink.isFaceoff, "one seat readied is not enough")
-        s.ready(PlayerID(1))
+        s.ready(.bottomSingle)
+        XCTAssertTrue(s.rink.isFaceoff, "one slot readied is not enough")
+        s.ready(.topSingle)
         XCTAssertEqual(s.rink.phase, .playing, "both readied via the session → play begins")
     }
 }
