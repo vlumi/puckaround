@@ -14,6 +14,8 @@ The `## vX.Y.Z` heading is written by the release lane too, whenever a release c
 
 ### Unreleased (next build)
 
+### build 4 — 2026-08-29
+
 - **Play doubles, or one against two.** The front page now sets each side's players separately — one or two per end, facing off across a "VS." — so you can play 1v1, 2v2, or an uneven 1v2. In doubles a side fields two mallets, one keeping each half of its end, with a line down the middle marking the two players' territory; the goal is wider to match the extra defender, and both mallets of a side share its color as one team.
 - **Everyone gets their own "Ready?".** During the faceoff each player is prompted in their own patch of the table and readies up by grabbing their mallet, so in doubles it's clear which partner the game is still waiting on. The result of a finished game is still shown once per side, WIN or LOSE.
 - **The faceoff goes off with a bang.** When everyone's readied and play begins, the force field bursts — a ring flares out from the center, with a whistle-crack sound and a haptic pop — instead of just quietly vanishing. You can feel the GO.
