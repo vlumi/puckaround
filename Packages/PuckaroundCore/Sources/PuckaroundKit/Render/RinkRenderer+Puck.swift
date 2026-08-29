@@ -9,41 +9,47 @@ extension RinkRenderer {
         _ puck: Puck, radius: Double, shape: PuckShape, projection: Projection,
         in context: inout GraphicsContext
     ) {
-        // Off a wrap table, or well away from a side edge, the puck draws plainly.
+        // Off a wrap table, or well clear of a side, the puck draws plainly. The
+        // warp beam reaches out as the puck nears a portal — a wide-enough window
+        // (a few radii) that it's actually seen, since the puck clears the last
+        // radius in a tick or two.
         let width = projection.table.size.x
+        let reach = radius * 3
         let edgeGap = min(puck.position.x, width - puck.position.x)  // dist to nearest side
-        guard projection.table.sideWalls == .wrap, edgeGap < radius else {
+        guard projection.table.sideWalls == .wrap, edgeGap < reach else {
             drawPuckInstance(
                 puck, radius: radius, shape: shape, projection: projection, in: &context)
             return
         }
-        // Crossing the seam. The puck itself stays its own shape on each side —
-        // the real one here, its copy emerging opposite — both clipped to the
-        // table. A stretched warp beam bridges them across the openings, so it
-        // reads as the puck being pulled through the portal, not teleporting.
+        // Approaching/crossing the seam. The puck keeps its own shape on each
+        // side — the real one here, its copy emerging opposite — both clipped to
+        // the table, with a cyan warp beam stretching between them across the
+        // openings, so it reads as the puck pulled through the portal.
         var wrapped = puck
         wrapped.position.x += (puck.position.x < width / 2) ? width : -width
+        let intensity = 1 - edgeGap / reach  // 0 far out → 1 at the wall
         let clip = Path(roundedRect: projection.rect, cornerRadius: 8 * projection.scale)
         context.drawLayer { layer in
             layer.clip(to: clip)
-            drawWarpBeam(puck, radius: radius, projection: projection, in: &layer)
+            drawWarpBeam(
+                puck, radius: radius, intensity: intensity, projection: projection, in: &layer)
             drawPuckInstance(puck, radius: radius, shape: shape, projection: projection, in: &layer)
             drawPuckInstance(
                 wrapped, radius: radius, shape: shape, projection: projection, in: &layer)
         }
     }
 
-    /// The warp beam: a bright, blurred band at the puck's height running from
-    /// the puck toward its near wall (and, clipped, its mirror runs in from the
-    /// far wall) — the stretched-rectangle tether that makes a wrap crossing read
-    /// as one continuous streak through the portal.
+    /// The warp beam: a cyan energy tether at the puck's height, from the puck to
+    /// its near portal and (clipped) mirrored in from the far one — so a crossing
+    /// reads as one continuous streak. `intensity` (0→1) brightens and thickens
+    /// it as the puck nears the wall. Cyan (the portal color), so it stands out
+    /// against the white puck rather than washing into its bloom.
     private static func drawWarpBeam(
-        _ puck: Puck, radius: Double, projection: Projection, in context: inout GraphicsContext
+        _ puck: Puck, radius: Double, intensity: Double, projection: Projection,
+        in context: inout GraphicsContext
     ) {
         let width = projection.table.size.x
         let toLeft = puck.position.x < width / 2
-        // World band from the puck out to its near wall, then the mirror running
-        // in from the far wall — together they span the full crossing.
         let nearWall = toLeft ? 0.0 : width
         let farWall = toLeft ? width : 0.0
         let bands = [
@@ -51,6 +57,7 @@ extension RinkRenderer {
             (farWall, puck.position.x + (toLeft ? width : -width)),
         ]
         let r = radius * projection.scale
+        let energy = SeatPalette.cyan
         for (x0, x1) in bands {
             let a = projection.point(Vec2(x0, puck.position.y))
             let b = projection.point(Vec2(x1, puck.position.y))
@@ -58,13 +65,13 @@ extension RinkRenderer {
             beam.move(to: a)
             beam.addLine(to: b)
             var haze = context
-            haze.addFilter(.blur(radius: r * 0.9))
+            haze.addFilter(.blur(radius: r * 1.1))
             haze.stroke(
-                beam, with: .color(RinkRenderer.puck.opacity(0.5)),
-                style: StrokeStyle(lineWidth: r * 1.6, lineCap: .round))
+                beam, with: .color(energy.opacity(0.55 * intensity)),
+                style: StrokeStyle(lineWidth: r * (1 + intensity), lineCap: .round))
             context.stroke(
-                beam, with: .color(RinkRenderer.puck.opacity(0.9)),
-                style: StrokeStyle(lineWidth: r * 0.7, lineCap: .round))
+                beam, with: .color(energy.opacity(0.95 * intensity)),
+                style: StrokeStyle(lineWidth: r * 0.6, lineCap: .round))
         }
     }
 
