@@ -37,7 +37,11 @@ struct MenuView: View {
                     }
                     .padding(.horizontal, 24)
                     .padding(.vertical, 24)
+                    // Cap the column so buttons don't stretch across an iPad,
+                    // then re-expand to the full width so that capped column is
+                    // centred rather than pinned to the leading edge.
                     .frame(maxWidth: 440)
+                    .frame(maxWidth: .infinity)
                     .frame(minHeight: geo.size.height)
                 }
             }
