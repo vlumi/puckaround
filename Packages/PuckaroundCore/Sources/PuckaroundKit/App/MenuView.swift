@@ -34,31 +34,35 @@ struct MenuView: View {
         }
     }
 
-    /// One or two hands per side, shown top-then-bottom to match how the sides
-    /// sit on the table, and tinted in each side's own colour — so the picker
-    /// reads as "this end, that end". Two silhouettes = doubles for that side;
-    /// mixing them (one side 1, the other 2) is 1v2.
+    /// The two teams face off across a "VS.", each its own colour — so it reads
+    /// as one side against the other, not a stack of unrelated toggles. Within a
+    /// team, 1 or 2 hands (person silhouettes); mixing the two teams is 1v2.
     private var formatPicker: some View {
         VStack(spacing: 12) {
             sectionLabel("Players")
-            handsRow(binding: $topHands, tint: Neon.cyan)
-            handsRow(binding: $bottomHands, tint: Neon.magenta)
+            HStack(spacing: 16) {
+                teamColumn(binding: $topHands, tint: Neon.cyan)
+                Text("VS.", bundle: .module)
+                    .font(.system(size: 15, weight: .heavy, design: .rounded))
+                    .foregroundStyle(Neon.inkSoft)
+                teamColumn(binding: $bottomHands, tint: Neon.magenta)
+            }
         }
     }
 
-    /// A side's toggle: 1 or 2, each a count of person silhouettes, in that
-    /// side's colour.
-    private func handsRow(binding: Binding<Int>, tint: Color) -> some View {
-        HStack(spacing: 10) {
+    /// One team's choice: 1 or 2 hands, the two options stacked, the picked one
+    /// filled in the team's colour.
+    private func teamColumn(binding: Binding<Int>, tint: Color) -> some View {
+        VStack(spacing: 8) {
             ForEach([1, 2], id: \.self) { count in
                 let selected = count == binding.wrappedValue
                 Button {
                     binding.wrappedValue = count
                 } label: {
                     HandsGlyph(count: count)
-                        .frame(height: 26)
+                        .frame(height: 24)
                         .foregroundStyle(selected ? Neon.ground : tint)
-                        .frame(width: 96, height: 48)
+                        .frame(width: 104, height: 44)
                         .background(pillBackground(selected: selected, tint: tint))
                 }
                 .buttonStyle(.plain)
