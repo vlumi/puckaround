@@ -14,6 +14,8 @@ The `## vX.Y.Z` heading is written by the release lane too, whenever a release c
 
 ### Unreleased (next build)
 
+### build 6 — 2026-08-29
+
 - **Wrap-around walls, a new table variation.** Pick "Wrap" under Walls and the long side walls become portals — a shot that would glance off the side slides off one edge and reappears on the other at the same height, keeping its speed, so you can bank the puck right around the table. The goals stay solid. Works with any puck and any number of players.
 - **The edge-swipe guard actually works now.** Build 5's attempt to make a bottom-edge swipe take a deliberate second try didn't take effect — the first swipe still dropped you to the app switcher. It's wired up correctly now, and only while a game is on the table, not on the menu. (iOS still never lets an app fully block the swipe.)
 
