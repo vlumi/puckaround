@@ -32,6 +32,33 @@ final class MalletTests: XCTestCase {
         XCTAssertEqual(r.mallet(at: bottom)!.velocity, .zero, "a still hand is a still mallet")
     }
 
+    func testAGrabSnapsTheMalletToTheFinger() {
+        var r = rink()
+        r.placeMallet(at: bottom, position: Vec2(20, 150))
+        let target = Vec2(60, 120)
+        r.advance(inputs: [bottom: SeatInput(malletGrab: target)])
+        XCTAssertEqual(r.mallet(at: bottom)!.position, target, "the mallet jumps under the finger")
+    }
+
+    func testAGrabIsClampedToTheZone() {
+        var r = rink()
+        // A grab aimed across the center line lands at the line, not over it.
+        r.advance(inputs: [bottom: SeatInput(malletGrab: Vec2(50, 10))])
+        XCTAssertEqual(
+            r.mallet(at: bottom)!.position.y, r.table.center.y + r.table.malletRadius,
+            "clamped to its own half")
+    }
+
+    func testAGrabDoesNotStrikeThePuckOnTheWayThere() {
+        var r = rink()
+        // Puck at center; mallet far away. A grab that lands ON the far side of
+        // the puck must not swat it en route — placing the hand, not swinging.
+        r.place(Puck(position: r.table.center, velocity: .zero))
+        r.placeMallet(at: bottom, position: Vec2(90, 150))
+        r.advance(inputs: [bottom: SeatInput(malletGrab: Vec2(50, 100))])
+        XCTAssertEqual(r.puck.velocity, .zero, "the grab teleports past the puck without a hit")
+    }
+
     func testAMalletCannotCrossTheCenterLineOrLeaveTheTable() {
         var r = rink()
         r.advance(inputs: [bottom: SeatInput(malletDrag: Vec2(-1000, -1000))])

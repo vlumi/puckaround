@@ -61,6 +61,31 @@ final class TouchCaptureView: UIView {
         }
     }
 }
+
+/// A zero-size host whose view controller defers the system edge gestures and
+/// hides the home indicator, so a stray swipe from a table edge doesn't yank
+/// the player out mid-rally. iOS never lets an app *block* the home swipe — the
+/// first deliberate swipe still leaves — but this makes it take a second, so a
+/// fingertip skating along the bottom edge during play won't trigger it. SwiftUI's
+/// own `defersSystemGestures` under-delivers beneath a representable, so we set
+/// the controller preferences directly, which is reliable.
+struct EdgeGestureGuard: UIViewControllerRepresentable {
+    func makeUIViewController(context: Context) -> GestureGuardController {
+        GestureGuardController()
+    }
+    func updateUIViewController(_ controller: GestureGuardController, context: Context) {}
+}
+
+final class GestureGuardController: UIViewController {
+    override var preferredScreenEdgesDeferringSystemGestures: UIRectEdge { .all }
+    override var prefersHomeIndicatorAutoHidden: Bool { true }
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        view.backgroundColor = .clear
+        view.isUserInteractionEnabled = false  // never eat the game's touches
+    }
+}
 #endif
 
 /// The input surface over the table: real multitouch on iOS, a single-pointer

@@ -183,7 +183,10 @@ public struct Rink: Equatable, Sendable {
         // Mallets apply in slot order, never dictionary order — the order hits
         // land in is part of the state.
         for index in slots.indices {
-            moveMallet(at: index, by: inputs[slots[index]]?.malletDrag ?? .zero, strikes: playing)
+            let input = inputs[slots[index]]
+            moveMallet(
+                at: index, grabTo: input?.malletGrab, by: input?.malletDrag ?? .zero,
+                strikes: playing)
         }
         // The puck may already be touching a resting mallet — but that is not a
         // NEW hit, so it emits no event; only a closing contact during a move does.
