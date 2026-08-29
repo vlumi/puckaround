@@ -24,6 +24,8 @@ The game is built and this milestone is about driving it on hardware: two thumbs
 
 ## The couch — *who is playing*
 
+Built against [singles & doubles](#singles--doubles--multiplayer-on-the-oblong): the setup asks singles or doubles, then who takes each mallet.
+
 - [x] **A front door (first cut).** A title screen with a first-to-N pick and Play; a rematch that IS the faceoff (ready up again, score resets on start); and the centre ring as an always-available menu (resume / quit). Deliberately minimal for a 1v1-only game — **still to come as more seats and modes land**: who is at the table, player count, seat colours chosen by the players, and mode selection.
 - [ ] **A record of the session.** A running tally across games, so the last twenty minutes happened.
 
@@ -42,14 +44,17 @@ The one addition that changes how the game plays rather than what is around it. 
 
 - [x] **The physics (spiked, shipped).** A polygon puck that rotates and tumbles, with a deterministic wall collision (`PolygonCollision`) tuned for feel over exact realism: a disc-like linear bounce (never a launch) while the spin steers the outgoing direction off-axis. Proven fun on a device — that was the whole question. Round / square / triangle are pickable on the front page. See [ARCHITECTURE.md](ARCHITECTURE.md).
 - [ ] **Follow-ons, if play asks for them.** Triangle-specific feel; **per-vertex goals** (today a goal needs the puck CENTRE fully past the line, so a corner poked in early doesn't count — fine so far); tuning the three feel dials on more play; more shapes only if they behave distinctly (a hexagon is basically a disc).
-- [ ] **Grip-spin on a ROUND puck** — english coupling back into linear motion, the deeper and more fragile experiment, deferred separately from shape.
+- [ ] **Grip-spin on a ROUND puck** — english coupling back into linear motion. Its real home is the **ellipse table** ([docs/table-and-modes-plan.md](docs/table-and-modes-plan.md)): a low, wall-hugging shot with forward spin rides the curved wall and accelerates toward the goal — a skill shot the flat table can't express, and the reason the ellipse is worth building. Spin on a disc is invisible, so it either stays hidden state or gets a small drawn puck symbol (open). A later spike, independent of singles/doubles.
 
-## Four players — *parked on a design question*
+## Singles & doubles — *multiplayer on the oblong*
 
-`Lineup` already seats 3–4 and pairs 2v2; the sim's seats-in-order rule holds for any count. What is missing is a table with room for their goals, and that is a decision, not code:
+The near-term multiplayer answer, decided in [docs/table-and-modes-plan.md](docs/table-and-modes-plan.md): not a player count but **how many mallets a side has** (singles = one, doubles = two) and **how many hands drive them** — so 2v2, 1v1-with-two-mallets, 1v2 and soloing-both are one game, not four, and there is no awkward three-player case. Same oblong, near-zero new geometry.
 
-- [ ] **Where do the goals go?** One per seat's wall on a square table; corners; or one shared goal per team. An iPhone is far from square, so two of four seats would get a cramped half.
-- [ ] **Is four on a phone workable at all?** Four hands round a 6-inch screen may make this an iPad-only format. Nothing decides it but trying — and iPhones track about five simultaneous touches, so measure that too.
+- [ ] **A side can have two mallets** (doubles), each in its own left/right quadrant of the half; a hand may own one mallet or both.
+- [ ] **The doubles goal is wider** (toward the whole end) — two defenders make a narrow goal trivial. One number.
+- [ ] **The couch flow drives it** (see below): singles/doubles, then who takes each mallet. This is what unblocks who-is-playing and seat colours.
+
+Deferred, non-rectangle tables (square/corners/triangle/circle) and their trade-offs are recorded in the plan; the exciting one is the ellipse spike below.
 
 ## Release lane & TestFlight
 
@@ -77,7 +82,7 @@ A parking lot for what could flesh the game out before 1.0. None of these is com
 - [ ] **Pinball-style obstacles.** Bumpers on the ice — fixed discs (or pads) the puck bounces off, maybe with a kick. Cheapest of the lot: the mallet collision is already a kinematic circle, so a bumper is a mallet that never moves and adds speed. The design question is placement — a few table layouts to choose from, not an editor. Once bumpers exist, more pinball furniture is the same idea: spinners, one-way gates, targets that light up, a multiplier lane — each a fixed piece the puck interacts with, all riding the one collision routine.
 - [ ] **Multiple pucks.** Two or three pucks on the table at once — chaos in a good way, and nearly free: the sim already steps one puck through walls and mallets, so this is an array instead of a single value, plus puck–puck collision (the same circle–circle math the mallets use). Scoring needs a rule for who a goal counts for when several are live. A natural pairing with bumpers, and with a "multiball" beat if any solo mode lands.
 - [ ] **A single-player mode — a different game sharing the physics.** Ideas from pinball and breakout: a wall of bricks the puck chips away, a table dressed with bumpers and targets to rack up a score, a survival mode where you keep the puck off your own goal. Worth flagging honestly: this **changes what the app is** — the premise everywhere else is "the device is the table, two-plus people around one screen," and a solo score-attack is a genuinely different game that happens to reuse the puck sim. So it earns a mode, never the front door, and only if the two-player game is proven first. The engine is ready for it (deterministic sim, event stream, kinematic-circle collisions already carry bumpers and a paddle); the question is whether it's a game worth being, not whether it's buildable.
-- [ ] **2v2 and four-way.** Parked with its own section above — the table shape and goal placement are the open question, and whether four hands fit round a phone.
+- [ ] **A curved table (the ellipse).** Slice goals and curved walls where the bounce angle depends on where you hit — and the payoff mechanic, a forward-spun puck rolling the wall toward the goal (needs round-puck spin, above). A whole table's worth of physics, so a spike, not a variant; iPad-forgiving. Design in [docs/table-and-modes-plan.md](docs/table-and-modes-plan.md).
 - [ ] **Tournaments.** A series of games across a session with standings — the thing that gives a two-minute game a reason to be played ten times. Skid's tournament model (fixed number of rounds, points table, persisted across quits) is the pattern to copy and adapt; it wants player cards under it first.
 - [ ] **Player cards.** Local profiles — a name and a colour, wins and losses, maybe a best streak — so results belong to a person rather than to a seat. Purely on-device (no accounts); Skid's profiles are the reference. The gate for tournaments and for anything that remembers who you are.
 - [ ] **Nearby multiplayer.** Two devices, each its own table half, over the local network — no server, no accounts. The sim was built for it: inputs are data and the state is deterministic, so either host-authoritative snapshots or lockstep over MultipeerConnectivity (as Skid does) is reachable without a rewrite. Changes the premise (one shared screen) enough that it needs its own decision before any code; listed here so it isn't forgotten, not because it is planned.
