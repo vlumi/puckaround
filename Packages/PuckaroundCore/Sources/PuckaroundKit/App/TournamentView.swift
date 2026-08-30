@@ -16,6 +16,10 @@ struct TournamentView: View {
     @AppStorage("puckaround.tournament") private var saved = Data()
     @State private var tournament: Tournament?
     @State private var stage = Stage.lobby
+    /// The beat between a decided match and the interstitial: the verdict shows,
+    /// but input is blocked so nobody can ready up a rematch the interstitial is
+    /// about to take over.
+    @State private var deciding = false
 
     private enum Stage: Equatable {
         case lobby
@@ -35,8 +39,14 @@ struct TournamentView: View {
                 }
             case .playing(let seed):
                 if let tournament {
-                    match(tournament, seed: seed)
-                        .id(seed)
+                    ZStack {
+                        match(tournament, seed: seed)
+                        if deciding {
+                            // Swallows every touch during the verdict's beat.
+                            Color.black.opacity(0.2).ignoresSafeArea()
+                        }
+                    }
+                    .id(seed)
                 }
             }
         }
@@ -157,8 +167,10 @@ struct TournamentView: View {
     private func recordWin(_ side: Side) {
         tournament?.recordWin(by: side)
         persist()
+        deciding = true
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
             stage = .interstitial
+            deciding = false
         }
     }
 
