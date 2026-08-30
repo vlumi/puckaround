@@ -218,8 +218,12 @@ struct RosterSheet: View {
     /// Pool names not seated tonight.
     private var benched: [String] { pool.filter { !roster.contains($0) } }
 
+    /// Room enough for a real first name, short enough to fit by a score.
+    static let maxNameLength = 12
+
     private func add() {
-        let name = newName.trimmingCharacters(in: .whitespaces)
+        let name = String(
+            newName.trimmingCharacters(in: .whitespaces).prefix(RosterSheet.maxNameLength))
         newName = ""
         // Focus stays in the field, so the next name needs no extra touch.
         nameFocused = true
