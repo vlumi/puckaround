@@ -2,8 +2,14 @@
   "sourceLanguage": "en",
   "strings": {
     "AROUND": {},
+    "Best of 3": {},
+    "Best of 5": {},
     "First to": {},
+    "GAME": {},
     "LOSE": {},
+    "LOST": {},
+    "MATCH": {},
+    "Match": {},
     "Menu": {},
     "PUCK": {},
     "Play": {},
@@ -12,7 +18,9 @@
     "Ready?": {},
     "Restart": {},
     "Resume": {},
-    "WIN": {}
+    "Single": {},
+    "WIN": {},
+    "WON": {}
   },
   "version": "1.0"
 }

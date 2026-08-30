@@ -14,7 +14,7 @@ The `## vX.Y.Z` heading is written by the release lane too, whenever a release c
 
 ### Unreleased (next build)
 
-- **Play a match, not just a game.** Pick "Best of 3" or "Best of 5" under Match and a win takes a game, not the whole thing — first to two (or three) games takes the match. Between games it's a fresh faceoff with the points reset, and a row of pips by each score tracks who's ahead. "Single" is the old one-game behavior.
+- **Play a match, not just a game.** Pick "Best of 3" or "Best of 5" under Match and a win takes a game, not the whole thing — first to two (or three) games takes the match. Between games it's a fresh faceoff with the points reset, and a row of pips by each score tracks who's ahead. The result names what just ended — GAME won/lost between games, MATCH when it's decided — so it's never unclear whether the match is over. "Single" is the old one-game behavior.
 
 ### build 6 — 2026-08-29
 
