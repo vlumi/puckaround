@@ -11,14 +11,6 @@ public struct Tournament: Equatable, Codable, Sendable {
         public let wins: Int
     }
 
-    /// How the last match ended — games in a best-of, points in a single game.
-    public struct LastMatch: Equatable, Codable, Sendable {
-        public let winner: String
-        public let loser: String
-        public let winnerScore: Int
-        public let loserScore: Int
-    }
-
     /// Who defends the bottom end right now.
     public private(set) var bottom: String
     /// Who defends the top end right now.
@@ -34,7 +26,7 @@ public struct Tournament: Equatable, Codable, Sendable {
     public private(set) var bestStreak = 0
     public private(set) var bestStreakName: String?
     /// The most recent result, for the between-matches banner.
-    public private(set) var lastMatch: LastMatch?
+    public private(set) var lastMatch: MatchResult?
 
     /// The first two names take the table (first at the bottom), the rest form
     /// the line in roster order. Duplicate names collapse to their first entry —
@@ -63,7 +55,7 @@ public struct Tournament: Equatable, Codable, Sendable {
     public mutating func recordWin(by side: Side, winnerScore: Int = 0, loserScore: Int = 0) {
         let winner = side == .bottom ? bottom : top
         let loser = side == .bottom ? top : bottom
-        lastMatch = LastMatch(
+        lastMatch = MatchResult(
             winner: winner, loser: loser, winnerScore: winnerScore, loserScore: loserScore)
         wins[winner, default: 0] += 1
         streak = winner == streakName ? streak + 1 : 1

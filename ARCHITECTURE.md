@@ -176,12 +176,13 @@ pair earns a wide one, so in 1v2 the harder goal to keep goes to the
 better-staffed side. In doubles a side's half splits into left/right lanes, each
 mallet confined to one, with a drawn divider down the middle.
 
-**Tournaments sit on top, not inside.** Winner-stays (`Tournament`, in Core):
-two names on the table, a line behind them, the winner keeps their end and the
-loser rejoins the back — pure, tested scheduling that survives the app quitting.
-Names are labels the Kit pins on the ends for the evening (`EndNames`, and a
-remembered tap-to-pick pool — no profiles, no history); the sim still never
-learns who is playing.
+**Tournaments sit on top, not inside.** Two shapes behind one handle
+(`Evening`, in Core): winner-stays (`Tournament` — a line behind the table, the
+loser to its back) and a knockout `Bracket` (a seeded random draw on a
+power-of-two sheet, byes for uneven counts, up to 32). Both are pure, tested
+scheduling that survives the app quitting. Names are labels the Kit pins on the
+ends for the evening (`EndNames`, and a remembered tap-to-pick pool — no
+profiles, no history); the sim still never learns who is playing.
 
 `SeatZones` maps a world point to the slot that owns it (its side's half, then
 its lane). **A touch belongs to the slot it grabbed for its whole life** — one

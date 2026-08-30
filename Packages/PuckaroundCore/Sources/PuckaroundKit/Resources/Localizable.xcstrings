@@ -6,7 +6,10 @@
     "Back to tournament": {},
     "Best of 3": {},
     "Best of 5": {},
+    "Bracket": {},
+    "Champion": {},
     "Close": {},
+    "Format": {},
     "End tournament": {},
     "First to": {},
     "Forget name": {},
@@ -39,6 +42,7 @@
     "WIN": {},
     "WON": {},
     "Walls": {},
+    "Winner stays": {},
     "Wrap": {}
   },
   "version": "1.0"
