@@ -5,7 +5,7 @@ import SwiftUI
 /// match, puck, walls — see `SetupControls`), and Play. Deliberately small; the
 /// same controls back the in-game settings sheet, so the two never drift.
 struct MenuView: View {
-    let settings: GameSettings
+    @Binding var setup: Setup
     let onPlay: () -> Void
 
     var body: some View {
@@ -21,7 +21,7 @@ struct MenuView: View {
                         // to nothing when it overflows, so nothing ever clips.
                         Spacer(minLength: 0)
                         wordmark
-                        SetupControls(settings: settings)
+                        SetupControls(setup: $setup)
                         NeonButton(title: "Play", tint: Neon.cyan, prominent: true, action: onPlay)
                             .padding(.horizontal, 40)
                         Spacer(minLength: 0)

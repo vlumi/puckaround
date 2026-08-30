@@ -1,26 +1,27 @@
 import PuckaroundCore
 import SwiftUI
 
-/// **The bag of setup choices**, bound straight to `@AppStorage`, so the front
-/// door and the in-game settings sheet edit one source of truth. Held as a
-/// value of `Binding`s rather than passing six of them everywhere.
+/// **The setup choices as a plain value** — every pick the front door and the
+/// in-game sheet offer. Held whole so it can be snapshotted (the sheet's draft,
+/// compared to decide whether a change restarts the game) and stored field by
+/// field in `@AppStorage`.
 ///
 /// `randomPuck` / `randomWalls` are the "?" picks: when on, the concrete shape
 /// or wall stored beside them is ignored and rolled fresh each game (see
 /// `resolvedPuck` / `resolvedWalls`), so the pill can remember a real choice to
 /// fall back to when "?" is turned off again.
-struct GameSettings {
-    @Binding var pointsToWin: Int
-    @Binding var gamesToWin: Int
-    @Binding var puckShapeKey: String
-    @Binding var randomPuck: Bool
-    @Binding var bottomHands: Int
-    @Binding var topHands: Int
-    @Binding var wrapWalls: Bool
-    @Binding var randomWalls: Bool
+struct Setup: Equatable {
+    var pointsToWin = 7
+    var gamesToWin = 1
+    var puckShapeKey = PuckShapeKey.circle.rawValue
+    var randomPuck = false
+    var bottomHands = 1
+    var topHands = 1
+    var wrapWalls = false
+    var randomWalls = false
 }
 
-extension GameSettings {
+extension Setup {
     var rules: Rules { Rules(pointsToWin: pointsToWin, gamesToWin: gamesToWin) }
 
     /// The stored per-side hand counts as a `Format` (anything but 1 or 2 falls

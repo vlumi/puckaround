@@ -1,10 +1,10 @@
 import PuckaroundCore
 import SwiftUI
 
-/// The whole app's top level: the front door, or a table. Owns the setup
-/// settings (`@AppStorage`) and swaps between the menu and a fresh game. A game
-/// is identified by a seed that also drives any "?" random pick, so the picked
-/// puck and walls hold for that game and re-roll on the next.
+/// The whole app's top level: the front door, or a table. Owns the stored setup
+/// (`@AppStorage`, one field each) and swaps between the menu and a fresh game.
+/// A game is identified by a seed that also drives any "?" random pick, so the
+/// picked puck and walls hold for that game and re-roll on the next.
 public struct AppRoot: View {
     @State private var phase: Phase = .menu
     @AppStorage("puckaround.pointsToWin") private var pointsToWin = 7
@@ -34,11 +34,14 @@ public struct AppRoot: View {
     public var body: some View {
         switch phase {
         case .menu:
-            MenuView(settings: settings, onPlay: { phase = .playing(seed: freshSeed()) })
+            MenuView(setup: setupBinding, onPlay: { phase = .playing(seed: freshSeed()) })
         case .playing(let seed):
             GameView(
-                settings: settings, seed: seed,
-                onRestart: { phase = .playing(seed: freshSeed()) },
+                setup: setup, seed: seed,
+                onNewGame: { newSetup in
+                    apply(newSetup)
+                    phase = .playing(seed: freshSeed())
+                },
                 onExit: { phase = .menu }
             )
             // Keyed on the seed so "restart" (and a settings change that re-rolls
@@ -47,11 +50,30 @@ public struct AppRoot: View {
         }
     }
 
-    private var settings: GameSettings {
-        GameSettings(
-            pointsToWin: $pointsToWin, gamesToWin: $gamesToWin, puckShapeKey: $puckShapeKey,
-            randomPuck: $randomPuck, bottomHands: $bottomHands, topHands: $topHands,
-            wrapWalls: $wrapWalls, randomWalls: $randomWalls)
+    /// The stored setup as one value.
+    private var setup: Setup {
+        Setup(
+            pointsToWin: pointsToWin, gamesToWin: gamesToWin, puckShapeKey: puckShapeKey,
+            randomPuck: randomPuck, bottomHands: bottomHands, topHands: topHands,
+            wrapWalls: wrapWalls, randomWalls: randomWalls)
+    }
+
+    /// A binding the front-door pickers edit directly (there is no game to
+    /// disturb, so every change lands straight in storage).
+    private var setupBinding: Binding<Setup> {
+        Binding(get: { setup }, set: apply)
+    }
+
+    /// Write a setup back to the individual stored fields.
+    private func apply(_ s: Setup) {
+        pointsToWin = s.pointsToWin
+        gamesToWin = s.gamesToWin
+        puckShapeKey = s.puckShapeKey
+        randomPuck = s.randomPuck
+        bottomHands = s.bottomHands
+        topHands = s.topHands
+        wrapWalls = s.wrapWalls
+        randomWalls = s.randomWalls
     }
 
     private func freshSeed() -> UInt64 { UInt64.random(in: 0...UInt64.max) }

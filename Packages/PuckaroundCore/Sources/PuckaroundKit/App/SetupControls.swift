@@ -3,9 +3,10 @@ import SwiftUI
 
 /// **The setup pickers**, shared by the front door and the in-game settings
 /// sheet: players, first-to, match length, puck (with a "?" for random) and
-/// walls (likewise). One source of truth so the two places can't drift.
+/// walls (likewise). Bound to a `Setup` value so a caller can point them at
+/// `@AppStorage` (the front door) or a discardable draft (the in-game sheet).
 struct SetupControls: View {
-    let settings: GameSettings
+    @Binding var setup: Setup
 
     /// The offered points-per-game targets — a short, sane range.
     private let targets = [3, 5, 7, 11]
@@ -31,11 +32,11 @@ struct SetupControls: View {
         VStack(spacing: 12) {
             sectionLabel("Players")
             HStack(spacing: 16) {
-                teamColumn(binding: settings.$topHands, tint: Neon.cyan)
+                teamColumn(binding: $setup.topHands, tint: Neon.cyan)
                 Text("VS.", bundle: .module)
                     .font(.system(size: 15, weight: .heavy, design: .rounded))
                     .foregroundStyle(Neon.inkSoft)
-                teamColumn(binding: settings.$bottomHands, tint: Neon.magenta)
+                teamColumn(binding: $setup.bottomHands, tint: Neon.magenta)
             }
         }
     }
@@ -66,9 +67,9 @@ struct SetupControls: View {
             sectionLabel("First to")
             HStack(spacing: 10) {
                 ForEach(targets, id: \.self) { target in
-                    let selected = target == settings.pointsToWin
+                    let selected = target == setup.pointsToWin
                     Button {
-                        settings.pointsToWin = target
+                        setup.pointsToWin = target
                     } label: {
                         Text(verbatim: "\(target)")
                             .font(.system(size: 20, weight: .bold, design: .rounded))
@@ -88,9 +89,9 @@ struct SetupControls: View {
             sectionLabel("Match")
             HStack(spacing: 10) {
                 ForEach(matchLengths, id: \.games) { length in
-                    let selected = length.games == settings.gamesToWin
+                    let selected = length.games == setup.gamesToWin
                     Button {
-                        settings.gamesToWin = length.games
+                        setup.gamesToWin = length.games
                     } label: {
                         Text(length.label, bundle: .module)
                             .font(.system(size: 15, weight: .bold, design: .rounded))
@@ -111,10 +112,10 @@ struct SetupControls: View {
             sectionLabel("Puck")
             HStack(spacing: 10) {
                 ForEach(PuckShapeKey.allCases, id: \.rawValue) { key in
-                    let selected = !settings.randomPuck && key.rawValue == settings.puckShapeKey
+                    let selected = !setup.randomPuck && key.rawValue == setup.puckShapeKey
                     Button {
-                        settings.puckShapeKey = key.rawValue
-                        settings.randomPuck = false
+                        setup.puckShapeKey = key.rawValue
+                        setup.randomPuck = false
                     } label: {
                         PuckGlyph(key: key)
                             .frame(width: 30, height: 30)
@@ -125,7 +126,7 @@ struct SetupControls: View {
                     .buttonStyle(.plain)
                     .accessibilityLabel(Text(verbatim: key.label))
                 }
-                randomPill(selected: settings.randomPuck, width: 62) { settings.randomPuck = true }
+                randomPill(selected: setup.randomPuck, width: 62) { setup.randomPuck = true }
                     .accessibilityLabel(Text(verbatim: "Random puck"))
             }
         }
@@ -138,19 +139,17 @@ struct SetupControls: View {
             HStack(spacing: 10) {
                 wallOption("Solid", wrap: false)
                 wallOption("Wrap", wrap: true)
-                randomPill(selected: settings.randomWalls, width: 72) {
-                    settings.randomWalls = true
-                }
-                .accessibilityLabel(Text(verbatim: "Random walls"))
+                randomPill(selected: setup.randomWalls, width: 72) { setup.randomWalls = true }
+                    .accessibilityLabel(Text(verbatim: "Random walls"))
             }
         }
     }
 
     private func wallOption(_ label: LocalizedStringKey, wrap: Bool) -> some View {
-        let selected = !settings.randomWalls && settings.wrapWalls == wrap
+        let selected = !setup.randomWalls && setup.wrapWalls == wrap
         return Button {
-            settings.wrapWalls = wrap
-            settings.randomWalls = false
+            setup.wrapWalls = wrap
+            setup.randomWalls = false
         } label: {
             Text(label, bundle: .module)
                 .font(.system(size: 16, weight: .bold, design: .rounded))
@@ -162,7 +161,8 @@ struct SetupControls: View {
     }
 
     /// The "?" pill shared by the puck and walls pickers — a random pick.
-    private func randomPill(selected: Bool, width: CGFloat, act: @escaping () -> Void) -> some View
+    private func randomPill(selected: Bool, width: CGFloat, act: @escaping () -> Void)
+        -> some View
     {
         Button(action: act) {
             Text(verbatim: "?")
