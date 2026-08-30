@@ -56,8 +56,10 @@ extension RinkRenderer {
         let at = projection.point(spot)
         ctx.translateBy(x: at.x, y: at.y)
         ctx.rotate(by: seat.labelAngle)
+        // Belt and braces: entry caps names, but an older save might not have.
+        let shown = name.count > 12 ? name.prefix(11) + "…" : name
         let text = ctx.resolve(
-            Text(verbatim: name).font(
+            Text(verbatim: String(shown)).font(
                 .system(size: 6 * projection.scale, weight: .bold, design: .rounded)))
         ctx.draw(colored(text, color.opacity(0.75)), at: .zero, anchor: .center)
     }

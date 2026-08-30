@@ -20,7 +20,7 @@ Shipped so far (in TestFlight, detail in [CHANGELOG.md](CHANGELOG.md)): 1v1/1v2/
 
 Winner-stays tournaments shipped: remembered names (a tap-to-pick pool, no profiles), the line, and tonight's tally. Left here:
 
-- [ ] **More tournament shapes.** Round-robin and a bracket on the same roster machinery, if evenings ask for them.
+- [ ] **A league season (round robin).** Everyone plays everyone once or twice on the same roster machinery; standings by wins, ties broken head-to-head and then by decider matches — playing beats bookkeeping. (Brackets shipped beside winner-stays.)
 - [ ] **A color of one's own.** A per-person accent on chips and verdicts — cosmetic identity; the sim stays side-based.
 
 ## Puck & table variety — *what changes how it plays*

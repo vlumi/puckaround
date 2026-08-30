@@ -109,7 +109,7 @@ final class TournamentTests: XCTestCase {
         t.recordWin(by: .bottom, winnerScore: 2, loserScore: 1)
         XCTAssertEqual(
             t.lastMatch,
-            Tournament.LastMatch(winner: "Anna", loser: "Ville", winnerScore: 2, loserScore: 1))
+            MatchResult(winner: "Anna", loser: "Ville", winnerScore: 2, loserScore: 1))
     }
 
     /// The tournament must survive the app quitting mid-evening.

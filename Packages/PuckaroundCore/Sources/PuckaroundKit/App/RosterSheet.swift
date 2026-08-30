@@ -1,13 +1,14 @@
+import PuckaroundCore
 import SwiftUI
 
-/// **Tonight's players.** A pool of remembered names — tap one to seat it, × to
-/// forget it — plus a field for someone new, so typing happens once per friend,
-/// ever. The line plays in the order picked. No profiles: the pool is
-/// autocomplete, nothing more.
+/// **Tonight's players, and the shape of their evening.** A pool of remembered
+/// names — tap one to seat it, × to forget it — plus a field for someone new,
+/// so typing happens once per friend, ever. The lineup plays in the order
+/// picked. No profiles: the pool is autocomplete, nothing more.
 struct RosterSheet: View {
     /// The evening's match rules — the same stored setup New match edits.
     @Binding var setup: Setup
-    let onStart: ([String]) -> Void
+    let onStart: ([String], Evening.Shape) -> Void
     let onClose: () -> Void
 
     /// The remembered pool, most recently used first, JSON in storage.
@@ -15,6 +16,7 @@ struct RosterSheet: View {
     @State private var pool: [String] = []
     @State private var roster: [String] = []
     @State private var newName = ""
+    @State private var shape = Evening.Shape.winnerStays
     @FocusState private var nameFocused: Bool
 
     private let columns = [GridItem(.adaptive(minimum: 110), spacing: 8)]
@@ -27,6 +29,7 @@ struct RosterSheet: View {
                 .padding(.bottom, 8)
             ScrollView {
                 VStack(spacing: 24) {
+                    section("Format") { shapePicker }
                     section("Lineup") { lineup }
                     if !benched.isEmpty {
                         section("Names") { poolChips }
@@ -42,8 +45,8 @@ struct RosterSheet: View {
             NeonButton(title: "Start tournament", tint: Neon.cyan, prominent: true) {
                 start()
             }
-            .opacity(roster.count >= 2 ? 1 : 0.4)
-            .disabled(roster.count < 2)
+            .opacity(canStart ? 1 : 0.4)
+            .disabled(!canStart)
             .padding(24)
         }
         .frame(maxWidth: 440)
@@ -102,23 +105,33 @@ struct RosterSheet: View {
     /// field keeps focus after adding, so a whole lineup types without leaving
     /// the keyboard; the + is the same action made visible.
     private var addField: some View {
-        HStack(spacing: 8) {
-            TextField(text: $newName, prompt: Text("Add name", bundle: .module)) {
-                Text("Add name", bundle: .module)
+        VStack(spacing: 6) {
+            HStack(spacing: 8) {
+                TextField(text: $newName, prompt: Text("Add name", bundle: .module)) {
+                    Text("Add name", bundle: .module)
+                }
+                .font(.system(size: 16, weight: .semibold, design: .rounded))
+                .foregroundStyle(Neon.ink)
+                .textFieldStyle(.plain)
+                .submitLabel(.next)
+                .focused($nameFocused)
+                .padding(.horizontal, 14)
+                .frame(height: 44)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .strokeBorder(Neon.inkSoft.opacity(0.6), lineWidth: 1.5)
+                )
+                .onSubmit(add)
+                addButton
             }
-            .font(.system(size: 16, weight: .semibold, design: .rounded))
-            .foregroundStyle(Neon.ink)
-            .textFieldStyle(.plain)
-            .submitLabel(.next)
-            .focused($nameFocused)
-            .padding(.horizontal, 14)
-            .frame(height: 44)
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .strokeBorder(Neon.inkSoft.opacity(0.6), lineWidth: 1.5)
-            )
-            .onSubmit(add)
-            addButton
+            // The field itself is never clamped — an IME composes a long
+            // reading before it collapses into a short name. Over-long simply
+            // can't be added, and this says why.
+            if overLong {
+                Text("At most \(RosterSheet.maxNameLength) characters", bundle: .module)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(Neon.magenta.opacity(0.85))
+            }
         }
     }
 
@@ -142,7 +155,16 @@ struct RosterSheet: View {
         .accessibilityLabel(Text("Add name", bundle: .module))
     }
 
-    private var canAdd: Bool { !newName.trimmingCharacters(in: .whitespaces).isEmpty }
+    /// Non-empty and within the cap: over-long input disables adding instead of
+    /// clamping the field, which would break IME composition mid-typing.
+    private var canAdd: Bool {
+        let name = newName.trimmingCharacters(in: .whitespaces)
+        return !name.isEmpty && name.count <= RosterSheet.maxNameLength
+    }
+
+    private var overLong: Bool {
+        newName.trimmingCharacters(in: .whitespaces).count > RosterSheet.maxNameLength
+    }
 
     private func chip(_ name: String, selected: Bool, act: @escaping () -> Void) -> some View {
         Button(action: act) {
@@ -177,11 +199,51 @@ struct RosterSheet: View {
         }
     }
 
+    /// Winner stays takes any lineup of two or more; a bracket also caps the
+    /// field so its first column fits a screen.
+    private var canStart: Bool {
+        roster.count >= 2 && (shape == .winnerStays || roster.count <= Bracket.maxPlayers)
+    }
+
+    /// The shape of the evening: an endless line, or a knockout sheet.
+    private var shapePicker: some View {
+        HStack(spacing: 10) {
+            shapeOption("Winner stays", .winnerStays)
+            shapeOption("Bracket", .bracket)
+        }
+    }
+
+    private func shapeOption(_ label: LocalizedStringKey, _ s: Evening.Shape) -> some View {
+        let selected = shape == s
+        return Button {
+            shape = s
+        } label: {
+            Text(label, bundle: .module)
+                .font(.system(size: 15, weight: .bold, design: .rounded))
+                .foregroundStyle(selected ? Neon.ground : Neon.ink)
+                .padding(.horizontal, 14)
+                .frame(height: 44)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(selected ? Neon.ink : Color.clear)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .strokeBorder(
+                                    Neon.ink.opacity(selected ? 1 : 0.4), lineWidth: 1.5)))
+        }
+        .buttonStyle(.plain)
+    }
+
     /// Pool names not seated tonight.
     private var benched: [String] { pool.filter { !roster.contains($0) } }
 
+    /// Room enough for a real first name, short enough to fit by a score.
+    static let maxNameLength = 12
+
     private func add() {
         let name = newName.trimmingCharacters(in: .whitespaces)
+        // An over-long name stays put to be edited down, never silently cut.
+        guard name.count <= RosterSheet.maxNameLength else { return }
         newName = ""
         // Focus stays in the field, so the next name needs no extra touch.
         nameFocused = true
@@ -198,7 +260,7 @@ struct RosterSheet: View {
     private func start() {
         pool = roster + pool.filter { !roster.contains($0) }
         savePool()
-        onStart(roster)
+        onStart(roster, shape)
     }
 
     private func load() {
