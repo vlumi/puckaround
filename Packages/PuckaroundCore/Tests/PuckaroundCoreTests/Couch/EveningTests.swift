@@ -6,6 +6,7 @@ import XCTest
 final class EveningTests: XCTestCase {
     func testWinnerStaysRoutesThroughTheHandle() {
         var e = Evening.winnerStays(Tournament(roster: ["Anna", "Ville", "Mei"])!)
+        XCTAssertEqual(e.shape, .winnerStays)
         XCTAssertEqual(e.pairing, Pairing(bottom: "Anna", top: "Ville"))
         XCTAssertNil(e.champion, "winner stays never crowns anyone")
         e.recordWin(by: .bottom, winnerScore: 7, loserScore: 5)
@@ -15,6 +16,7 @@ final class EveningTests: XCTestCase {
 
     func testABracketRoutesToItsChampion() {
         var e = Evening.bracket(Bracket(roster: ["Anna", "Ville"], seed: 1)!)
+        XCTAssertEqual(e.shape, .bracket)
         XCTAssertNotNil(e.pairing)
         e.recordWin(by: .top, winnerScore: 7, loserScore: 0)
         XCTAssertNil(e.pairing, "the final is played")
