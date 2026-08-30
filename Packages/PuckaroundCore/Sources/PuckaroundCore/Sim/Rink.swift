@@ -125,6 +125,10 @@ public struct Rink: Equatable, Sendable {
     /// index deterministically.
     static let scoreOrder: [Side] = [.bottom, .top]
 
+    /// A side's slot in the per-side tallies — `scoreOrder` as a total function,
+    /// so indexing needs no search and no unwrap (a test pins the two together).
+    static func tallyIndex(_ side: Side) -> Int { side == .bottom ? 0 : 1 }
+
     public init(table: Playfield, rules: Rules = .standard, seed: UInt64) {
         self.table = table
         self.rules = rules
@@ -142,11 +146,11 @@ public struct Rink: Equatable, Sendable {
     }
 
     public func score(of side: Side) -> Int {
-        score[Rink.scoreOrder.firstIndex(of: side)!]
+        score[Rink.tallyIndex(side)]
     }
 
     public func gamesWon(of side: Side) -> Int {
-        gamesWon[Rink.scoreOrder.firstIndex(of: side)!]
+        gamesWon[Rink.tallyIndex(side)]
     }
 
     /// Start a fresh match: game score and games tally to zero, opening faceoff.
@@ -245,14 +249,14 @@ public struct Rink: Equatable, Sendable {
     mutating func goal(against side: Side) {
         let conceder = side
         let scorer = side.opponent
-        score[Rink.scoreOrder.firstIndex(of: scorer)!] += 1
+        score[Rink.tallyIndex(scorer)] += 1
         events.append(.goal(scorer: scorer, conceder: conceder))
         guard score(of: scorer) >= rules.pointsToWin else {
             serve(to: conceder)
             return
         }
         // The game is won: tally it, and decide whether that took the match.
-        gamesWon[Rink.scoreOrder.firstIndex(of: scorer)!] += 1
+        gamesWon[Rink.tallyIndex(scorer)] += 1
         let endedMatch = gamesWon(of: scorer) >= rules.gamesToWin
         // Show the result and open the faceoff; readying up starts the next game
         // (or, if the match ended, a fresh match — see `ready`).

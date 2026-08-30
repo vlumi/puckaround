@@ -101,4 +101,12 @@ final class MatchTests: XCTestCase {
         }
         XCTAssertEqual(run(), run())
     }
+
+    /// `tallyIndex` is `scoreOrder` as a total function; the two must never
+    /// drift, or a side would read the other's tally.
+    func testTallyIndexMatchesScoreOrder() {
+        for side in Side.allCases {
+            XCTAssertEqual(Rink.tallyIndex(side), Rink.scoreOrder.firstIndex(of: side))
+        }
+    }
 }
