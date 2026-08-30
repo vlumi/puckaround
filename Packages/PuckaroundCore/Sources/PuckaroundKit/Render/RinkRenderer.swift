@@ -128,9 +128,9 @@ enum RinkRenderer {
         let halfHeight = table.size.y / 2
         for side in Side.allCases {
             let color = SeatPalette.color(for: side)
-            // Labels are head-to-head in board space; the board's own rotation
-            // (see `draw`) turns them to the players in landscape.
-            let seat = Seat(side: side)
+            // Portrait: head-to-head. Landscape: both labels counter-turn the
+            // board so they read upright, side by side along the bottom bench.
+            let seat = Seat(side: side, boardTurn: scene.placement.turn)
             // A side's own half, full width (both doubles lanes), split at the
             // center line — the surface its verdict and ready prompt sit on.
             let half = projection.rect(
