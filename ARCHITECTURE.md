@@ -61,9 +61,12 @@ stand on the same promise.
   order hits land in is part of the state.
 
 **The game is air hockey**, standard rules: a goal in each short wall, the side
-scored on gets the puck, first to seven (`Rules.pointsToWin`). Each side fields
-one or two mallets — see [Sides & slots](#sides--slots) — so 1v1, 1v2 and 2v2
-are one game. It was chosen because everyone already knows how to play it: the
+scored on gets the puck, first to seven points (`Rules.pointsToWin`). A **match**
+wraps games: first to `Rules.gamesToWin` games takes it (`gamesWon` per side,
+tallied on the faceoff between games; a single game is `gamesToWin == 1`, and
+the win events are `gameWon` mid-match vs. `matchOver`). Each side fields one or
+two mallets — see [Sides & slots](#sides--slots) — so 1v1, 1v2 and 2v2 are one
+game. It was chosen because everyone already knows how to play it: the
 rules need no screen to explain them, so the sandbox could be a game on day one
 rather than a toy that needs teaching. The mallet is the input, not a
 swipe-across-the-puck strike — you defend with it, and a still one is a wall —

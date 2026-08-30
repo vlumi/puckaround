@@ -137,11 +137,18 @@ enum RinkRenderer {
             let score = scene.rink.score(of: side)
             drawScore(score, at: side, color: color, projection: projection, in: &context)
             drawGoal(at: side, color: color, projection: projection, in: &context)
-            // The result stays up through the rematch faceoff, so players see
-            // who won while deciding to go again.
-            if let winner = scene.rink.finalWinner {
+            // In a best-of match, the games tally sits under the score.
+            if scene.rink.rules.gamesToWin > 1 {
+                drawGamesTally(
+                    (scene.rink.gamesWon(of: side), scene.rink.rules.gamesToWin), at: side,
+                    color: color, projection: projection, in: &context)
+            }
+            // The result stays up through the faceoff that follows it, so players
+            // see who won while deciding to go again — GAME between games of a
+            // match, WIN/LOSE when the match itself is decided.
+            if let outcome = scene.rink.lastOutcome {
                 drawVerdict(
-                    won: winner == side, in: half, facing: side, color: color, in: &context)
+                    outcome, side: side, in: half, color: color, in: &context)
             }
             if scene.rink.isFaceoff {
                 drawSideReadiness(
@@ -280,6 +287,34 @@ enum RinkRenderer {
         ctx.draw(colored(text, color), at: .zero, anchor: .center)
     }
 
+    /// The match tally beside a side's score: a row of pips, `wins` of them
+    /// filled in the side's color, the rest hollow — the games won toward the
+    /// match. Sits just inboard of the score, facing the player.
+    private static func drawGamesTally(
+        _ tally: (won: Int, of: Int), at side: Side, color: Color, projection: Projection,
+        in context: inout GraphicsContext
+    ) {
+        let (wins, needed) = tally
+        let table = projection.table
+        let beside = max((table.size.x - table.goalWidth(for: side)) / 4, 10)
+        // Just inboard of the score (which sits ~12 units from the short wall).
+        let y = side == .top ? 22.0 : table.size.y - 22
+        let x = side == .top ? table.size.x - beside : beside
+        let r = 1.6 * projection.scale
+        let gap = 5.0 * projection.scale
+        let row = (Double(needed) - 1) * gap
+        let center = projection.point(Vec2(x, y))
+        for i in 0..<needed {
+            let px = center.x - row / 2 + Double(i) * gap
+            let dot = projection.disc(at: CGPoint(x: px, y: center.y), radius: r)
+            if i < wins {
+                context.fill(dot, with: .color(color))
+            } else {
+                context.stroke(dot, with: .color(color.opacity(0.5)), lineWidth: 1)
+            }
+        }
+    }
+
     static func colored(
         _ text: GraphicsContext.ResolvedText, _ color: Color
     ) -> GraphicsContext.ResolvedText {
@@ -290,10 +325,15 @@ enum RinkRenderer {
 
     /// WIN or LOSE, on the side's own half, turned to face its player — so both
     /// verdicts read at once from opposite ends of the table.
+    /// The result on a side's half, turned to face its player. A match win reads
+    /// WIN/LOSE; a game won mid-match reads GAME for the winner (the loser sees
+    /// only the tally, since the match is still on).
     private static func drawVerdict(
-        won: Bool, in half: CGRect, facing side: Side, color: Color,
+        _ outcome: Rink.Outcome, side: Side, in half: CGRect, color: Color,
         in context: inout GraphicsContext
     ) {
+        let won = outcome.winner == side
+        guard outcome.endedMatch || won else { return }
         var ctx = context
         let towardCenter = half.height * 0.22
         let y = side == .top ? half.maxY - towardCenter : half.minY + towardCenter
@@ -301,7 +341,10 @@ enum RinkRenderer {
         if side == .top {
             ctx.rotate(by: .degrees(180))
         }
-        let word = won ? Text("WIN", bundle: .module) : Text("LOSE", bundle: .module)
+        let word: Text =
+            outcome.endedMatch
+            ? (won ? Text("WIN", bundle: .module) : Text("LOSE", bundle: .module))
+            : Text("GAME", bundle: .module)
         let text = ctx.resolve(
             word.font(.system(size: half.height * 0.16, weight: .black, design: .rounded)))
         let shade = won ? color : line.opacity(0.6)

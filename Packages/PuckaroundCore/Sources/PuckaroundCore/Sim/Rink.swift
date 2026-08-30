@@ -13,21 +13,26 @@ public enum GameEvent: Equatable, Sendable {
     /// two are opposite sides all the same — the puck crossing a side's own line
     /// is the other side's point, whoever last touched it.
     case goal(scorer: Side, conceder: Side)
-    /// The game just ended, won by a side.
-    case gameOver(winner: Side)
+    /// A game ended, won by a side, but the match continues (best-of play).
+    case gameWon(winner: Side)
+    /// The whole match ended, won by a side (its last game just finished).
+    case matchOver(winner: Side)
     /// The faceoff cleared and play begins this tick — the "GO".
     case faceoffCleared
 }
 
-/// The rules that aren't geometry.
+/// The rules that aren't geometry. A match is first to `gamesToWin` games; each
+/// game is first to `pointsToWin` points. A single game is `gamesToWin == 1`.
 public struct Rules: Equatable, Codable, Sendable {
     public var pointsToWin: Int
+    public var gamesToWin: Int
 
-    public init(pointsToWin: Int = 7) {
+    public init(pointsToWin: Int = 7, gamesToWin: Int = 1) {
         self.pointsToWin = pointsToWin
+        self.gamesToWin = gamesToWin
     }
 
-    /// Standard air hockey: first to seven.
+    /// Standard air hockey: a single game, first to seven.
     public static let standard = Rules()
 }
 
@@ -44,14 +49,22 @@ public struct Rink: Equatable, Sendable {
     public enum Phase: Equatable, Sendable {
         /// The faceoff ceremony: the puck is frozen at center behind a force
         /// field, and play begins the instant every mallet has readied. Carries
-        /// which mallets have readied so far, and — after a finished game — who
-        /// just won, so the result stays on screen while the table decides on a
-        /// rematch. A faceoff that follows a win resets the score when it starts
-        /// (the rematch); the opening one has nothing to reset.
-        case faceoff(ready: Set<MalletSlot>, afterWin: Side?)
+        /// which mallets have readied so far and — after a finished game — the
+        /// result just posted, so it stays on screen while the table decides to
+        /// go again. Readying up clears the game score; if that result ended the
+        /// whole MATCH, it also clears the games tally (a fresh match).
+        case faceoff(ready: Set<MalletSlot>, afterWin: Outcome?)
         case playing
 
         static var opening: Phase { .faceoff(ready: [], afterWin: nil) }
+    }
+
+    /// A finished game's result, shown on the faceoff that follows it.
+    public struct Outcome: Equatable, Sendable {
+        public let winner: Side
+        /// True if this game won the match (so the next faceoff starts a fresh
+        /// match, tally and all); false if the match continues.
+        public let endedMatch: Bool
     }
 
     public static let tickRate = 60
@@ -89,6 +102,9 @@ public struct Rink: Equatable, Sendable {
     public internal(set) var mallets: [Mallet]
     /// One score per side, indexed by `Rink.scoreOrder` (bottom, top).
     public internal(set) var score: [Int]
+    /// Games won per side this match, indexed by `Rink.scoreOrder`. In a single
+    /// game (`gamesToWin == 1`) it just reads 1–0 at the end.
+    public internal(set) var gamesWon: [Int]
     public internal(set) var phase: Phase = .playing
     public private(set) var tick: Tick = 0
     /// What happened this tick — cleared at the start of each `advance`, so it
@@ -117,6 +133,7 @@ public struct Rink: Equatable, Sendable {
         self.puck = Puck(position: table.center)
         self.mallets = slots.map { Mallet(position: table.malletZone(for: $0).center) }
         self.score = Rink.scoreOrder.map { _ in 0 }
+        self.gamesWon = Rink.scoreOrder.map { _ in 0 }
         newGame()
     }
 
@@ -128,12 +145,17 @@ public struct Rink: Equatable, Sendable {
         score[Rink.scoreOrder.firstIndex(of: side)!]
     }
 
-    /// Scores to zero, and open with a faceoff: the puck sits frozen at center
-    /// behind the force field until every mallet readies. No chance decides the
-    /// opening — the players do, by all grabbing in. The mallets stay where the
-    /// hands left them.
+    public func gamesWon(of side: Side) -> Int {
+        gamesWon[Rink.scoreOrder.firstIndex(of: side)!]
+    }
+
+    /// Start a fresh MATCH: game score and games tally to zero, opening faceoff.
+    /// The puck sits frozen at center behind the force field until every mallet
+    /// readies — no chance decides the opening, the players do by all grabbing
+    /// in. The mallets stay where the hands left them.
     public mutating func newGame() {
         score = Rink.scoreOrder.map { _ in 0 }
+        gamesWon = Rink.scoreOrder.map { _ in 0 }
         puck = Puck(position: table.center)
         phase = .opening
     }
@@ -147,10 +169,12 @@ public struct Rink: Equatable, Sendable {
         }
         ready.insert(slot)
         if ready.count == slots.count {
-            // The rematch begins: a faceoff that followed a win clears the score
-            // the instant it starts, so the final result stayed up until now.
-            if afterWin != nil {
+            // Play begins: a faceoff that followed a win clears the game score
+            // now (the result stayed up until this moment); if that win ended the
+            // whole match, the games tally clears too, for a fresh match.
+            if let afterWin {
                 score = Rink.scoreOrder.map { _ in 0 }
+                if afterWin.endedMatch { gamesWon = Rink.scoreOrder.map { _ in 0 } }
             }
             phase = .playing
             announceFaceoffCleared = true
@@ -165,12 +189,17 @@ public struct Rink: Equatable, Sendable {
         return []
     }
 
-    /// The winning side still shown during a post-game faceoff (nil for the
-    /// opening one, or during play). Drives the WIN/LOSE overlay.
-    public var finalWinner: Side? {
+    /// The result shown during a post-game faceoff (nil for the opening one, or
+    /// during play): who won and whether it ended the match. Drives the
+    /// WIN/LOSE and match overlays.
+    public var lastOutcome: Outcome? {
         if case .faceoff(_, let afterWin) = phase { return afterWin }
         return nil
     }
+
+    /// The winning side still shown during a post-game faceoff. Drives the
+    /// WIN/LOSE overlay (game or match).
+    public var finalWinner: Side? { lastOutcome?.winner }
 
     public var isFaceoff: Bool {
         if case .faceoff = phase { return true }
@@ -218,15 +247,18 @@ public struct Rink: Equatable, Sendable {
         let scorer = side.opponent
         score[Rink.scoreOrder.firstIndex(of: scorer)!] += 1
         events.append(.goal(scorer: scorer, conceder: conceder))
-        if score(of: scorer) >= rules.pointsToWin {
-            // The game is won: show the result and open the rematch faceoff at
-            // once. Readying up starts a fresh game (score resets then).
-            phase = .faceoff(ready: [], afterWin: scorer)
-            puck = Puck(position: table.center)
-            events.append(.gameOver(winner: scorer))
-        } else {
+        guard score(of: scorer) >= rules.pointsToWin else {
             serve(to: conceder)
+            return
         }
+        // The game is won: tally it, and decide whether that took the match.
+        gamesWon[Rink.scoreOrder.firstIndex(of: scorer)!] += 1
+        let endedMatch = gamesWon(of: scorer) >= rules.gamesToWin
+        // Show the result and open the faceoff; readying up starts the next game
+        // (or, if the match ended, a fresh match — see `ready`).
+        phase = .faceoff(ready: [], afterWin: Outcome(winner: scorer, endedMatch: endedMatch))
+        puck = Puck(position: table.center)
+        events.append(endedMatch ? .matchOver(winner: scorer) : .gameWon(winner: scorer))
     }
 }
 

@@ -76,7 +76,7 @@ final class EventTests: XCTestCase {
         XCTAssertGreaterThan(speed ?? 0, 0)
     }
 
-    func testAGoalEmitsGoalThenGameOverOnTheWinningStrike() {
+    func testAGoalEmitsGoalThenMatchOverOnTheWinningStrike() {
         var r = rink(rules: Rules(pointsToWin: 1))
         r.place(
             Puck(
@@ -93,7 +93,7 @@ final class EventTests: XCTestCase {
             goalEvents = r.events.filter { $0 != .faceoffCleared }
         }
         XCTAssertEqual(
-            goalEvents, [.goal(scorer: .bottom, conceder: .top), .gameOver(winner: .bottom)])
+            goalEvents, [.goal(scorer: .bottom, conceder: .top), .matchOver(winner: .bottom)])
     }
 
     func testANonWinningGoalEmitsNoGameOver() {

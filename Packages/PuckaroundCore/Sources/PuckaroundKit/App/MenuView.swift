@@ -7,14 +7,19 @@ import SwiftUI
 /// 1v2 and doubles are all just a pair of choices.
 struct MenuView: View {
     @Binding var pointsToWin: Int
+    @Binding var gamesToWin: Int
     @Binding var puckShapeKey: String
     @Binding var bottomHands: Int
     @Binding var topHands: Int
     @Binding var wrapWalls: Bool
     let onPlay: () -> Void
 
-    /// The offered targets — a short, sane range.
+    /// The offered points-per-game targets — a short, sane range.
     private let targets = [3, 5, 7, 11]
+    /// Match length as games-to-win, and the label for each.
+    private let matchLengths: [(games: Int, label: LocalizedStringKey)] = [
+        (1, "Single"), (2, "Best of 3"), (3, "Best of 5"),
+    ]
 
     var body: some View {
         ZStack {
@@ -31,6 +36,7 @@ struct MenuView: View {
                         wordmark
                         formatPicker
                         firstToPicker
+                        matchPicker
                         puckPicker
                         wallsPicker
                         NeonButton(title: "Play", tint: Neon.cyan, prominent: true, action: onPlay)
@@ -144,6 +150,28 @@ struct MenuView: View {
                 .shadow(color: Neon.magenta.opacity(0.7), radius: 14)
         }
         .font(.system(size: 54, weight: .black, design: .rounded))
+    }
+
+    /// Single game, or a best-of match. Labeled pills like the other pickers.
+    private var matchPicker: some View {
+        VStack(spacing: 12) {
+            sectionLabel("Match")
+            HStack(spacing: 10) {
+                ForEach(matchLengths, id: \.games) { length in
+                    let selected = length.games == gamesToWin
+                    Button {
+                        gamesToWin = length.games
+                    } label: {
+                        Text(length.label, bundle: .module)
+                            .font(.system(size: 15, weight: .bold, design: .rounded))
+                            .foregroundStyle(selected ? Neon.ground : Neon.ink)
+                            .frame(width: 88, height: 44)
+                            .background(pillBackground(selected: selected))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
     }
 
     private var firstToPicker: some View {

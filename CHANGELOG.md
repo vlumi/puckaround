@@ -14,6 +14,8 @@ The `## vX.Y.Z` heading is written by the release lane too, whenever a release c
 
 ### Unreleased (next build)
 
+- **Play a match, not just a game.** Pick "Best of 3" or "Best of 5" under Match and a win takes a game, not the whole thing — first to two (or three) games takes the match. Between games it's a fresh faceoff with the points reset, and a row of pips by each score tracks who's ahead. "Single" is the old one-game behavior.
+
 ### build 6 — 2026-08-29
 
 - **Wrap-around walls, a new table variation.** Pick "Wrap" under Walls and the long side walls become portals — a shot that would glance off the side slides off one edge and reappears on the other at the same height, keeping its speed, so you can bank the puck right around the table. The goals stay solid. Works with any puck and any number of players.
