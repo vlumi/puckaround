@@ -8,7 +8,7 @@ The implementation plan, as **named milestones in rough order** — and *only op
 
 Guiding order: **the mallet is the game**, and **what comes early is whatever answers a question that changes the plan**.
 
-Shipped so far (in TestFlight, detail in [CHANGELOG.md](CHANGELOG.md)): 1v1/1v2/2v2 air hockey with the faceoff/rematch flow, round/square/triangle pucks with spin (polygon and disc), wrap-wall tables, sound + haptics, and a front door. What's left is below.
+Shipped so far (in TestFlight, detail in [CHANGELOG.md](CHANGELOG.md)): 1v1/1v2/2v2 air hockey with the faceoff/rematch flow, best-of matches, round/square/triangle pucks with spin (polygon and disc), wrap-wall tables, winner-stays tournaments with remembered names, sound + haptics, and a front door. What's left is below.
 
 ## Tune & fit — *the table on real hardware*
 
@@ -18,10 +18,10 @@ Shipped so far (in TestFlight, detail in [CHANGELOG.md](CHANGELOG.md)): 1v1/1v2/
 
 ## The couch — *who is playing*
 
-The front door sets each side's hand count and the table variant. What's missing is identity beyond a bare count.
+Winner-stays tournaments shipped: remembered names (a tap-to-pick pool, no profiles), the line, and tonight's tally. Left here:
 
-- [ ] **Who's playing, remembered.** Names and colors that belong to a person, not just a side — so a result is *someone's*. Purely on-device. Gates the session tally and tournaments.
-- [ ] **A record of the session.** A running tally across games, so the last twenty minutes happened.
+- [ ] **More tournament shapes.** Round-robin and a bracket on the same roster machinery, if evenings ask for them.
+- [ ] **A color of one's own.** A per-person accent on chips and verdicts — cosmetic identity; the sim stays side-based.
 
 ## Puck & table variety — *what changes how it plays*
 
@@ -50,7 +50,6 @@ A parking lot for what could flesh the game out before 1.0. None of these is com
 - [ ] **Multiple pucks.** Two or three pucks at once — chaos in a good way, and nearly free: the sim already steps one puck through walls and mallets, so this is an array plus puck–puck collision (the same circle–circle math the mallets use). Scoring needs a rule for who a goal counts for when several are live. A natural pairing with bumpers.
 - [ ] **A single-player mode — a different game sharing the physics.** Ideas from pinball and breakout: a wall of bricks the puck chips away, a table of bumpers and targets to rack up a score, a survival mode where you keep the puck off your own goal. Honestly: this **changes what the app is** — the premise everywhere else is "the device is the table, people around one screen," and a solo score-attack is a genuinely different game that reuses the puck sim. So it earns a mode, never the front door, and only if the multiplayer game is proven first. The engine is ready (deterministic sim, event stream, kinematic-circle collisions); the question is whether it's a game worth being.
 - [ ] **A curved table (the ellipse).** An ellipse wastes less portrait space than a circle and brings **curved walls**, where the bounce angle depends on *where* on the wall you hit — reflection off the local tangent, not a fixed normal. **Goals are pie-slices** of the perimeter (defend an arc, not a gap in a flat wall). The payoff — the reason it's worth building — is the **rolling shot**: a low, wall-hugging shot with forward spin that hugs the curve through each bounce and accelerates toward the goal, a skill the flat table can't express (needs grip-spin, above; disc spin is invisible, so decide then whether a drawn puck symbol shows rotation). Cost is a whole table's worth of physics — elliptical-sector mallet zones, an angular goal test, and generalizing `PolygonCollision` off its axis-aligned assumption to an arbitrary wall normal. Comparable to the shaped-puck spike, so a spike not a variant; iPad-forgiving, and off the singles/doubles path.
-- [ ] **Tournaments.** A series of games across a session with standings — the thing that gives a two-minute game a reason to be played ten times. Skid's tournament model (fixed rounds, points table, persisted across quits) is the pattern to copy; wants remembered players under it first.
 - [ ] **Nearby multiplayer.** Two devices, each its own table half, over the local network — no server, no accounts. The sim was built for it: inputs are data and the state is deterministic, so host-authoritative snapshots or lockstep over MultipeerConnectivity (as Skid does) is reachable without a rewrite. Changes the premise (one shared screen) enough that it needs its own decision before any code; listed so it isn't forgotten, not because it is planned.
 - [ ] **Multi-device tournaments.** Several tables in the same room, each a device, feeding one bracket. Recorded because it follows from tournaments plus nearby play; judged *not important*: hard to see the game drawing crowds that need it, and it costs a network layer otherwise unneeded.
 

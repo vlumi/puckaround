@@ -95,10 +95,12 @@ puckaround/
     │   ├── Sim/                    Rink (+Rink+Physics) the air-hockey sim, Puck, Mallet,
     │   │                           PolygonCollision (shaped pucks), GameSession, SideWalls
     │   ├── Table/                  Playfield + Goal geometry, Table (Side/Lane/MalletSlot/Format), PuckShape
-    │   └── Input/                  SeatInput + ControlSource, SeatZones, MalletControlSource
+    │   ├── Input/                  SeatInput + ControlSource, SeatZones, MalletControlSource
+    │   └── Couch/                  Tournament (winner stays — names never reach the sim)
     ├── Sources/PuckaroundKit/      SwiftUI + UIKit, depends on Core; coverage-ignored
     │   ├── App/                    AppRoot, MenuView + NewMatchSheet/SetupControls/Setup (the front door),
-    │   │                           GameView + HockeyGame (one table), InterfaceTurn, NeonUI, Compat (iOS 16 wrappers)
+    │   │                           GameView + HockeyGame (one table), TournamentView + RosterSheet (winner
+    │   │                           stays), InterfaceTurn, NeonUI, Compat (iOS 16 wrappers)
     │   ├── Feedback/               Haptics + SoundEngine — procedural, off the sim's GameEvent stream
     │   ├── Input/                  MultiTouchSurface — every finger, id-tagged, to the control source
     │   ├── Render/                 RinkRenderer (+Puck/+Faceoff/+Score, Canvas), BoardPlacement, Seat, SeatPalette
