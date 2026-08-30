@@ -128,14 +128,14 @@ extension RinkRenderer {
     /// drawn as persistent furniture (see `drawLaneDividers`), so it needs none
     /// here.
     static func drawSideReadiness(
-        _ scene: RinkScene, side: Side, half: CGRect, color: Color,
+        _ scene: RinkScene, seat: Seat, half: CGRect, color: Color,
         in context: inout GraphicsContext
     ) {
-        let slots = scene.rink.slots.filter { $0.side == side }
+        let slots = scene.rink.slots.filter { $0.side == seat.side }
         let rematch = scene.rink.finalWinner != nil
         for slot in slots where !scene.rink.readyMallets.contains(slot) {
             drawReadyPrompt(
-                rematch: rematch, in: laneRect(slot.lane, in: half), facing: side, color: color,
+                rematch: rematch, in: laneRect(slot.lane, in: half), seat: seat, color: color,
                 in: &context)
         }
     }
@@ -153,9 +153,10 @@ extension RinkRenderer {
     }
 
     private static func drawReadyPrompt(
-        rematch: Bool, in half: CGRect, facing side: Side, color: Color,
+        rematch: Bool, in half: CGRect, seat: Seat, color: Color,
         in context: inout GraphicsContext
     ) {
+        let side = seat.side
         var ctx = context
         // On a rematch the verdict sits near the center line, so the prompt
         // drops toward the player to clear it; the opening faceoff centers it.
@@ -163,9 +164,7 @@ extension RinkRenderer {
         let y =
             side == .top ? half.maxY - half.height * fraction : half.minY + half.height * fraction
         ctx.translateBy(x: half.midX, y: y)
-        if side == .top {
-            ctx.rotate(by: .degrees(180))
-        }
+        ctx.rotate(by: seat.labelAngle)
         let text = ctx.resolve(
             Text("Ready?", bundle: .module).font(
                 .system(size: half.height * 0.1, weight: .bold, design: .rounded)))

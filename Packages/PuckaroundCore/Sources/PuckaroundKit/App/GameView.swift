@@ -47,7 +47,8 @@ struct GameView: View {
                         }
                         InputSurface(game: game)
                         // ABOVE the input surface, or the multitouch view eats
-                        // the taps.
+                        // the taps. The menus are ordinary SwiftUI and rotate with
+                        // the interface, so they stay upright to the player.
                         overlay(for: scene)
                     }
                 }
