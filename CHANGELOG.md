@@ -14,6 +14,8 @@ The `## vX.Y.Z` heading is written by the release lane too, whenever a release c
 
 ### Unreleased (next build)
 
+- **Change the setup without leaving the table.** Tap the center ring and there's a new Settings button — players, first-to, match length, puck and walls, the same choices as the front page. Change anything and the game restarts with it; leave it untouched and play resumes where it was. No more quitting to the title just to switch the puck.
+- **A "?" for a random puck or table.** Both the Puck and Walls pickers now offer a "?" — pick it and the shape (or solid-vs-wrap) is rolled fresh at the start of each game, so you don't know what you're getting until it drops. The two roll independently.
 - **Play a match, not just a game.** Pick "Best of 3" or "Best of 5" under Match and a win takes a game, not the whole thing — first to two (or three) games takes the match. Between games it's a fresh faceoff with the points reset, and a row of pips by each score tracks who's ahead. The result names what just ended — GAME won/lost between games, MATCH when it's decided — so it's never unclear whether the match is over. "Single" is the old one-game behavior.
 
 ### build 6 — 2026-08-29
