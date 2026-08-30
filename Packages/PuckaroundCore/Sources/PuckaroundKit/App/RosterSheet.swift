@@ -13,6 +13,7 @@ struct RosterSheet: View {
     @State private var pool: [String] = []
     @State private var roster: [String] = []
     @State private var newName = ""
+    @FocusState private var nameFocused: Bool
 
     private let columns = [GridItem(.adaptive(minimum: 110), spacing: 8)]
 
@@ -92,23 +93,51 @@ struct RosterSheet: View {
         }
     }
 
-    /// One name, once — it joins tonight's lineup and the remembered pool.
+    /// One name, once — it joins tonight's lineup and the remembered pool. The
+    /// field keeps focus after adding, so a whole lineup types without leaving
+    /// the keyboard; the + is the same action made visible.
     private var addField: some View {
-        TextField(text: $newName, prompt: Text("Add name", bundle: .module)) {
-            Text("Add name", bundle: .module)
+        HStack(spacing: 8) {
+            TextField(text: $newName, prompt: Text("Add name", bundle: .module)) {
+                Text("Add name", bundle: .module)
+            }
+            .font(.system(size: 16, weight: .semibold, design: .rounded))
+            .foregroundStyle(Neon.ink)
+            .textFieldStyle(.plain)
+            .submitLabel(.next)
+            .focused($nameFocused)
+            .padding(.horizontal, 14)
+            .frame(height: 44)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .strokeBorder(Neon.inkSoft.opacity(0.6), lineWidth: 1.5)
+            )
+            .onSubmit(add)
+            addButton
         }
-        .font(.system(size: 16, weight: .semibold, design: .rounded))
-        .foregroundStyle(Neon.ink)
-        .textFieldStyle(.plain)
-        .submitLabel(.done)
-        .padding(.horizontal, 14)
-        .frame(height: 44)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .strokeBorder(Neon.inkSoft.opacity(0.6), lineWidth: 1.5)
-        )
-        .onSubmit(add)
     }
+
+    private var addButton: some View {
+        Button(action: add) {
+            Image(systemName: "plus")
+                .font(.system(size: 17, weight: .bold))
+                .foregroundStyle(canAdd ? Neon.ground : Neon.inkSoft)
+                .frame(width: 44, height: 44)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(canAdd ? Neon.cyan : Color.clear)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .strokeBorder(
+                                    canAdd ? Neon.cyan : Neon.inkSoft.opacity(0.6),
+                                    lineWidth: 1.5)))
+        }
+        .buttonStyle(.plain)
+        .disabled(!canAdd)
+        .accessibilityLabel(Text("Add name", bundle: .module))
+    }
+
+    private var canAdd: Bool { !newName.trimmingCharacters(in: .whitespaces).isEmpty }
 
     private func chip(_ name: String, selected: Bool, act: @escaping () -> Void) -> some View {
         Button(action: act) {
@@ -149,6 +178,8 @@ struct RosterSheet: View {
     private func add() {
         let name = newName.trimmingCharacters(in: .whitespaces)
         newName = ""
+        // Focus stays in the field, so the next name needs no extra touch.
+        nameFocused = true
         guard !name.isEmpty, !roster.contains(name) else { return }
         roster.append(name)
         if !pool.contains(name) {
