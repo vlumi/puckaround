@@ -91,8 +91,18 @@ a puck leaving one long side re-enters the opposite side at the same height,
 keeping its speed (the goals stay solid). A table variant, orthogonal to shape
 and format.
 
-**Coordinates are y-down**, matching screen space: rendering is a pure scale
-and nothing flips. `Side.bottom` is the bottom of the screen.
+**Coordinates are y-down**, matching screen space. `Side.bottom` is the bottom
+of the board.
+
+**The board follows the phone.** One transform (`BoardPlacement`) owns the fit,
+a turn from the *physical* device orientation (0 upright, ±90 landscape, 180
+upside down), and the world ↔ screen mapping — the renderer draws through it and
+the touch mapping inverts it, so a finger lands where it looks in any hold and
+the magenta goal stays at the button end. Labels counter-turn to face the
+players (side by side in landscape, head-to-head in either portrait — `Seat`);
+the menus are plain SwiftUI and rotate with the interface. The system's rotation
+animation briefly spins the board; suppressing it from the app was proven
+impossible, and the accepted trade-off is recorded in the PR that shipped this.
 
 **The puck has a shape** (`PuckShape` on `Playfield` — `circle` by default, or
 a `polygon`; square and triangle ship). A polygon puck carries an `angle` and
@@ -181,10 +191,11 @@ offset.
 
 Not built. Nothing below describes existing code.
 
-**The couch's tail.** The front door shipped (title, first-to-N, puck pick,
-players-per-side and walls pickers, Play; the center ring is the
-always-available menu; a rematch is the faceoff returning). Still planned: who is
-playing beyond a bare per-side count — names, remembered colors, profiles.
+**The couch's tail.** The front door shipped (a bare title plus the New match
+modal — players, first-to, match length, puck and walls, each with a "?" random
+pick — the same modal a game's center-ring menu reopens mid-match; a rematch is
+the faceoff returning). Still planned: who is playing beyond a bare per-side
+count — names, remembered colors, profiles.
 
 **A curved table (the ellipse).** Slice goals and curved walls, and the payoff
 the flat table can't express: a forward-spun puck that rolls the wall toward the

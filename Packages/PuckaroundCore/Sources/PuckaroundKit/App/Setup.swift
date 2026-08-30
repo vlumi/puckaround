@@ -40,9 +40,11 @@ extension Setup {
         return key.shape
     }
 
-    /// Solid or wrap walls — the picked one, or a coin-flip when "?" is on.
+    /// Solid or wrap walls — the picked one, or a coin-flip when "?" is on. The
+    /// flip uses a high bit so it stays independent of the puck's roll when both
+    /// "?" are on — otherwise wrap could only ever pair with some of the shapes.
     func resolvedWalls(roll: UInt64) -> SideWalls {
-        let wrap = randomWalls ? (roll & 1) == 1 : wrapWalls
+        let wrap = randomWalls ? (roll >> 32 & 1) == 1 : wrapWalls
         return wrap ? .wrap : .solid
     }
 }

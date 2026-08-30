@@ -28,16 +28,4 @@ final class SeatZonesTests: XCTestCase {
         XCTAssertEqual(duel.owner(of: Vec2(60, 500)), .bottomSingle)
         XCTAssertEqual(duel.owner(of: Vec2(60, -50)), .topSingle)
     }
-
-    func testBandsHugTheirSides() {
-        let depth = 10.0
-        let bottom = duel.band(for: .bottom, depth: depth)
-        XCTAssertEqual(bottom.maxY, table.size.y)
-        XCTAssertEqual(bottom.height, depth)
-        XCTAssertEqual(bottom.width, table.size.x)
-        let top = duel.band(for: .top, depth: depth)
-        XCTAssertEqual(top.minY, 0)
-        XCTAssertEqual(top.height, depth)
-        XCTAssertEqual(top.width, table.size.x)
-    }
 }

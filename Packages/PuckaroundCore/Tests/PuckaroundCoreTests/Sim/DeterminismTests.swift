@@ -56,8 +56,8 @@ final class DeterminismTests: XCTestCase {
     func testNewGameIsReproducibleFromTheSeed() {
         var a = Rink(table: .duel, seed: 5)
         var b = Rink(table: .duel, seed: 5)
-        a.newGame()
-        b.newGame()
+        a.newMatch()
+        b.newMatch()
         XCTAssertEqual(a, b)
     }
 }

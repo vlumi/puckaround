@@ -55,6 +55,11 @@ extension View {
             onAppear {
                 UIDevice.current.beginGeneratingDeviceOrientationNotifications()
             }
+            // Balanced with the begin above — UIKit reference-counts these, so an
+            // unpaired begin would leave the accelerometer polling forever.
+            .onDisappear {
+                UIDevice.current.endGeneratingDeviceOrientationNotifications()
+            }
             .onReceive(
                 NotificationCenter.default.publisher(
                     for: UIDevice.orientationDidChangeNotification)

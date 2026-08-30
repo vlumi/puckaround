@@ -10,7 +10,7 @@ import PuckaroundCore
 /// The render block runs on the audio thread; it reads pending triggers through
 /// a lock and shapes them per-sample, so the tick loop can fire freely.
 @MainActor
-public final class SoundEngine {
+final class SoundEngine {
     /// A percussive voice: a decaying tone plus a noise transient. One struct
     /// per concurrent sound — a hit and a goal can ring at once.
     private struct Hit {
@@ -79,11 +79,11 @@ public final class SoundEngine {
     private let engine = AVAudioEngine()
     private let state = State()
     private var running = false
-    public var enabled = true
+    var enabled = true
 
-    public init() {}
+    init() {}
 
-    public func start() {
+    func start() {
         guard enabled, !running else { return }
         #if os(iOS)
         // Ambient: respects the silent switch, mixes with the user's music.
@@ -101,14 +101,14 @@ public final class SoundEngine {
         running = (try? engine.start()) != nil
     }
 
-    public func stop() {
+    func stop() {
         guard running else { return }
         engine.stop()
         running = false
     }
 
     /// Fire the sounds for one tick's events.
-    public func play(_ events: [GameEvent]) {
+    func play(_ events: [GameEvent]) {
         guard running else { return }
         for event in events {
             switch event {

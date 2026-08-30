@@ -89,7 +89,7 @@ final class FaceoffTests: XCTestCase {
         XCTAssertTrue(r.isFaceoff)
         XCTAssertEqual(r.finalWinner, .top)
         // …and a full new game clears that, a fresh faceoff with no result shown.
-        r.newGame()
+        r.newMatch()
         XCTAssertTrue(r.isFaceoff)
         XCTAssertNil(r.finalWinner)
         XCTAssertEqual(r.readyMallets, [])

@@ -155,7 +155,7 @@ final class ScoringTests: XCTestCase {
         XCTAssertEqual(r.finalWinner, .top)
         r.advance(inputs: [bottom: SeatInput(malletDrag: Vec2(3, -3))])
         let hands = r.mallets
-        r.newGame()
+        r.newMatch()
         XCTAssertEqual(r.score, [0, 0])
         XCTAssertTrue(r.isFaceoff)
         XCTAssertNil(r.finalWinner, "a fresh game shows no prior result")

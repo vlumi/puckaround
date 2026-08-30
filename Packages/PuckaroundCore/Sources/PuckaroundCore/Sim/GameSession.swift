@@ -64,7 +64,7 @@ public final class GameSession {
         rink.ready(slot)
     }
 
-    public func newGame() {
-        rink.newGame()
+    public func newMatch() {
+        rink.newMatch()
     }
 }

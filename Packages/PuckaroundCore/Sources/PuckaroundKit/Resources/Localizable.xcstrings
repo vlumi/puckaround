@@ -11,20 +11,23 @@
     "LOST": {},
     "MATCH": {},
     "Match": {},
-    "Menu": {},
     "New match": {},
     "New match…": {},
     "PUCK": {},
-    "Play": {},
+    "Players": {},
     "Puck": {},
     "Quit to title": {},
     "Ready?": {},
     "Restart": {},
     "Resume": {},
     "Single": {},
+    "Solid": {},
     "Start match": {},
+    "VS.": {},
     "WIN": {},
-    "WON": {}
+    "WON": {},
+    "Walls": {},
+    "Wrap": {}
   },
   "version": "1.0"
 }

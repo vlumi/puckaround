@@ -7,8 +7,6 @@ import SwiftUI
 /// draft and launches a fresh match. The one place a match is configured and
 /// begun, so the two entry points can't drift.
 struct NewMatchSheet: View {
-    /// The setup to open on — the stored one, so the pickers show last time's.
-    let initial: Setup
     /// Commit the chosen setup and start a match with it.
     let onStart: (Setup) -> Void
     /// Dismiss without starting; the draft is discarded.
@@ -16,8 +14,9 @@ struct NewMatchSheet: View {
 
     @State private var draft: Setup
 
+    /// `initial` seeds the draft — the stored setup, so the pickers show last
+    /// time's picks.
     init(initial: Setup, onStart: @escaping (Setup) -> Void, onClose: @escaping () -> Void) {
-        self.initial = initial
         self.onStart = onStart
         self.onClose = onClose
         _draft = State(initialValue: initial)
@@ -43,7 +42,7 @@ struct NewMatchSheet: View {
                     .padding(24)
             }
             .frame(maxWidth: 440)
-            .background(card)
+            .background(NeonCard())
             .padding(16)
         }
     }
@@ -63,11 +62,5 @@ struct NewMatchSheet: View {
 
     private var start: some View {
         NeonButton(title: "Start match", tint: Neon.cyan, prominent: true) { onStart(draft) }
-    }
-
-    private var card: some View {
-        RoundedRectangle(cornerRadius: 18).fill(Neon.ground.opacity(0.98))
-            .overlay(
-                RoundedRectangle(cornerRadius: 18).strokeBorder(Neon.inkSoft, lineWidth: 1))
     }
 }

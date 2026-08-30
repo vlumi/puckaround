@@ -116,7 +116,7 @@ public struct Rink: Equatable, Sendable {
     private var announceFaceoffCleared = false
     /// Reserved seam: seeded, deterministic randomness for a sim that has none
     /// yet (the faceoff opening replaced the old random serve). The first
-    /// randomised event — a bumper kick, a puck-variety wobble — draws from
+    /// randomized event — a bumper kick, a puck-variety wobble — draws from
     /// here. Note it participates in `Equatable`: two rinks differing only by
     /// seed are unequal even before any draw.
     private var rng: SeededRNG
@@ -134,7 +134,7 @@ public struct Rink: Equatable, Sendable {
         self.mallets = slots.map { Mallet(position: table.malletZone(for: $0).center) }
         self.score = Rink.scoreOrder.map { _ in 0 }
         self.gamesWon = Rink.scoreOrder.map { _ in 0 }
-        newGame()
+        newMatch()
     }
 
     public func mallet(at slot: MalletSlot) -> Mallet? {
@@ -149,11 +149,11 @@ public struct Rink: Equatable, Sendable {
         gamesWon[Rink.scoreOrder.firstIndex(of: side)!]
     }
 
-    /// Start a fresh MATCH: game score and games tally to zero, opening faceoff.
+    /// Start a fresh match: game score and games tally to zero, opening faceoff.
     /// The puck sits frozen at center behind the force field until every mallet
     /// readies — no chance decides the opening, the players do by all grabbing
     /// in. The mallets stay where the hands left them.
-    public mutating func newGame() {
+    public mutating func newMatch() {
         score = Rink.scoreOrder.map { _ in 0 }
         gamesWon = Rink.scoreOrder.map { _ in 0 }
         puck = Puck(position: table.center)

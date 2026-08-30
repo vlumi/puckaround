@@ -96,6 +96,9 @@ extension RinkRenderer {
         }
     }
 
+    /// The mallet: a glowing ring in the seat's color with a dark hollow, so it
+    /// reads as a striker rather than a solid disc, and its color is unmistakably
+    /// that player's.
     private static func drawMallet(
         _ mallet: Mallet, radius: Double, color: Color, ripple: Ripple = Ripple(),
         projection: Projection, in context: inout GraphicsContext

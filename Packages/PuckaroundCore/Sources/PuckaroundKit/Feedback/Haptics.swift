@@ -13,7 +13,7 @@ import UIKit
 /// experience of it. `prepare()` before a game keeps the first hit from lagging
 /// while Taptic spins up.
 @MainActor
-public final class Haptics {
+final class Haptics {
     #if os(iOS)
     private let soft = UIImpactFeedbackGenerator(style: .soft)
     private let light = UIImpactFeedbackGenerator(style: .light)
@@ -21,11 +21,11 @@ public final class Haptics {
     private let notice = UINotificationFeedbackGenerator()
     #endif
 
-    public var enabled = true
+    var enabled = true
 
-    public init() {}
+    init() {}
 
-    public func prepare() {
+    func prepare() {
         #if os(iOS)
         soft.prepare()
         light.prepare()
@@ -33,7 +33,7 @@ public final class Haptics {
         #endif
     }
 
-    public func play(_ events: [GameEvent]) {
+    func play(_ events: [GameEvent]) {
         guard enabled else { return }
         #if os(iOS)
         for event in events {

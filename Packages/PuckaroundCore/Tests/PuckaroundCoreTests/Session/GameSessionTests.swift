@@ -58,7 +58,7 @@ final class GameSessionTests: XCTestCase {
         s.update(to: 1)
         XCTAssertGreaterThan(s.rink.tick, 0)
         let seedState = Rink(table: .duel, seed: 3)
-        s.newGame()
+        s.newMatch()
         XCTAssertEqual(s.rink.score, [0, 0])
         XCTAssertEqual(
             s.rink.mallets, seedState.mallets, "nobody has moved, so the mallets are still home")
