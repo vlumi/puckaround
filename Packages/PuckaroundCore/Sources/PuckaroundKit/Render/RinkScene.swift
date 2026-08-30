@@ -16,6 +16,18 @@ struct RinkScene {
     /// 0→1 progress of the faceoff-clears burst, or nil when not bursting.
     var faceoffBurst: Double?
 
+    /// The named ends during a tournament, or nil in a plain match.
+    var names: EndNames?
+
     /// How long the burst ring animates, in seconds.
     static let burstDuration = 0.45
+}
+
+/// Who defends which end, by name — tournament labels for the renderer. Kit-only:
+/// the sim never sees a name (identity ends at the table, see `MalletSlot`).
+struct EndNames {
+    var bottom: String
+    var top: String
+
+    func name(for side: Side) -> String { side == .bottom ? bottom : top }
 }

@@ -9,6 +9,8 @@ struct MenuView: View {
     @Binding var setup: Setup
     /// Start a match with the current stored setup.
     let onPlay: () -> Void
+    /// Open the tournament flow (resuming a saved evening if one exists).
+    let onTournament: () -> Void
 
     @State private var showingNewMatch = false
 
@@ -17,8 +19,11 @@ struct MenuView: View {
             Neon.ground.ignoresSafeArea()
             VStack(spacing: 40) {
                 wordmark
-                NeonButton(title: "New match", tint: Neon.cyan, prominent: true) {
-                    showingNewMatch = true
+                VStack(spacing: 14) {
+                    NeonButton(title: "New match", tint: Neon.cyan, prominent: true) {
+                        showingNewMatch = true
+                    }
+                    NeonButton(title: "Tournament", action: onTournament)
                 }
                 .frame(maxWidth: 280)
                 .padding(.horizontal, 40)

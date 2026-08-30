@@ -39,6 +39,29 @@ extension RinkRenderer {
             ? Vec2(table.size.x - beside, inset) : Vec2(beside, table.size.y - inset)
     }
 
+    /// The player's name during a tournament, in the corner across the goal from
+    /// their score — same end, other post — turned to face them like everything
+    /// else that is theirs.
+    static func drawEndName(
+        _ name: String, seat: Seat, color: Color, projection: Projection,
+        in context: inout GraphicsContext
+    ) {
+        let table = projection.table
+        let side = seat.side
+        let beside = max((table.size.x - table.goalWidth(for: side)) / 4, 10)
+        let inset = 12.0
+        let spot =
+            side == .top ? Vec2(beside, inset) : Vec2(table.size.x - beside, table.size.y - inset)
+        var ctx = context
+        let at = projection.point(spot)
+        ctx.translateBy(x: at.x, y: at.y)
+        ctx.rotate(by: seat.labelAngle)
+        let text = ctx.resolve(
+            Text(verbatim: name).font(
+                .system(size: 6 * projection.scale, weight: .bold, design: .rounded)))
+        ctx.draw(colored(text, color.opacity(0.75)), at: .zero, anchor: .center)
+    }
+
     /// The match tally beside a side's score: a row of pips, `won` of them filled
     /// in the side's color, the rest hollow — the games won toward the match.
     /// Sits just inboard of the score, facing the player.

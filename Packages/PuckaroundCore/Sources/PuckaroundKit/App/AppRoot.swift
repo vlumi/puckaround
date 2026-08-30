@@ -27,6 +27,8 @@ public struct AppRoot: View {
         /// A live game, keyed by its seed so swapping games (restart, or a
         /// mid-game settings change) replaces the view and re-rolls "?" cleanly.
         case playing(seed: UInt64)
+        /// The tournament flow — roster, interstitials and its own matches.
+        case tournament
     }
 
     public init() {}
@@ -34,7 +36,9 @@ public struct AppRoot: View {
     public var body: some View {
         switch phase {
         case .menu:
-            MenuView(setup: setupBinding, onPlay: { phase = .playing(seed: freshSeed()) })
+            MenuView(
+                setup: setupBinding, onPlay: { phase = .playing(seed: freshSeed()) },
+                onTournament: { phase = .tournament })
         case .playing(let seed):
             GameView(
                 setup: setup, seed: seed,
@@ -47,6 +51,8 @@ public struct AppRoot: View {
             // Keyed on the seed so "restart" (and a settings change that re-rolls
             // it) tears down the old table and its session/sound cleanly.
             .id(seed)
+        case .tournament:
+            TournamentView(setup: setup, onExit: { phase = .menu })
         }
     }
 

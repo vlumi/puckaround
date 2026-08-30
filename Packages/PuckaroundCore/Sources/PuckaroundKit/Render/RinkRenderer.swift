@@ -139,6 +139,11 @@ enum RinkRenderer {
                     height: halfHeight))
             let score = scene.rink.score(of: side)
             drawScore(score, seat: seat, color: color, projection: projection, in: &context)
+            if let names = scene.names {
+                drawEndName(
+                    names.name(for: side), seat: seat, color: color, projection: projection,
+                    in: &context)
+            }
             drawGoal(at: side, color: color, projection: projection, in: &context)
             // In a best-of match, the games tally sits under the score.
             if scene.rink.rules.gamesToWin > 1 {

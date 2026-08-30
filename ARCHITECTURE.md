@@ -176,6 +176,13 @@ pair earns a wide one, so in 1v2 the harder goal to keep goes to the
 better-staffed side. In doubles a side's half splits into left/right lanes, each
 mallet confined to one, with a drawn divider down the middle.
 
+**Tournaments sit on top, not inside.** Winner-stays (`Tournament`, in Core):
+two names on the table, a line behind them, the winner keeps their end and the
+loser rejoins the back — pure, tested scheduling that survives the app quitting.
+Names are labels the Kit pins on the ends for the evening (`EndNames`, and a
+remembered tap-to-pick pool — no profiles, no history); the sim still never
+learns who is playing.
+
 `SeatZones` maps a world point to the slot that owns it (its side's half, then
 its lane). **A touch belongs to the slot it grabbed for its whole life** — one
 finger per mallet, decided on the grab, never revisited. `MalletControlSource`
@@ -191,11 +198,11 @@ offset.
 
 Not built. Nothing below describes existing code.
 
-**The couch's tail.** The front door shipped (a bare title plus the New match
-modal — players, first-to, match length, puck and walls, each with a "?" random
-pick — the same modal a game's center-ring menu reopens mid-match; a rematch is
-the faceoff returning). Still planned: who is playing beyond a bare per-side
-count — names, remembered colors, profiles.
+**The couch's tail.** The front door shipped (a bare title with two modes — the
+New match modal and the winner-stays tournament; a rematch is the faceoff
+returning). Still planned: more tournament shapes (round-robin, a bracket) on
+the same roster machinery, and a per-person accent color — cosmetic identity
+only; the sim stays side-based.
 
 **A curved table (the ellipse).** Slice goals and curved walls, and the payoff
 the flat table can't express: a forward-spun puck that rolls the wall toward the

@@ -14,12 +14,15 @@ struct GameView: View {
     /// The setup the running game was built from — the New match modal opens on
     /// it, so the pickers show what's in play.
     let setup: Setup
+    /// Set when this match belongs to a tournament: the ends wear names, and
+    /// the tournament hears who won.
+    let tournament: TournamentMatch?
     /// Commit a chosen setup and start a fresh match with it.
     let onNewMatch: (Setup) -> Void
     let onExit: () -> Void
 
     init(
-        setup: Setup, seed: UInt64,
+        setup: Setup, seed: UInt64, tournament: TournamentMatch? = nil,
         onNewMatch: @escaping (Setup) -> Void, onExit: @escaping () -> Void
     ) {
         _game = StateObject(
@@ -27,6 +30,7 @@ struct GameView: View {
                 rules: setup.rules, puckShape: setup.resolvedPuck(roll: seed),
                 format: setup.format, sideWalls: setup.resolvedWalls(roll: seed), seed: seed))
         self.setup = setup
+        self.tournament = tournament
         self.onNewMatch = onNewMatch
         self.onExit = onExit
     }
@@ -57,6 +61,8 @@ struct GameView: View {
                 relayout(geo.size)
                 game.begin()
                 game.onMenuTap = { showingPause = true }
+                game.endNames = tournament?.names
+                game.onMatchOver = tournament?.onMatchOver
             }
             .onChangeCompat(of: geo.size) { size in relayout(size) }
             // The flips that keep the same size (left↔right landscape, portrait↔
@@ -109,8 +115,12 @@ struct GameView: View {
                     showingPause = false
                     onNewMatch(setup)
                 }
-                NeonButton(title: "New match…") { showingNewMatch = true }
-                NeonButton(title: "Quit to title", tint: Neon.magenta, action: onExit)
+                if tournament == nil {
+                    NeonButton(title: "New match…") { showingNewMatch = true }
+                }
+                NeonButton(
+                    title: tournament == nil ? "Quit to title" : "Back to tournament",
+                    tint: Neon.magenta, action: onExit)
             }
             .frame(maxWidth: 260)
             .padding(24)
@@ -125,4 +135,11 @@ struct GameView: View {
     private func relayout(_ size: CGSize) {
         game.layout(screen: size, turnDegrees: InterfaceTurn.degrees)
     }
+}
+
+/// What a tournament adds to one match on the table: whose name is on each end,
+/// and who to tell when the match is decided.
+struct TournamentMatch {
+    let names: EndNames
+    let onMatchOver: (Side) -> Void
 }
