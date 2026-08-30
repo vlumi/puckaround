@@ -121,6 +121,13 @@ struct RosterSheet: View {
                     .strokeBorder(Neon.inkSoft.opacity(0.6), lineWidth: 1.5)
             )
             .onSubmit(add)
+            // A name has to fit by a score and in a bracket slot — clamp as
+            // it's typed, so the cap is visible rather than a surprise on add.
+            .onChangeCompat(of: newName) { name in
+                if name.count > RosterSheet.maxNameLength {
+                    newName = String(name.prefix(RosterSheet.maxNameLength))
+                }
+            }
             addButton
         }
     }

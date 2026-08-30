@@ -176,6 +176,8 @@ extension TournamentView {
                     .foregroundStyle(Neon.inkSoft)
             }
             .font(.system(size: 16, weight: .bold, design: .rounded))
+            .lineLimit(1)
+            .minimumScaleFactor(0.5)
         }
     }
 
@@ -191,6 +193,10 @@ extension TournamentView {
                 .foregroundStyle(Neon.cyan)
         }
         .font(.system(size: 26, weight: .black, design: .rounded))
+        // Entry caps names, but a long one from an older save shrinks to fit
+        // rather than pushing past the card.
+        .lineLimit(1)
+        .minimumScaleFactor(0.5)
     }
 
     /// The last name standing, once the knockout is decided.
@@ -201,6 +207,8 @@ extension TournamentView {
                 .font(.system(size: 30, weight: .black, design: .rounded))
                 .foregroundStyle(Neon.cyan)
                 .shadow(color: Neon.cyan.opacity(0.7), radius: 10)
+                .lineLimit(1)
+                .minimumScaleFactor(0.5)
         }
     }
 
