@@ -47,17 +47,25 @@ struct GameView: View {
                         }
                         InputSurface(game: game)
                         // ABOVE the input surface, or the multitouch view eats
-                        // the taps.
+                        // the taps. The menus are ordinary SwiftUI and rotate with
+                        // the interface, so they stay upright to the player.
                         overlay(for: scene)
                     }
                 }
             }
             .onAppear {
-                game.layout(screen: geo.size)
+                game.layout(screen: geo.size, turnDegrees: InterfaceTurn.degrees)
                 game.begin()
                 game.onMenuTap = { showingPause = true }
             }
-            .onChangeCompat(of: geo.size) { size in game.layout(screen: size) }
+            .onChangeCompat(of: geo.size) { size in
+                game.layout(screen: size, turnDegrees: InterfaceTurn.degrees)
+            }
+            // The flips that keep the same size (left↔right landscape, portrait↔
+            // upside-down) never change geo.size, so they get their own hook.
+            .onDeviceOrientationChange {
+                game.layout(screen: geo.size, turnDegrees: InterfaceTurn.degrees)
+            }
             // Either overlay freezes the sim: the puck holds while a menu or the
             // modal is up, and resumes without a catch-up burst.
             .onChangeCompat(of: showingPause) { _ in syncPause() }

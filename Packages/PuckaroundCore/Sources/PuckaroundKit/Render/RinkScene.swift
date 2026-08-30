@@ -5,9 +5,9 @@ import SwiftUI
 /// not MainActor, so it gets copies, not the session).
 struct RinkScene {
     var rink: Rink
-    /// Where the table is placed on screen — the one primitive the renderer and
-    /// the touch mapping both key off.
-    var tableRect: CGRect
+    /// How the board sits on screen — fit, rotation and coordinate mapping. The
+    /// renderer and the touch mapping both key off it.
+    var placement: BoardPlacement
     /// Decorative motion (the scanline breath, a longer puck trail) is off when
     /// the viewer asks for reduced motion. The game itself still moves.
     var reducedMotion = false

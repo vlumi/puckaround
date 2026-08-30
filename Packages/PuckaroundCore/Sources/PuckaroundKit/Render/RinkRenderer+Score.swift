@@ -7,23 +7,14 @@ extension RinkRenderer {
     /// The side's score, in the corner beside its goal, turned to face its
     /// player — a bright core over a glow, so a glanced number stays legible.
     static func drawScore(
-        _ score: Int, at side: Side, color: Color, projection: Projection,
+        _ score: Int, seat: Seat, color: Color, projection: Projection,
         in context: inout GraphicsContext
     ) {
-        let table = projection.table
-        // The number is ~15 world units tall, so its center must sit clear of
-        // both the short wall (above/below) and the side wall (a wide doubles
-        // goal narrows the strip beside the post, pulling it toward the side).
-        let halfGlyph = 8.0
-        let strip = (table.size.x - table.goalWidth(for: side)) / 4
-        let beside = max(strip, halfGlyph + 2)
-        let inset = halfGlyph + 4
-        let spot =
-            side == .top ? Vec2(table.size.x - beside, inset) : Vec2(beside, table.size.y - inset)
+        let spot = scoreSpot(seat: seat, projection: projection)
         var ctx = context
         let at = projection.point(spot)
         ctx.translateBy(x: at.x, y: at.y)
-        if side == .top { ctx.rotate(by: .degrees(180)) }
+        ctx.rotate(by: seat.labelAngle)
         let text = ctx.resolve(
             Text(verbatim: "\(score)").font(
                 .system(size: 15 * projection.scale, weight: .black, design: .rounded)))
@@ -33,24 +24,37 @@ extension RinkRenderer {
         ctx.draw(colored(text, color), at: .zero, anchor: .center)
     }
 
+    /// Where a side's score sits, in world units: the corner beside its goal at
+    /// the short end. (The board's own rotation faces it to the player.)
+    private static func scoreSpot(seat: Seat, projection: Projection) -> Vec2 {
+        let table = projection.table
+        let side = seat.side
+        // The number is ~15 world units tall, so its center must sit clear of the
+        // walls; a wide doubles goal narrows the strip beside the post.
+        let halfGlyph = 8.0
+        let strip = (table.size.x - table.goalWidth(for: side)) / 4
+        let beside = max(strip, halfGlyph + 2)
+        let inset = halfGlyph + 4
+        return side == .top
+            ? Vec2(table.size.x - beside, inset) : Vec2(beside, table.size.y - inset)
+    }
+
     /// The match tally beside a side's score: a row of pips, `won` of them filled
     /// in the side's color, the rest hollow — the games won toward the match.
     /// Sits just inboard of the score, facing the player.
     static func drawGamesTally(
-        _ tally: (won: Int, of: Int), at side: Side, color: Color, projection: Projection,
+        _ tally: (won: Int, of: Int), seat: Seat, color: Color, projection: Projection,
         in context: inout GraphicsContext
     ) {
         let (wins, needed) = tally
-        let table = projection.table
-        let beside = max((table.size.x - table.goalWidth(for: side)) / 4, 10)
-        let y = side == .top ? 22.0 : table.size.y - 22
-        let x = side == .top ? table.size.x - beside : beside
+        // Sit just inboard of the score, pips laid across (the board's rotation
+        // carries the row to face the player).
+        let center = projection.point(tallySpot(seat: seat, projection: projection))
         let r = 1.6 * projection.scale
         let gap = 5.0 * projection.scale
-        let row = (Double(needed) - 1) * gap
-        let center = projection.point(Vec2(x, y))
+        let span = (Double(needed) - 1) * gap
         for i in 0..<needed {
-            let px = center.x - row / 2 + Double(i) * gap
+            let px = center.x - span / 2 + Double(i) * gap
             let dot = projection.disc(at: CGPoint(x: px, y: center.y), radius: r)
             if i < wins {
                 context.fill(dot, with: .color(color))
@@ -60,11 +64,21 @@ extension RinkRenderer {
         }
     }
 
+    /// The tally's center, a step inboard from the score toward the middle.
+    private static func tallySpot(seat: Seat, projection: Projection) -> Vec2 {
+        let table = projection.table
+        let side = seat.side
+        let beside = max((table.size.x - table.goalWidth(for: side)) / 4, 10)
+        let y = side == .top ? 22.0 : table.size.y - 22
+        let x = side == .top ? table.size.x - beside : beside
+        return Vec2(x, y)
+    }
+
     /// Where and in whose colors a side's verdict is painted: its half of the
     /// table, the side's color, and whether this is a multi-game match (so the
     /// verdict names GAME vs MATCH). Bundled so the draw stays under the limit.
     struct VerdictSpot {
-        let side: Side
+        let seat: Seat
         let half: CGRect
         let color: Color
         let inMatch: Bool
@@ -84,13 +98,15 @@ extension RinkRenderer {
     static func drawVerdict(
         _ outcome: Rink.Outcome, at spot: VerdictSpot, in context: inout GraphicsContext
     ) {
-        let (side, half) = (spot.side, spot.half)
+        let (seat, half) = (spot.seat, spot.half)
+        let side = seat.side
         let won = outcome.winner == side
         var ctx = context
+        // Sit a little in from the side's own end toward the center line.
         let towardCenter = half.height * 0.22
         let y = side == .top ? half.maxY - towardCenter : half.minY + towardCenter
         ctx.translateBy(x: half.midX, y: y)
-        if side == .top { ctx.rotate(by: .degrees(180)) }
+        ctx.rotate(by: seat.labelAngle)
         let verdict = Verdict(won: won, shade: won ? spot.color : line.opacity(0.6))
         let big = half.height * 0.16
         if spot.inMatch {

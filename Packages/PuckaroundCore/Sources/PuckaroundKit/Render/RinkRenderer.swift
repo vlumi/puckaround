@@ -21,20 +21,6 @@ enum RinkRenderer {
     /// touch target (in the view) matches the drawn ring exactly.
     static let centerRingRadius: Double = 16
 
-    /// The table letterboxed into the screen: as big as its aspect allows
-    /// inside `margin`, centerd.
-    static func fittedTableRect(tableSize: Vec2, in screen: CGSize, margin: CGFloat = 12) -> CGRect
-    {
-        let box = CGRect(origin: .zero, size: screen).insetBy(dx: margin, dy: margin)
-        guard box.width > 0, box.height > 0 else { return .zero }
-        let scale = min(box.width / tableSize.x, box.height / tableSize.y)
-        let fitted = CGSize(width: tableSize.x * scale, height: tableSize.y * scale)
-        return CGRect(
-            x: box.minX + (box.width - fitted.width) / 2,
-            y: box.minY + (box.height - fitted.height) / 2,
-            width: fitted.width, height: fitted.height)
-    }
-
     /// Screen-space helpers for one frame: world → screen is a translate + scale.
     struct Projection {
         let table: Playfield
@@ -83,14 +69,28 @@ enum RinkRenderer {
 
     static func draw(_ scene: RinkScene, in context: inout GraphicsContext, size: CGSize) {
         let table = scene.rink.table
-        let rect = scene.tableRect
-        guard rect.width > 0 else { return }
-        let projection = Projection(table: table, rect: rect, scale: rect.width / table.size.x)
+        let placement = scene.placement
+        guard placement.scale > 0 else { return }
+        // Rotate the whole board as one unit (a quarter turn in landscape, none in
+        // portrait) about the screen center. Everything below draws in the board's
+        // own upright space; the context carries the turn, so walls, goals, puck,
+        // mallets and labels all rotate together and the board fills the screen.
+        context.translateBy(x: placement.center.x, y: placement.center.y)
+        context.rotate(by: placement.turn)
+        // A board-space projection: origin at the board's top-left (its center is
+        // now at the context origin), scaled to fit.
+        let scale = placement.scale
+        let rect = CGRect(
+            x: -table.size.x * scale / 2, y: -table.size.y * scale / 2,
+            width: table.size.x * scale, height: table.size.y * scale)
+        let projection = Projection(table: table, rect: rect, scale: scale)
 
         drawRink(
             projection: projection, time: scene.time, reducedMotion: scene.reducedMotion,
             in: &context)
         drawLaneDividers(scene, projection: projection, in: &context)
+        // Labels face the players: head-to-head in portrait, or turned to the
+        // down long edge (the bench) when the device is held sideways.
         drawSides(scene, projection: projection, in: &context)
         // The menu glyph is always there — the center ring is always the menu.
         // It sits UNDER the puck (drawn next), so during a faceoff the frozen
@@ -128,6 +128,9 @@ enum RinkRenderer {
         let halfHeight = table.size.y / 2
         for side in Side.allCases {
             let color = SeatPalette.color(for: side)
+            // Portrait: head-to-head. Landscape: both labels counter-turn the
+            // board so they read upright, side by side along the bottom bench.
+            let seat = Seat(side: side, boardTurn: scene.placement.turn)
             // A side's own half, full width (both doubles lanes), split at the
             // center line — the surface its verdict and ready prompt sit on.
             let half = projection.rect(
@@ -135,24 +138,23 @@ enum RinkRenderer {
                     x: 0, y: side == .bottom ? halfHeight : 0, width: table.size.x,
                     height: halfHeight))
             let score = scene.rink.score(of: side)
-            drawScore(score, at: side, color: color, projection: projection, in: &context)
+            drawScore(score, seat: seat, color: color, projection: projection, in: &context)
             drawGoal(at: side, color: color, projection: projection, in: &context)
             // In a best-of match, the games tally sits under the score.
             if scene.rink.rules.gamesToWin > 1 {
                 drawGamesTally(
-                    (scene.rink.gamesWon(of: side), scene.rink.rules.gamesToWin), at: side,
+                    (scene.rink.gamesWon(of: side), scene.rink.rules.gamesToWin), seat: seat,
                     color: color, projection: projection, in: &context)
             }
             // The result stays up through the faceoff that follows it, so both
             // players see who won while deciding to go again.
             if let outcome = scene.rink.lastOutcome {
                 let spot = VerdictSpot(
-                    side: side, half: half, color: color, inMatch: scene.rink.rules.gamesToWin > 1)
+                    seat: seat, half: half, color: color, inMatch: scene.rink.rules.gamesToWin > 1)
                 drawVerdict(outcome, at: spot, in: &context)
             }
             if scene.rink.isFaceoff {
-                drawSideReadiness(
-                    scene, side: side, half: half, color: color, in: &context)
+                drawSideReadiness(scene, seat: seat, half: half, color: color, in: &context)
             }
         }
     }

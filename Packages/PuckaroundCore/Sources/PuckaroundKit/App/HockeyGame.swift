@@ -14,8 +14,10 @@ public final class HockeyGame: ObservableObject {
     /// The tick the feedback layers have consumed events through, so a paused
     /// or replayed frame never fires the same hit twice.
     private var lastFedTick: Tick = -1
-    /// Where the table sits on screen; set by the view on layout.
-    private(set) var tableRect = CGRect.zero
+    /// How the board sits on screen — fit, rotation and coordinate mapping. The
+    /// renderer draws through it and the touch mapping inverts it, so a finger
+    /// lands where it looks in either orientation. Set by the view on layout.
+    private(set) var placement = BoardPlacement(board: Vec2(1, 1), screen: .zero)
 
     /// Sound and haptics on? Both default on; the front door will expose them.
     public var feedbackEnabled = true {
@@ -78,19 +80,19 @@ public final class HockeyGame: ObservableObject {
 
     // MARK: - Screen ↔ world
 
-    func layout(screen: CGSize) {
-        tableRect = RinkRenderer.fittedTableRect(tableSize: session.rink.table.size, in: screen)
+    func layout(screen: CGSize, turnDegrees: Double = 0) {
+        placement = BoardPlacement(
+            board: session.rink.table.size, screen: screen, turnDegrees: turnDegrees)
     }
 
     func world(fromScreen p: CGPoint) -> Vec2 {
-        guard tableRect.width > 0 else { return .zero }
-        let scale = session.rink.table.size.x / tableRect.width
-        return Vec2((p.x - tableRect.minX) * scale, (p.y - tableRect.minY) * scale)
+        guard placement.scale > 0 else { return .zero }
+        return placement.world(fromScreen: p)
     }
 
     /// Steps the sim to `time` and returns the frame to draw — plain values,
-    /// because the Canvas renderer closure is not MainActor.
-    /// `reducedMotion` comes from the environment; the view passes it in.
+    /// because the Canvas renderer closure is not MainActor. `reducedMotion`
+    /// comes from the view.
     func frame(at time: TimeInterval, reducedMotion: Bool) -> RinkScene {
         session.update(to: time)
         // Fire feedback for every tick actually stepped this frame. `events`
@@ -107,7 +109,7 @@ public final class HockeyGame: ObservableObject {
         }
         let burst = faceoffBurstStart.map { min(1, (time - $0) / RinkScene.burstDuration) }
         return RinkScene(
-            rink: session.rink, tableRect: tableRect, reducedMotion: reducedMotion, time: time,
+            rink: session.rink, placement: placement, reducedMotion: reducedMotion, time: time,
             faceoffBurst: (burst ?? 1) < 1 ? burst : nil)
     }
 
@@ -182,11 +184,12 @@ public final class HockeyGame: ObservableObject {
         return session.rink.mallet(at: slot)?.position ?? world
     }
 
-    /// Whether a screen point lands within the center-ring menu button.
+    /// Whether a screen point lands within the center-ring menu button. Tested in
+    /// world units (against the table center), so it holds in either orientation.
     private func hitsCenterRing(_ p: CGPoint) -> Bool {
-        guard tableRect.width > 0 else { return false }
-        let scale = tableRect.width / session.rink.table.size.x
-        let radius = RinkRenderer.centerRingRadius * scale
-        return hypot(p.x - tableRect.midX, p.y - tableRect.midY) <= radius
+        guard placement.scale > 0 else { return false }
+        let w = world(fromScreen: p)
+        let c = session.rink.table.center
+        return hypot(w.x - c.x, w.y - c.y) <= RinkRenderer.centerRingRadius
     }
 }
