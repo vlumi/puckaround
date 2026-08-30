@@ -11,6 +11,14 @@ public struct Tournament: Equatable, Codable, Sendable {
         public let wins: Int
     }
 
+    /// How the last match ended — games in a best-of, points in a single game.
+    public struct LastMatch: Equatable, Codable, Sendable {
+        public let winner: String
+        public let loser: String
+        public let winnerScore: Int
+        public let loserScore: Int
+    }
+
     /// Who defends the bottom end right now.
     public private(set) var bottom: String
     /// Who defends the top end right now.
@@ -25,6 +33,8 @@ public struct Tournament: Equatable, Codable, Sendable {
     /// Tonight's longest run and whose it is (the first to reach it keeps it).
     public private(set) var bestStreak = 0
     public private(set) var bestStreakName: String?
+    /// The most recent result, for the between-matches banner.
+    public private(set) var lastMatch: LastMatch?
 
     /// The first two names take the table (first at the bottom), the rest form
     /// the line in roster order. Duplicate names collapse to their first entry —
@@ -47,10 +57,14 @@ public struct Tournament: Equatable, Codable, Sendable {
     /// the same pair just goes again.
     public var upNext: String? { line.first }
 
-    /// The match ended: the given end won. The winner stays put, the loser goes
+    /// The match ended: the given end won by the given tallies (games in a
+    /// best-of, points in a single game). The winner stays put, the loser goes
     /// to the back of the line, and the line's front takes over the loser's end.
-    public mutating func recordWin(by side: Side) {
+    public mutating func recordWin(by side: Side, winnerScore: Int = 0, loserScore: Int = 0) {
         let winner = side == .bottom ? bottom : top
+        let loser = side == .bottom ? top : bottom
+        lastMatch = LastMatch(
+            winner: winner, loser: loser, winnerScore: winnerScore, loserScore: loserScore)
         wins[winner, default: 0] += 1
         streak = winner == streakName ? streak + 1 : 1
         streakName = winner
@@ -59,7 +73,6 @@ public struct Tournament: Equatable, Codable, Sendable {
             bestStreakName = winner
         }
         guard let next = line.first else { return }
-        let loser = side == .bottom ? top : bottom
         line.removeFirst()
         line.append(loser)
         if side == .bottom { top = next } else { bottom = next }

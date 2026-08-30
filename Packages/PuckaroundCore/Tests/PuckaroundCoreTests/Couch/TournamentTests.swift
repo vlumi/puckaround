@@ -102,6 +102,16 @@ final class TournamentTests: XCTestCase {
         XCTAssertEqual(t.bestStreakName, "Anna")
     }
 
+    /// The banner between matches needs the last result — even in a two-player
+    /// tournament, where the rotation guard returns early.
+    func testTheLastMatchIsRemembered() {
+        var t = Tournament(roster: ["Anna", "Ville"])!
+        t.recordWin(by: .bottom, winnerScore: 2, loserScore: 1)
+        XCTAssertEqual(
+            t.lastMatch,
+            Tournament.LastMatch(winner: "Anna", loser: "Ville", winnerScore: 2, loserScore: 1))
+    }
+
     /// The tournament must survive the app quitting mid-evening.
     func testCodableRoundTrip() throws {
         var t = Tournament(roster: four)!

@@ -5,6 +5,8 @@ import SwiftUI
 /// ever. The line plays in the order picked. No profiles: the pool is
 /// autocomplete, nothing more.
 struct RosterSheet: View {
+    /// The evening's match rules — the same stored setup New match edits.
+    @Binding var setup: Setup
     let onStart: ([String]) -> Void
     let onClose: () -> Void
 
@@ -30,6 +32,9 @@ struct RosterSheet: View {
                         section("Names") { poolChips }
                     }
                     addField
+                    // The match rules, right here — no separate step. No players
+                    // picker: a pairing is two people, so it's always 1v1.
+                    SetupControls(setup: $setup, showsFormat: false)
                 }
                 .padding(.horizontal, 24)
                 .padding(.vertical, 16)

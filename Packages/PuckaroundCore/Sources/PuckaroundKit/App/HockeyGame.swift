@@ -85,10 +85,16 @@ final class HockeyGame: ObservableObject {
                 faceoffBurstStart = time  // the field bursts — kick off the visual
             }
             for case .matchOver(let winner) in session.rink.events {
+                let rink = session.rink
+                let best = rink.rules.gamesToWin > 1
+                let won = best ? rink.gamesWon(of: winner) : rink.score(of: winner)
+                let lost =
+                    best
+                    ? rink.gamesWon(of: winner.opponent) : rink.score(of: winner.opponent)
                 // Async: frame(at:) runs inside view evaluation, where handlers
                 // must not mutate SwiftUI state.
                 let report = onMatchOver
-                DispatchQueue.main.async { report?(winner) }
+                DispatchQueue.main.async { report?(winner, won, lost) }
             }
         }
         let burst = faceoffBurstStart.map { min(1, (time - $0) / RinkScene.burstDuration) }
@@ -109,9 +115,10 @@ final class HockeyGame: ObservableObject {
     /// sets this; the renderer draws each name by its player's score.
     var endNames: EndNames?
 
-    /// Fired when the sim decides the match, with the winning side — the
-    /// tournament records it and takes the table back. The view sets this.
-    var onMatchOver: ((Side) -> Void)?
+    /// Fired when the sim decides the match, with the winning side and the two
+    /// tallies that decided it (games in a best-of, points in a single game) —
+    /// the tournament records it and takes the table back. The view sets this.
+    var onMatchOver: ((Side, Int, Int) -> Void)?
 
     /// A touch that began in the center ring and hasn't moved yet — a pending
     /// menu tap. It only becomes the menu if it ends without moving; the moment

@@ -14,6 +14,7 @@
     "Longest run: %@ · %lld": {},
     "Names": {},
     "%@ has %lld in a row": {},
+    "Last match": {},
     "GAME": {},
     "LOSE": {},
     "LOST": {},

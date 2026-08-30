@@ -7,8 +7,9 @@ import SwiftUI
 /// rejoins the line. The whole evening survives the app quitting: the state
 /// mirrors to storage on every change, and reopening resumes it.
 struct TournamentView: View {
-    /// Matches use the same stored setup as a plain match.
-    let setup: Setup
+    /// The evening's match rules — the same stored setup as a plain match; the
+    /// roster sheet edits it in place.
+    @Binding var setup: Setup
     let onExit: () -> Void
 
     /// The active tournament, JSON-mirrored to storage on every change.
@@ -27,7 +28,7 @@ struct TournamentView: View {
             Neon.ground.ignoresSafeArea()
             switch stage {
             case .lobby:
-                RosterSheet(onStart: begin, onClose: onExit)
+                RosterSheet(setup: $setup, onStart: begin, onClose: onExit)
             case .interstitial:
                 if let tournament {
                     interstitial(tournament)
@@ -45,8 +46,13 @@ struct TournamentView: View {
     /// One pairing on the table. The pause menu's exit leads back to the
     /// interstitial, not the title — the tournament owns the table now.
     private func match(_ t: Tournament, seed: UInt64) -> some View {
-        GameView(
-            setup: setup, seed: seed,
+        // A pairing is two people: whatever the stored format says, a
+        // tournament match fields one mallet per name.
+        var single = setup
+        single.bottomHands = 1
+        single.topHands = 1
+        return GameView(
+            setup: single, seed: seed,
             tournament: TournamentMatch(
                 names: EndNames(bottom: t.bottom, top: t.top), onMatchOver: recordWin),
             onNewMatch: { _ in stage = .playing(seed: freshSeed()) },
@@ -58,6 +64,9 @@ struct TournamentView: View {
         ZStack {
             VStack(spacing: 24) {
                 header
+                if let last = t.lastMatch {
+                    lastResult(last)
+                }
                 pairing(t)
                 if let next = t.upNext {
                     HStack(spacing: 6) {
@@ -106,6 +115,29 @@ struct TournamentView: View {
         }
     }
 
+    /// The scoreline of the match just played: winner bright, loser dim, and
+    /// deliberately monochrome — the side colors belong to the live pairing
+    /// below, so what just happened can't be mistaken for what's next.
+    private func lastResult(_ last: Tournament.LastMatch) -> some View {
+        VStack(spacing: 4) {
+            Text("Last match", bundle: .module)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(Neon.inkSoft)
+                .textCase(.uppercase)
+                .kerning(2)
+            HStack(spacing: 8) {
+                Text(verbatim: last.winner)
+                    .foregroundStyle(Neon.ink)
+                Text(verbatim: "\(last.winnerScore)–\(last.loserScore)")
+                    .foregroundStyle(Neon.inkSoft)
+                    .monospacedDigit()
+                Text(verbatim: last.loser)
+                    .foregroundStyle(Neon.inkSoft)
+            }
+            .font(.system(size: 16, weight: .bold, design: .rounded))
+        }
+    }
+
     /// Who takes the table, each name in their end's color.
     private func pairing(_ t: Tournament) -> some View {
         HStack(spacing: 10) {
@@ -146,14 +178,13 @@ struct TournamentView: View {
         stage = .interstitial
     }
 
-    /// The sim decided the match: tally it, then let the table show its verdict
-    /// for a beat before the interstitial takes over.
-    private func recordWin(_ side: Side) {
-        tournament?.recordWin(by: side)
+    /// The sim decided the match: tally it and cut straight to the interstitial
+    /// — the banner carries the result, so the table needs no verdict beat (and
+    /// nobody can sneak a rematch in behind one).
+    private func recordWin(_ side: Side, won: Int, lost: Int) {
+        tournament?.recordWin(by: side, winnerScore: won, loserScore: lost)
         persist()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
-            stage = .interstitial
-        }
+        stage = .interstitial
     }
 
     /// A saved evening resumes right at the interstitial.
