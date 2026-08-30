@@ -19,6 +19,12 @@ public struct Tournament: Equatable, Codable, Sendable {
     public private(set) var line: [String]
     /// Matches won tonight, by name.
     public private(set) var wins: [String: Int]
+    /// Who won last, and how many in a row — the current hold on the table.
+    public private(set) var streakName: String?
+    public private(set) var streak = 0
+    /// Tonight's longest run and whose it is (the first to reach it keeps it).
+    public private(set) var bestStreak = 0
+    public private(set) var bestStreakName: String?
 
     /// The first two names take the table (first at the bottom), the rest form
     /// the line in roster order. Duplicate names collapse to their first entry —
@@ -46,6 +52,12 @@ public struct Tournament: Equatable, Codable, Sendable {
     public mutating func recordWin(by side: Side) {
         let winner = side == .bottom ? bottom : top
         wins[winner, default: 0] += 1
+        streak = winner == streakName ? streak + 1 : 1
+        streakName = winner
+        if streak > bestStreak {
+            bestStreak = streak
+            bestStreakName = winner
+        }
         guard let next = line.first else { return }
         let loser = side == .bottom ? top : bottom
         line.removeFirst()

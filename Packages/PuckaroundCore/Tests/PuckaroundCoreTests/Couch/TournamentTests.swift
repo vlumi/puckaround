@@ -78,6 +78,30 @@ final class TournamentTests: XCTestCase {
         XCTAssertEqual(names, ["Anna", "Juho", "Mei", "Ville"])
     }
 
+    /// The hold on the table: consecutive wins run the streak up, losing it
+    /// hands the count back to one for the new winner.
+    func testAStreakGrowsWhileTheTableIsHeld() {
+        var t = Tournament(roster: four)!
+        t.recordWin(by: .bottom)
+        t.recordWin(by: .bottom)
+        XCTAssertEqual(t.streakName, "Anna")
+        XCTAssertEqual(t.streak, 2)
+        t.recordWin(by: .top)  // the challenger takes the table
+        XCTAssertEqual(t.streak, 1, "a new hold starts at one")
+        XCTAssertNotEqual(t.streakName, "Anna")
+    }
+
+    /// The longest run of the night stays with the first player to set it.
+    func testTheBestStreakIsKeptByItsFirstSetter() {
+        var t = Tournament(roster: four)!
+        t.recordWin(by: .bottom)
+        t.recordWin(by: .bottom)  // Anna sets 2
+        t.recordWin(by: .top)
+        t.recordWin(by: .bottom)  // a new holder reaches 2 — ties, doesn't take
+        XCTAssertEqual(t.bestStreak, 2)
+        XCTAssertEqual(t.bestStreakName, "Anna")
+    }
+
     /// The tournament must survive the app quitting mid-evening.
     func testCodableRoundTrip() throws {
         var t = Tournament(roster: four)!

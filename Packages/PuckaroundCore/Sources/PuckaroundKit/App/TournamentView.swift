@@ -68,7 +68,18 @@ struct TournamentView: View {
                     }
                     .font(.system(size: 15, weight: .semibold, design: .rounded))
                 }
+                // Runs only speak once they're runs — a single win says nothing.
+                if let holder = t.streakName, t.streak >= 2 {
+                    Text("\(holder) has \(t.streak) in a row", bundle: .module)
+                        .font(.system(size: 14, weight: .semibold, design: .rounded))
+                        .foregroundStyle(Neon.ink)
+                }
                 standings(t)
+                if let best = t.bestStreakName, t.bestStreak >= 2 {
+                    Text("Longest run: \(best) · \(t.bestStreak)", bundle: .module)
+                        .font(.system(size: 13, weight: .medium, design: .rounded))
+                        .foregroundStyle(Neon.inkSoft)
+                }
                 NeonButton(title: "Start match", tint: Neon.cyan, prominent: true) {
                     stage = .playing(seed: freshSeed())
                 }
