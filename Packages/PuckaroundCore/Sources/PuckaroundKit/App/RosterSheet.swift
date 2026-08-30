@@ -105,30 +105,33 @@ struct RosterSheet: View {
     /// field keeps focus after adding, so a whole lineup types without leaving
     /// the keyboard; the + is the same action made visible.
     private var addField: some View {
-        HStack(spacing: 8) {
-            TextField(text: $newName, prompt: Text("Add name", bundle: .module)) {
-                Text("Add name", bundle: .module)
-            }
-            .font(.system(size: 16, weight: .semibold, design: .rounded))
-            .foregroundStyle(Neon.ink)
-            .textFieldStyle(.plain)
-            .submitLabel(.next)
-            .focused($nameFocused)
-            .padding(.horizontal, 14)
-            .frame(height: 44)
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .strokeBorder(Neon.inkSoft.opacity(0.6), lineWidth: 1.5)
-            )
-            .onSubmit(add)
-            // A name has to fit by a score and in a bracket slot — clamp as
-            // it's typed, so the cap is visible rather than a surprise on add.
-            .onChangeCompat(of: newName) { name in
-                if name.count > RosterSheet.maxNameLength {
-                    newName = String(name.prefix(RosterSheet.maxNameLength))
+        VStack(spacing: 6) {
+            HStack(spacing: 8) {
+                TextField(text: $newName, prompt: Text("Add name", bundle: .module)) {
+                    Text("Add name", bundle: .module)
                 }
+                .font(.system(size: 16, weight: .semibold, design: .rounded))
+                .foregroundStyle(Neon.ink)
+                .textFieldStyle(.plain)
+                .submitLabel(.next)
+                .focused($nameFocused)
+                .padding(.horizontal, 14)
+                .frame(height: 44)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .strokeBorder(Neon.inkSoft.opacity(0.6), lineWidth: 1.5)
+                )
+                .onSubmit(add)
+                addButton
             }
-            addButton
+            // The field itself is never clamped — an IME composes a long
+            // reading before it collapses into a short name. Over-long simply
+            // can't be added, and this says why.
+            if overLong {
+                Text("At most \(RosterSheet.maxNameLength) characters", bundle: .module)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(Neon.magenta.opacity(0.85))
+            }
         }
     }
 
@@ -152,7 +155,16 @@ struct RosterSheet: View {
         .accessibilityLabel(Text("Add name", bundle: .module))
     }
 
-    private var canAdd: Bool { !newName.trimmingCharacters(in: .whitespaces).isEmpty }
+    /// Non-empty and within the cap: over-long input disables adding instead of
+    /// clamping the field, which would break IME composition mid-typing.
+    private var canAdd: Bool {
+        let name = newName.trimmingCharacters(in: .whitespaces)
+        return !name.isEmpty && name.count <= RosterSheet.maxNameLength
+    }
+
+    private var overLong: Bool {
+        newName.trimmingCharacters(in: .whitespaces).count > RosterSheet.maxNameLength
+    }
 
     private func chip(_ name: String, selected: Bool, act: @escaping () -> Void) -> some View {
         Button(action: act) {
@@ -229,8 +241,9 @@ struct RosterSheet: View {
     static let maxNameLength = 12
 
     private func add() {
-        let name = String(
-            newName.trimmingCharacters(in: .whitespaces).prefix(RosterSheet.maxNameLength))
+        let name = newName.trimmingCharacters(in: .whitespaces)
+        // An over-long name stays put to be edited down, never silently cut.
+        guard name.count <= RosterSheet.maxNameLength else { return }
         newName = ""
         // Focus stays in the field, so the next name needs no extra touch.
         nameFocused = true
