@@ -75,6 +75,7 @@ struct GameView: View {
         .statusBarHiddenIfAvailable()
         .persistentSystemOverlays(.hidden)
         .defersEdgeSwipes(true)
+        .snapsOrientationChanges()
     }
 
     @ViewBuilder
