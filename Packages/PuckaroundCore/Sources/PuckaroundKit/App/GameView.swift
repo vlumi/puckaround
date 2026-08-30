@@ -1,23 +1,20 @@
 import PuckaroundCore
 import SwiftUI
 
-/// The table screen: one game of air hockey, plus the ways out of it — a dim
-/// menu affordance during play (settings / restart / quit). Its config comes
-/// from the shared `GameSettings`, resolved against this game's `seed` so a "?"
-/// random pick holds for the whole game.
+/// The table screen: one game of air hockey, plus the ways out of it — the
+/// center-ring pause menu (resume / restart / new match / quit). Its config
+/// comes from a `Setup`, resolved against this game's `seed` so a "?" random
+/// pick holds for the whole game.
 struct GameView: View {
     @StateObject private var game: HockeyGame
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var showingPause = false
-    @State private var showingSettings = false
-    /// The sheet's working copy — edited freely and only committed on confirm, so
-    /// Cancel can discard it and leave the running game (and stored setup) alone.
-    @State private var draft = Setup()
+    @State private var showingNewMatch = false
 
-    /// The setup the running game was built from — the draft is diffed against it
-    /// to decide whether confirming restarts or just resumes.
+    /// The setup the running game was built from — the New match modal opens on
+    /// it, so the pickers show what's in play.
     let setup: Setup
-    /// Commit a changed setup: the caller stores it and starts a fresh game.
+    /// Commit a chosen setup and start a fresh match with it.
     let onNewGame: (Setup) -> Void
     let onExit: () -> Void
 
@@ -62,9 +59,9 @@ struct GameView: View {
             }
             .onChangeCompat(of: geo.size) { size in game.layout(screen: size) }
             // Either overlay freezes the sim: the puck holds while a menu or the
-            // settings sheet is up, and resumes without a catch-up burst.
+            // modal is up, and resumes without a catch-up burst.
             .onChangeCompat(of: showingPause) { _ in syncPause() }
-            .onChangeCompat(of: showingSettings) { _ in syncPause() }
+            .onChangeCompat(of: showingNewMatch) { _ in syncPause() }
         }
         .background(RinkRenderer.ground.ignoresSafeArea())
         .statusBarHiddenIfAvailable()
@@ -74,8 +71,15 @@ struct GameView: View {
 
     @ViewBuilder
     private func overlay(for scene: RinkScene) -> some View {
-        if showingSettings {
-            settingsSheet
+        if showingNewMatch {
+            NewMatchSheet(
+                initial: setup,
+                onStart: { chosen in
+                    showingNewMatch = false
+                    showingPause = false
+                    onNewGame(chosen)
+                },
+                onClose: { showingNewMatch = false })
         } else if showingPause {
             pauseMenu
         }
@@ -86,22 +90,19 @@ struct GameView: View {
         // through the ring stays ordinary play and only a tap opens the menu.
     }
 
-    /// The menu behind the center ring: change the setup, restart, or quit to the
-    /// front door. Restart scraps the current game for a fresh one — a new opening
-    /// faceoff, score at zero, nobody readied — reachable from anywhere.
+    /// The menu behind the center ring. Restart replays the same setup instantly
+    /// (fresh faceoff, score at zero, nobody readied); New match opens the modal
+    /// to set up a different one. Both are reachable from anywhere.
     private var pauseMenu: some View {
         ZStack {
             Color.black.opacity(0.6).ignoresSafeArea().onTapGesture { showingPause = false }
             VStack(spacing: 14) {
                 NeonButton(title: "Resume", tint: Neon.cyan) { showingPause = false }
-                NeonButton(title: "Change setup") {
-                    draft = setup
-                    showingSettings = true
-                }
                 NeonButton(title: "Restart") {
                     game.newGame()
                     showingPause = false
                 }
+                NeonButton(title: "New match…") { showingNewMatch = true }
                 NeonButton(title: "Quit to menu", tint: Neon.magenta, action: onExit)
             }
             .frame(maxWidth: 260)
@@ -110,60 +111,8 @@ struct GameView: View {
         }
     }
 
-    /// The setup pickers on a solid card over the table. Edits go to `draft`, so
-    /// Cancel discards them and the running game plays on. The confirm button
-    /// says what it will do: with a change it starts a fresh game (the only way
-    /// to swap puck, format, length or walls mid-match), otherwise it just
-    /// resumes — never a silent restart.
-    private var settingsSheet: some View {
-        let changed = draft != setup
-        return ZStack {
-            Color.black.opacity(0.85).ignoresSafeArea().onTapGesture { cancelSettings() }
-            ScrollView {
-                VStack(spacing: 24) {
-                    SetupControls(setup: $draft)
-                    // A change means starting over — the note makes that plain
-                    // before the button confirms it.
-                    if changed {
-                        Text("Changing the setup starts a new game.", bundle: .module)
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundStyle(Neon.inkSoft)
-                            .multilineTextAlignment(.center)
-                    }
-                    HStack(spacing: 12) {
-                        NeonButton(title: "Cancel", tint: Neon.magenta) { cancelSettings() }
-                        NeonButton(
-                            title: changed ? "Start new game" : "Resume", tint: Neon.cyan,
-                            prominent: true
-                        ) {
-                            confirmSettings(changed: changed)
-                        }
-                    }
-                }
-                .padding(24)
-                .frame(maxWidth: 440)
-                .background(menuCard)
-                .padding(16)
-            }
-        }
-    }
-
-    /// Discard the draft and return to the paused table where we left it.
-    private func cancelSettings() {
-        showingSettings = false
-        showingPause = false
-    }
-
-    /// Apply the draft: start a fresh game if it changed anything, otherwise just
-    /// resume — the confirm button's label already told the player which.
-    private func confirmSettings(changed: Bool) {
-        showingSettings = false
-        showingPause = false
-        if changed { onNewGame(draft) }
-    }
-
     /// Freeze the sim while either overlay is up, run it otherwise.
-    private func syncPause() { game.isPaused = showingPause || showingSettings }
+    private func syncPause() { game.isPaused = showingPause || showingNewMatch }
 
     private var menuCard: some View {
         RoundedRectangle(cornerRadius: 18).fill(Neon.ground.opacity(0.98))
