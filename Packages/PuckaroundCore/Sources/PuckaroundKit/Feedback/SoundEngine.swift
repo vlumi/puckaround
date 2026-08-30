@@ -128,8 +128,11 @@ public final class SoundEngine {
                         hz: 150 + hard * 60, gain: 0.25 + hard * 0.35, noise: 0.7, decay: 0.9988))
             case .goal:
                 state.fire(slot: 2, Trigger(hz: 523, gain: 0.7, noise: 0.05, decay: 0.99985))
-            case .gameOver:
+            case .gameWon:
                 state.fire(slot: 3, Trigger(hz: 659, gain: 0.8, noise: 0.03, decay: 0.99992))
+            case .matchOver:
+                // The match: higher and longer than a game — the bigger flourish.
+                state.fire(slot: 3, Trigger(hz: 784, gain: 0.9, noise: 0.03, decay: 0.99995))
             case .faceoffCleared:
                 // The "GO": a bright, punchy whistle-crack as the field bursts.
                 state.fire(slot: 3, Trigger(hz: 880, gain: 0.9, noise: 0.25, decay: 0.9994))

@@ -6,6 +6,8 @@ import SwiftUI
 public struct AppRoot: View {
     @State private var phase: Phase = .menu
     @AppStorage("puckaround.pointsToWin") private var pointsToWin = 7
+    /// Games to win the match — 1 is a single game (the default).
+    @AppStorage("puckaround.gamesToWin") private var gamesToWin = 1
     @AppStorage("puckaround.puckShape") private var puckShapeKey = PuckShapeKey.circle.rawValue
     /// Hands per side, 1 or 2 — the format, stored as two Ints because `Format`
     /// isn't a raw-representable `@AppStorage` value. Both default to singles.
@@ -27,6 +29,7 @@ public struct AppRoot: View {
         case .menu:
             MenuView(
                 pointsToWin: $pointsToWin,
+                gamesToWin: $gamesToWin,
                 puckShapeKey: $puckShapeKey,
                 bottomHands: $bottomHands,
                 topHands: $topHands,
@@ -34,7 +37,7 @@ public struct AppRoot: View {
                 onPlay: { phase = .playing(id: UUID()) })
         case .playing(let id):
             GameView(
-                rules: Rules(pointsToWin: pointsToWin),
+                rules: Rules(pointsToWin: pointsToWin, gamesToWin: gamesToWin),
                 puckShape: PuckShapeKey(rawValue: puckShapeKey)?.shape ?? .circle,
                 format: format,
                 sideWalls: wrapWalls ? .wrap : .solid,

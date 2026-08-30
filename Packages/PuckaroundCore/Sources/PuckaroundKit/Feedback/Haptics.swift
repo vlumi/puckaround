@@ -48,7 +48,9 @@ public final class Haptics {
                 }
             case .goal:
                 soft.impactOccurred(intensity: 1)
-            case .gameOver:
+            case .gameWon:
+                soft.impactOccurred(intensity: 1)
+            case .matchOver:
                 notice.notificationOccurred(.success)
             case .faceoffCleared:
                 // The "GO": a firm pop as the force field bursts and play begins.

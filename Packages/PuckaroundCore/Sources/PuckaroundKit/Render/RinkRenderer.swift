@@ -137,11 +137,18 @@ enum RinkRenderer {
             let score = scene.rink.score(of: side)
             drawScore(score, at: side, color: color, projection: projection, in: &context)
             drawGoal(at: side, color: color, projection: projection, in: &context)
-            // The result stays up through the rematch faceoff, so players see
-            // who won while deciding to go again.
-            if let winner = scene.rink.finalWinner {
-                drawVerdict(
-                    won: winner == side, in: half, facing: side, color: color, in: &context)
+            // In a best-of match, the games tally sits under the score.
+            if scene.rink.rules.gamesToWin > 1 {
+                drawGamesTally(
+                    (scene.rink.gamesWon(of: side), scene.rink.rules.gamesToWin), at: side,
+                    color: color, projection: projection, in: &context)
+            }
+            // The result stays up through the faceoff that follows it, so both
+            // players see who won while deciding to go again.
+            if let outcome = scene.rink.lastOutcome {
+                let spot = VerdictSpot(
+                    side: side, half: half, color: color, inMatch: scene.rink.rules.gamesToWin > 1)
+                drawVerdict(outcome, at: spot, in: &context)
             }
             if scene.rink.isFaceoff {
                 drawSideReadiness(
@@ -247,70 +254,12 @@ enum RinkRenderer {
             blur: 5 * projection.scale, in: &context)
     }
 
-    /// The side's score, in the corner beside its goal, turned to face its
-    /// player — a bright core over a glow, so a glanced number stays legible.
-    private static func drawScore(
-        _ score: Int, at side: Side, color: Color, projection: Projection,
-        in context: inout GraphicsContext
-    ) {
-        let table = projection.table
-        // The number is ~15 world units tall, so its center must sit clear of
-        // both the short wall (above/below) and the side wall (a wide doubles
-        // goal narrows the strip beside the post, pulling it toward the side).
-        let halfGlyph = 8.0
-        // The middle of the strip between the side wall and the goal post, but
-        // never closer to the side wall than the glyph's own half-width.
-        let strip = (table.size.x - table.goalWidth(for: side)) / 4
-        let beside = max(strip, halfGlyph + 2)
-        let inset = halfGlyph + 4
-        let spot =
-            side == .top ? Vec2(table.size.x - beside, inset) : Vec2(beside, table.size.y - inset)
-        var ctx = context
-        let at = projection.point(spot)
-        ctx.translateBy(x: at.x, y: at.y)
-        if side == .top {
-            ctx.rotate(by: .degrees(180))
-        }
-        let text = ctx.resolve(
-            Text(verbatim: "\(score)").font(
-                .system(size: 15 * projection.scale, weight: .black, design: .rounded)))
-        var haze = ctx
-        haze.addFilter(.blur(radius: 4 * projection.scale))
-        haze.draw(colored(text, color.opacity(0.9)), at: .zero, anchor: .center)
-        ctx.draw(colored(text, color), at: .zero, anchor: .center)
-    }
-
     static func colored(
         _ text: GraphicsContext.ResolvedText, _ color: Color
     ) -> GraphicsContext.ResolvedText {
         var copy = text
         copy.shading = .color(color)
         return copy
-    }
-
-    /// WIN or LOSE, on the side's own half, turned to face its player — so both
-    /// verdicts read at once from opposite ends of the table.
-    private static func drawVerdict(
-        won: Bool, in half: CGRect, facing side: Side, color: Color,
-        in context: inout GraphicsContext
-    ) {
-        var ctx = context
-        let towardCenter = half.height * 0.22
-        let y = side == .top ? half.maxY - towardCenter : half.minY + towardCenter
-        ctx.translateBy(x: half.midX, y: y)
-        if side == .top {
-            ctx.rotate(by: .degrees(180))
-        }
-        let word = won ? Text("WIN", bundle: .module) : Text("LOSE", bundle: .module)
-        let text = ctx.resolve(
-            word.font(.system(size: half.height * 0.16, weight: .black, design: .rounded)))
-        let shade = won ? color : line.opacity(0.6)
-        if won {
-            var haze = ctx
-            haze.addFilter(.blur(radius: half.height * 0.02))
-            haze.draw(colored(text, shade.opacity(0.9)), at: .zero, anchor: .center)
-        }
-        ctx.draw(colored(text, shade), at: .zero, anchor: .center)
     }
 
     /// The mallet: a glowing ring in the seat's color with a dark hollow, so
