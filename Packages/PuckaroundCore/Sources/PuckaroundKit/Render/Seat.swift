@@ -15,11 +15,13 @@ struct Seat {
     var boardTurn: Angle = .degrees(0)
 
     var labelAngle: Angle {
-        // Landscape: cancel the board turn so both labels read upright, bottom.
-        if boardTurn.degrees != 0 {
+        // Landscape (a quarter turn): cancel the board turn so both labels read
+        // upright from the bottom bench.
+        if abs(boardTurn.degrees) == 90 {
             return .degrees(-boardTurn.degrees)
         }
-        // Portrait: the classic head-to-head layout.
+        // Portrait either way up: the classic head-to-head layout — the board's
+        // 180° flip already puts each player's end at their physical side.
         return .degrees(side == .top ? 180 : 0)
     }
 }

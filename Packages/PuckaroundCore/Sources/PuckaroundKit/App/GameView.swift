@@ -54,12 +54,17 @@ struct GameView: View {
                 }
             }
             .onAppear {
-                game.layout(screen: geo.size, turnCW: InterfaceTurn.clockwise)
+                game.layout(screen: geo.size, turnDegrees: InterfaceTurn.degrees)
                 game.begin()
                 game.onMenuTap = { showingPause = true }
             }
             .onChangeCompat(of: geo.size) { size in
-                game.layout(screen: size, turnCW: InterfaceTurn.clockwise)
+                game.layout(screen: size, turnDegrees: InterfaceTurn.degrees)
+            }
+            // The flips that keep the same size (left↔right landscape, portrait↔
+            // upside-down) never change geo.size, so they get their own hook.
+            .onDeviceOrientationChange {
+                game.layout(screen: geo.size, turnDegrees: InterfaceTurn.degrees)
             }
             // Either overlay freezes the sim: the puck holds while a menu or the
             // modal is up, and resumes without a catch-up burst.

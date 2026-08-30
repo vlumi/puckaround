@@ -22,20 +22,20 @@ struct BoardPlacement {
 
     var landscape: Bool { screen.width > screen.height }
 
-    /// `turnCW` is +90 for one landscape and −90 for the other, so the board
-    /// turns the same way the phone did — magenta stays on the physical-bottom
-    /// edge whichever way you rotate. Ignored in portrait.
-    init(board: Vec2, screen: CGSize, turnCW: Bool = true, margin: CGFloat = 12) {
+    /// `turnDegrees` is how far the board is turned to follow the phone: 0 upright
+    /// portrait, ±90 for the two landscapes, 180 upside down — so magenta stays on
+    /// the physical-bottom edge whichever way you hold it.
+    init(board: Vec2, screen: CGSize, turnDegrees: Double = 0, margin: CGFloat = 12) {
         self.board = board
         self.screen = screen
-        let landscape = screen.width > screen.height
-        // The box the board must fit inside its own (possibly turned) frame: in
-        // landscape the board's width spans the screen height and vice versa.
-        let boxW = max(0, (landscape ? screen.height : screen.width) - 2 * margin)
-        let boxH = max(0, (landscape ? screen.width : screen.height) - 2 * margin)
+        // A quarter turn swaps which screen dimension the board's width/height
+        // must fit; a half turn (or none) keeps the portrait fit.
+        let quarter = abs(turnDegrees.truncatingRemainder(dividingBy: 180)) == 90
+        let boxW = max(0, (quarter ? screen.height : screen.width) - 2 * margin)
+        let boxH = max(0, (quarter ? screen.width : screen.height) - 2 * margin)
         scale = board.x > 0 ? min(boxW / board.x, boxH / board.y) : 0
         center = CGPoint(x: screen.width / 2, y: screen.height / 2)
-        turn = landscape ? .degrees(turnCW ? 90 : -90) : .degrees(0)
+        turn = .degrees(turnDegrees)
     }
 
     /// The affine transform world → screen: scale, rotate about the board center,
