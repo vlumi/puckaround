@@ -65,12 +65,7 @@ struct TournamentView: View {
             VStack(spacing: 24) {
                 header
                 if let last = t.lastMatch {
-                    Text(
-                        "\(last.winner) beat \(last.loser) \(last.winnerScore)–\(last.loserScore)",
-                        bundle: .module
-                    )
-                    .font(.system(size: 15, weight: .semibold, design: .rounded))
-                    .foregroundStyle(Neon.inkSoft)
+                    lastResult(last)
                 }
                 pairing(t)
                 if let next = t.upNext {
@@ -117,6 +112,29 @@ struct TournamentView: View {
                 Spacer()
                 NeonIconButton(systemName: "xmark", label: "Close", action: onExit)
             }
+        }
+    }
+
+    /// The scoreline of the match just played: winner bright, loser dim, and
+    /// deliberately monochrome — the side colors belong to the live pairing
+    /// below, so what just happened can't be mistaken for what's next.
+    private func lastResult(_ last: Tournament.LastMatch) -> some View {
+        VStack(spacing: 4) {
+            Text("Last match", bundle: .module)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(Neon.inkSoft)
+                .textCase(.uppercase)
+                .kerning(2)
+            HStack(spacing: 8) {
+                Text(verbatim: last.winner)
+                    .foregroundStyle(Neon.ink)
+                Text(verbatim: "\(last.winnerScore)–\(last.loserScore)")
+                    .foregroundStyle(Neon.inkSoft)
+                    .monospacedDigit()
+                Text(verbatim: last.loser)
+                    .foregroundStyle(Neon.inkSoft)
+            }
+            .font(.system(size: 16, weight: .bold, design: .rounded))
         }
     }
 
