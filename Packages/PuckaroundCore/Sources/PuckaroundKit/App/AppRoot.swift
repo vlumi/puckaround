@@ -52,7 +52,7 @@ public struct AppRoot: View {
             // it) tears down the old table and its session/sound cleanly.
             .id(seed)
         case .tournament:
-            TournamentView(setup: setup, onExit: { phase = .menu })
+            TournamentView(setup: setupBinding, onExit: { phase = .menu })
         }
     }
 

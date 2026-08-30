@@ -7,6 +7,9 @@ import SwiftUI
 /// configured.
 struct SetupControls: View {
     @Binding var setup: Setup
+    /// The tournament sheet hides the players picker — a winner-stays pairing is
+    /// two people, so its matches are always one-on-one.
+    var showsFormat = true
 
     /// The offered points-per-game targets — a short, sane range.
     private let targets = [3, 5, 7, 11]
@@ -17,7 +20,9 @@ struct SetupControls: View {
 
     var body: some View {
         VStack(spacing: 28) {
-            formatPicker
+            if showsFormat {
+                formatPicker
+            }
             firstToPicker
             matchPicker
             puckPicker

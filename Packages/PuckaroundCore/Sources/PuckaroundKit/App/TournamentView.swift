@@ -7,8 +7,9 @@ import SwiftUI
 /// rejoins the line. The whole evening survives the app quitting: the state
 /// mirrors to storage on every change, and reopening resumes it.
 struct TournamentView: View {
-    /// Matches use the same stored setup as a plain match.
-    let setup: Setup
+    /// The evening's match rules — the same stored setup as a plain match; the
+    /// roster sheet edits it in place.
+    @Binding var setup: Setup
     let onExit: () -> Void
 
     /// The active tournament, JSON-mirrored to storage on every change.
@@ -27,7 +28,7 @@ struct TournamentView: View {
             Neon.ground.ignoresSafeArea()
             switch stage {
             case .lobby:
-                RosterSheet(onStart: begin, onClose: onExit)
+                RosterSheet(setup: $setup, onStart: begin, onClose: onExit)
             case .interstitial:
                 if let tournament {
                     interstitial(tournament)
@@ -45,8 +46,13 @@ struct TournamentView: View {
     /// One pairing on the table. The pause menu's exit leads back to the
     /// interstitial, not the title — the tournament owns the table now.
     private func match(_ t: Tournament, seed: UInt64) -> some View {
-        GameView(
-            setup: setup, seed: seed,
+        // A pairing is two people: whatever the stored format says, a
+        // tournament match fields one mallet per name.
+        var single = setup
+        single.bottomHands = 1
+        single.topHands = 1
+        return GameView(
+            setup: single, seed: seed,
             tournament: TournamentMatch(
                 names: EndNames(bottom: t.bottom, top: t.top), onMatchOver: recordWin),
             onNewMatch: { _ in stage = .playing(seed: freshSeed()) },
