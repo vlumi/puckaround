@@ -22,7 +22,10 @@ struct BoardPlacement {
 
     var landscape: Bool { screen.width > screen.height }
 
-    init(board: Vec2, screen: CGSize, margin: CGFloat = 12) {
+    /// `turnCW` is +90 for one landscape and −90 for the other, so the board
+    /// turns the same way the phone did — magenta stays on the physical-bottom
+    /// edge whichever way you rotate. Ignored in portrait.
+    init(board: Vec2, screen: CGSize, turnCW: Bool = true, margin: CGFloat = 12) {
         self.board = board
         self.screen = screen
         let landscape = screen.width > screen.height
@@ -32,9 +35,7 @@ struct BoardPlacement {
         let boxH = max(0, (landscape ? screen.width : screen.height) - 2 * margin)
         scale = board.x > 0 ? min(boxW / board.x, boxH / board.y) : 0
         center = CGPoint(x: screen.width / 2, y: screen.height / 2)
-        // Turn so the board's top (its cyan goal) points to the screen's left,
-        // seating both players along the bottom edge, reading rightward.
-        turn = landscape ? .degrees(90) : .degrees(0)
+        turn = landscape ? .degrees(turnCW ? 90 : -90) : .degrees(0)
     }
 
     /// The affine transform world → screen: scale, rotate about the board center,

@@ -54,11 +54,13 @@ struct GameView: View {
                 }
             }
             .onAppear {
-                game.layout(screen: geo.size)
+                game.layout(screen: geo.size, turnCW: InterfaceTurn.clockwise)
                 game.begin()
                 game.onMenuTap = { showingPause = true }
             }
-            .onChangeCompat(of: geo.size) { size in game.layout(screen: size) }
+            .onChangeCompat(of: geo.size) { size in
+                game.layout(screen: size, turnCW: InterfaceTurn.clockwise)
+            }
             // Either overlay freezes the sim: the puck holds while a menu or the
             // modal is up, and resumes without a catch-up burst.
             .onChangeCompat(of: showingPause) { _ in syncPause() }

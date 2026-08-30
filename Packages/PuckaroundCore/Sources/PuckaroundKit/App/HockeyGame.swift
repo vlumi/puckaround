@@ -80,8 +80,9 @@ public final class HockeyGame: ObservableObject {
 
     // MARK: - Screen ↔ world
 
-    func layout(screen: CGSize) {
-        placement = BoardPlacement(board: session.rink.table.size, screen: screen)
+    func layout(screen: CGSize, turnCW: Bool = true) {
+        placement = BoardPlacement(
+            board: session.rink.table.size, screen: screen, turnCW: turnCW)
     }
 
     func world(fromScreen p: CGPoint) -> Vec2 {
