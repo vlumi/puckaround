@@ -29,7 +29,7 @@ One place per concern — don't duplicate, link:
 | **What the system is** | [ARCHITECTURE.md](ARCHITECTURE.md) — the sim, sides & slots, the touch rule, and a fenced *Planned* chapter |
 | **How to work on it** | this file — conventions, toolchain, PR process |
 | **What's next, and when** | [ROADMAP.md](ROADMAP.md) |
-| **Why a design was chosen** | `docs/*-plan.md`, linked from ARCHITECTURE.md — [docs/air-hockey-plan.md](docs/air-hockey-plan.md) so far |
+| **Why a design was chosen** | woven into [ARCHITECTURE.md](ARCHITECTURE.md); a big undecided feature may get a temporary `docs/*-plan.md`, retired once it ships |
 | **How it ships** | [RELEASING.md](RELEASING.md) |
 | **What shipped** | [CHANGELOG.md](CHANGELOG.md) |
 

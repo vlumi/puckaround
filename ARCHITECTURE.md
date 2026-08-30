@@ -1,8 +1,10 @@
 # Architecture
 
-What Puck Around **is**, as built. Process and conventions live in
-[AGENTS.md](AGENTS.md); *when* things happen is [ROADMAP.md](ROADMAP.md); *why*
-a design was chosen is in the `docs/*-plan.md` files, linked from here.
+What Puck Around **is**, as built, with the *why* behind each choice woven in.
+Process and conventions live in [AGENTS.md](AGENTS.md); *when* things happen is
+[ROADMAP.md](ROADMAP.md). A big, still-undecided feature may get its own
+`docs/*-plan.md` to think it through; once it ships, its decisions fold into
+this file and the plan is retired.
 
 Everything before "[Planned](#planned)" describes shipped code. That chapter is
 fenced off deliberately: mixing the two is what lets architecture notes drift
@@ -61,8 +63,11 @@ stand on the same promise.
 **The game is air hockey**, standard rules: a goal in each short wall, the side
 scored on gets the puck, first to seven (`Rules.pointsToWin`). Each side fields
 one or two mallets — see [Sides & slots](#sides--slots) — so 1v1, 1v2 and 2v2
-are one game. Why this game and not another is in
-[docs/air-hockey-plan.md](docs/air-hockey-plan.md).
+are one game. It was chosen because everyone already knows how to play it: the
+rules need no screen to explain them, so the sandbox could be a game on day one
+rather than a toy that needs teaching. The mallet is the input, not a
+swipe-across-the-puck strike — you defend with it, and a still one is a wall —
+because that is what makes it *air hockey* rather than a lively toy.
 
 **The table** (`Playfield`) is a walled rectangle in world units, a goal in each
 short wall, plus the constants: puck and mallet radii, goal width, wall
@@ -81,7 +86,7 @@ short wall.
 **Side walls can wrap.** With `sideWalls == .wrap` the long walls are portals —
 a puck leaving one long side re-enters the opposite side at the same height,
 keeping its speed (the goals stay solid). A table variant, orthogonal to shape
-and format; see [docs/table-and-modes-plan.md](docs/table-and-modes-plan.md).
+and format.
 
 **Coordinates are y-down**, matching screen space: rendering is a pure scale
 and nothing flips. `Side.bottom` is the bottom of the screen.
@@ -180,8 +185,8 @@ playing beyond a bare per-side count — names, remembered colors, profiles.
 
 **A curved table (the ellipse).** Slice goals and curved walls, and the payoff
 the flat table can't express: a forward-spun puck that rolls the wall toward the
-goal. A whole table's worth of physics — a spike, not a variant. Design in
-[docs/table-and-modes-plan.md](docs/table-and-modes-plan.md).
+goal. A whole table's worth of physics — a spike, not a variant; see
+[ROADMAP.md](ROADMAP.md).
 
 ## Deliberately out of scope
 
