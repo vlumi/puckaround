@@ -116,7 +116,7 @@ public struct Rink: Equatable, Sendable {
     private var announceFaceoffCleared = false
     /// Reserved seam: seeded, deterministic randomness for a sim that has none
     /// yet (the faceoff opening replaced the old random serve). The first
-    /// randomised event — a bumper kick, a puck-variety wobble — draws from
+    /// randomized event — a bumper kick, a puck-variety wobble — draws from
     /// here. Note it participates in `Equatable`: two rinks differing only by
     /// seed are unequal even before any draw.
     private var rng: SeededRNG
@@ -124,6 +124,10 @@ public struct Rink: Equatable, Sendable {
     /// The two sides in a fixed order, so `score` is a plain array the sim can
     /// index deterministically.
     static let scoreOrder: [Side] = [.bottom, .top]
+
+    /// A side's slot in the per-side tallies — `scoreOrder` as a total function,
+    /// so indexing needs no search and no unwrap (a test pins the two together).
+    static func tallyIndex(_ side: Side) -> Int { side == .bottom ? 0 : 1 }
 
     public init(table: Playfield, rules: Rules = .standard, seed: UInt64) {
         self.table = table
@@ -134,7 +138,7 @@ public struct Rink: Equatable, Sendable {
         self.mallets = slots.map { Mallet(position: table.malletZone(for: $0).center) }
         self.score = Rink.scoreOrder.map { _ in 0 }
         self.gamesWon = Rink.scoreOrder.map { _ in 0 }
-        newGame()
+        newMatch()
     }
 
     public func mallet(at slot: MalletSlot) -> Mallet? {
@@ -142,18 +146,18 @@ public struct Rink: Equatable, Sendable {
     }
 
     public func score(of side: Side) -> Int {
-        score[Rink.scoreOrder.firstIndex(of: side)!]
+        score[Rink.tallyIndex(side)]
     }
 
     public func gamesWon(of side: Side) -> Int {
-        gamesWon[Rink.scoreOrder.firstIndex(of: side)!]
+        gamesWon[Rink.tallyIndex(side)]
     }
 
-    /// Start a fresh MATCH: game score and games tally to zero, opening faceoff.
+    /// Start a fresh match: game score and games tally to zero, opening faceoff.
     /// The puck sits frozen at center behind the force field until every mallet
     /// readies — no chance decides the opening, the players do by all grabbing
     /// in. The mallets stay where the hands left them.
-    public mutating func newGame() {
+    public mutating func newMatch() {
         score = Rink.scoreOrder.map { _ in 0 }
         gamesWon = Rink.scoreOrder.map { _ in 0 }
         puck = Puck(position: table.center)
@@ -245,14 +249,14 @@ public struct Rink: Equatable, Sendable {
     mutating func goal(against side: Side) {
         let conceder = side
         let scorer = side.opponent
-        score[Rink.scoreOrder.firstIndex(of: scorer)!] += 1
+        score[Rink.tallyIndex(scorer)] += 1
         events.append(.goal(scorer: scorer, conceder: conceder))
         guard score(of: scorer) >= rules.pointsToWin else {
             serve(to: conceder)
             return
         }
         // The game is won: tally it, and decide whether that took the match.
-        gamesWon[Rink.scoreOrder.firstIndex(of: scorer)!] += 1
+        gamesWon[Rink.tallyIndex(scorer)] += 1
         let endedMatch = gamesWon(of: scorer) >= rules.gamesToWin
         // Show the result and open the faceoff; readying up starts the next game
         // (or, if the match ended, a fresh match — see `ready`).

@@ -1,6 +1,5 @@
-/// Where each mallet slot lives on the table: which side and lane owns a touch,
-/// and a band along a side's wall, for being drawn. Slot-based — a touch routes
-/// to a mallet, never to a "player".
+/// Where each mallet slot lives on the table: which side and lane owns a touch.
+/// Slot-based — a touch routes to a mallet, never to a "player".
 public struct SeatZones: Equatable, Sendable {
     /// The slots on the table, in `Format.slots` order.
     public let slots: [MalletSlot]
@@ -29,16 +28,5 @@ public struct SeatZones: Equatable, Sendable {
         // Two: left of center is the left lane, right of center the right.
         let lane: Lane = point.x < bounds.center.x ? .left : .right
         return sideSlots.first { $0.lane == lane } ?? sideSlots[0]
-    }
-
-    /// A side's band: `depth` deep along its whole wall — for drawing the side's
-    /// home territory.
-    public func band(for side: Side, depth: Double) -> Rect {
-        switch side {
-        case .bottom:
-            return Rect(x: bounds.minX, y: bounds.maxY - depth, width: bounds.width, height: depth)
-        case .top:
-            return Rect(x: bounds.minX, y: bounds.minY, width: bounds.width, height: depth)
-        }
     }
 }

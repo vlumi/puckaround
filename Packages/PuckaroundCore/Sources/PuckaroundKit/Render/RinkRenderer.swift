@@ -264,9 +264,6 @@ enum RinkRenderer {
         return copy
     }
 
-    /// The mallet: a glowing ring in the seat's color with a dark hollow, so
-    /// it reads as a striker rather than a solid disc, and its color is
-    /// unmistakably that player's.
     /// Whether a mallet ripples (a not-yet-readied seat during faceoff), and the
     /// clock + reduced-motion state that shape it.
     struct Ripple {

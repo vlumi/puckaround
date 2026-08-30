@@ -1,12 +1,13 @@
 import PuckaroundCore
 import SwiftUI
 
-/// **How the portrait board sits on the screen.** In portrait it's centered and
-/// scaled to fit. In landscape the whole board turns a quarter and fills the
-/// wide screen — so the players sit along the long (bottom) edge and see an
-/// upright table, no wasted side bars. One source of truth for both the renderer
-/// (which rotates the canvas) and the touch mapping (which must invert the same
-/// rotation), so a finger lands where it looks.
+/// **How the board sits on the screen.** Centered and scaled to fit, then turned
+/// to follow the phone — none upright, a quarter for either landscape (filling
+/// the wide screen, the players along its bottom edge), a half upside down — so
+/// the magenta goal stays at the button end however the device is held. One
+/// source of truth for both the renderer (which rotates the canvas) and the
+/// touch mapping (which must invert the same rotation), so a finger lands where
+/// it looks.
 struct BoardPlacement {
     /// The board size in world units (portrait: width < height).
     let board: Vec2
@@ -19,8 +20,6 @@ struct BoardPlacement {
     let scale: CGFloat
     /// The board's center on screen, the pivot of `turn`.
     let center: CGPoint
-
-    var landscape: Bool { screen.width > screen.height }
 
     /// `turnDegrees` is how far the board is turned to follow the phone: 0 upright
     /// portrait, ±90 for the two landscapes, 180 upside down — so magenta stays on
@@ -60,7 +59,4 @@ struct BoardPlacement {
         let q = p.applying(t)
         return Vec2(q.x, q.y)
     }
-
-    /// A board-space length (e.g. a radius) in points.
-    func length(_ world: Double) -> CGFloat { world * scale }
 }

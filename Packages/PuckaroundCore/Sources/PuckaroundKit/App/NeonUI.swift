@@ -64,3 +64,13 @@ struct NeonIconButton: View {
         .accessibilityLabel(Text(label, bundle: .module))
     }
 }
+
+/// The solid card the menus sit on — near-opaque ground with a soft outline, so
+/// the glowing table doesn't bleed through the words. One card, every menu.
+struct NeonCard: View {
+    var body: some View {
+        RoundedRectangle(cornerRadius: 18).fill(Neon.ground.opacity(0.98))
+            .overlay(
+                RoundedRectangle(cornerRadius: 18).strokeBorder(Neon.inkSoft, lineWidth: 1))
+    }
+}

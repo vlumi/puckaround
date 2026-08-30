@@ -1,14 +1,15 @@
 import PuckaroundCore
 import SwiftUI
 
-/// **One table of 1v1 air hockey.** Owns the session, the touch control source
-/// and the screen ↔ world mapping. Nothing here is `@Published`: the view
-/// redraws every frame via `TimelineView(.animation)` and reads the sim's
-/// phase and score from the frame it draws (see `GameSession`).
+/// **One table of air hockey** (any format — 1v1, 1v2, 2v2). Owns the session,
+/// the touch control source and the screen ↔ world mapping. Nothing here is
+/// `@Published`: the view redraws every frame via `TimelineView(.animation)`
+/// and reads the sim's phase and score from the frame it draws
+/// (see `GameSession`).
 @MainActor
-public final class HockeyGame: ObservableObject {
-    public private(set) var session: GameSession
-    public private(set) var controls: MalletControlSource
+final class HockeyGame: ObservableObject {
+    private(set) var session: GameSession
+    private(set) var controls: MalletControlSource
     private let sound = SoundEngine()
     private let haptics = Haptics()
     /// The tick the feedback layers have consumed events through, so a paused
@@ -19,27 +20,11 @@ public final class HockeyGame: ObservableObject {
     /// lands where it looks in either orientation. Set by the view on layout.
     private(set) var placement = BoardPlacement(board: Vec2(1, 1), screen: .zero)
 
-    /// Sound and haptics on? Both default on; the front door will expose them.
-    public var feedbackEnabled = true {
-        didSet {
-            sound.enabled = feedbackEnabled
-            haptics.enabled = feedbackEnabled
-            if feedbackEnabled {
-                sound.start()
-            } else {
-                sound.stop()
-            }
-        }
-    }
-
-    public let rules: Rules
-
-    public init(
+    init(
         rules: Rules = .standard, puckShape: PuckShape = .circle,
         format: Format = .oneVsOne, sideWalls: SideWalls = .solid,
         seed: UInt64 = UInt64.random(in: 0...UInt64.max)
     ) {
-        self.rules = rules
         // The chosen format sets each side's hand count; the zones follow the
         // table's own format, so they split into lanes wherever a side fields two.
         var table = Playfield.duel.with(format: format)
@@ -57,7 +42,7 @@ public final class HockeyGame: ObservableObject {
     /// Freeze the sim (menu open) or let it run again. While paused the puck
     /// holds and drops any in-flight touches, so a finger left on a mallet
     /// doesn't fling it the instant play resumes.
-    public var isPaused: Bool {
+    var isPaused: Bool {
         get { session.paused }
         set {
             session.paused = newValue
@@ -66,16 +51,9 @@ public final class HockeyGame: ObservableObject {
     }
 
     /// Start audio and warm the Taptic engine — called when the table appears.
-    public func begin() {
+    func begin() {
         sound.start()
         haptics.prepare()
-    }
-
-    /// Start over — same players, same rules, a fresh faceoff. Used by the
-    /// restart ring after a game, and by "restart" mid-game.
-    public func newGame() {
-        controls.releaseAll()
-        session.newGame()
     }
 
     // MARK: - Screen ↔ world

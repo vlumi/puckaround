@@ -64,7 +64,7 @@ extension Rink {
     }
 
     /// A puck pinned between the mallet and a wall squirts out ALONG the wall
-    /// instead of tunnelling back through the mallet — the "mallet warped through
+    /// instead of tunneling back through the mallet — the "mallet warped through
     /// the puck" bug. Redirects the into-wall speed sideways, along the wall.
     private mutating func slideAlongWall(_ wall: Vec2, from center: Vec2) {
         let into = puck.velocity.dot(wall)
@@ -117,7 +117,7 @@ extension Rink {
 
     /// Where the puck goes to sit clear of a mallet: straight out along `normal`,
     /// unless that crosses a wall — then it slides along the wall (returned as its
-    /// outward normal) to stay clear without tunnelling through it. A wrap table's
+    /// outward normal) to stay clear without tunneling through it. A wrap table's
     /// side walls don't confine, so only the goal walls bound x there.
     private func pushedClear(of center: Vec2, along normal: Vec2, reach: Double) -> (
         position: Vec2, wall: Vec2?

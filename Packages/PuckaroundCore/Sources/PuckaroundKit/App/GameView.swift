@@ -15,19 +15,19 @@ struct GameView: View {
     /// it, so the pickers show what's in play.
     let setup: Setup
     /// Commit a chosen setup and start a fresh match with it.
-    let onNewGame: (Setup) -> Void
+    let onNewMatch: (Setup) -> Void
     let onExit: () -> Void
 
     init(
         setup: Setup, seed: UInt64,
-        onNewGame: @escaping (Setup) -> Void = { _ in }, onExit: @escaping () -> Void = {}
+        onNewMatch: @escaping (Setup) -> Void, onExit: @escaping () -> Void
     ) {
         _game = StateObject(
             wrappedValue: HockeyGame(
                 rules: setup.rules, puckShape: setup.resolvedPuck(roll: seed),
                 format: setup.format, sideWalls: setup.resolvedWalls(roll: seed), seed: seed))
         self.setup = setup
-        self.onNewGame = onNewGame
+        self.onNewMatch = onNewMatch
         self.onExit = onExit
     }
 
@@ -54,18 +54,14 @@ struct GameView: View {
                 }
             }
             .onAppear {
-                game.layout(screen: geo.size, turnDegrees: InterfaceTurn.degrees)
+                relayout(geo.size)
                 game.begin()
                 game.onMenuTap = { showingPause = true }
             }
-            .onChangeCompat(of: geo.size) { size in
-                game.layout(screen: size, turnDegrees: InterfaceTurn.degrees)
-            }
+            .onChangeCompat(of: geo.size) { size in relayout(size) }
             // The flips that keep the same size (left↔right landscape, portrait↔
             // upside-down) never change geo.size, so they get their own hook.
-            .onDeviceOrientationChange {
-                game.layout(screen: geo.size, turnDegrees: InterfaceTurn.degrees)
-            }
+            .onDeviceOrientationChange { relayout(geo.size) }
             // Either overlay freezes the sim: the puck holds while a menu or the
             // modal is up, and resumes without a catch-up burst.
             .onChangeCompat(of: showingPause) { _ in syncPause() }
@@ -85,7 +81,7 @@ struct GameView: View {
                 onStart: { chosen in
                     showingNewMatch = false
                     showingPause = false
-                    onNewGame(chosen)
+                    onNewMatch(chosen)
                 },
                 onClose: { showingNewMatch = false })
         } else if showingPause {
@@ -111,23 +107,22 @@ struct GameView: View {
                 // games; restarting is a new match, so it rolls again).
                 NeonButton(title: "Restart") {
                     showingPause = false
-                    onNewGame(setup)
+                    onNewMatch(setup)
                 }
                 NeonButton(title: "New match…") { showingNewMatch = true }
                 NeonButton(title: "Quit to title", tint: Neon.magenta, action: onExit)
             }
             .frame(maxWidth: 260)
             .padding(24)
-            .background(menuCard)
+            .background(NeonCard())
         }
     }
 
     /// Freeze the sim while either overlay is up, run it otherwise.
     private func syncPause() { game.isPaused = showingPause || showingNewMatch }
 
-    private var menuCard: some View {
-        RoundedRectangle(cornerRadius: 18).fill(Neon.ground.opacity(0.98))
-            .overlay(
-                RoundedRectangle(cornerRadius: 18).strokeBorder(Neon.inkSoft, lineWidth: 1))
+    /// Re-place the board for the current screen and physical device orientation.
+    private func relayout(_ size: CGSize) {
+        game.layout(screen: size, turnDegrees: InterfaceTurn.degrees)
     }
 }

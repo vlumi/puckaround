@@ -36,10 +36,4 @@ public enum PuckShape: Equatable, Codable, Sendable {
             return vertices.map { position + ($0 * radius).rotated(by: angle) }
         }
     }
-
-    /// The rotational inertia factor `I / (m · r²)` for a unit-mass, unit-radius
-    /// shape — how much a given torque spins it. A solid disc is 1/2; a square
-    /// about its center is 1/3 of its half-diagonal² … we keep it simple and
-    /// deterministic with a per-shape constant that reads well in play, not a
-    /// physically exact integral.
 }

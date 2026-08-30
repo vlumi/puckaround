@@ -38,7 +38,7 @@ public struct AppRoot: View {
         case .playing(let seed):
             GameView(
                 setup: setup, seed: seed,
-                onNewGame: { newSetup in
+                onNewMatch: { newSetup in
                     apply(newSetup)
                     phase = .playing(seed: freshSeed())
                 },
