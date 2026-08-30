@@ -16,10 +16,6 @@ struct TournamentView: View {
     @AppStorage("puckaround.tournament") private var saved = Data()
     @State private var tournament: Tournament?
     @State private var stage = Stage.lobby
-    /// The beat between a decided match and the interstitial: the verdict shows,
-    /// but input is blocked so nobody can ready up a rematch the interstitial is
-    /// about to take over.
-    @State private var deciding = false
 
     private enum Stage: Equatable {
         case lobby
@@ -39,14 +35,8 @@ struct TournamentView: View {
                 }
             case .playing(let seed):
                 if let tournament {
-                    ZStack {
-                        match(tournament, seed: seed)
-                        if deciding {
-                            // Swallows every touch during the verdict's beat.
-                            Color.black.opacity(0.2).ignoresSafeArea()
-                        }
-                    }
-                    .id(seed)
+                    match(tournament, seed: seed)
+                        .id(seed)
                 }
             }
         }
@@ -74,6 +64,14 @@ struct TournamentView: View {
         ZStack {
             VStack(spacing: 24) {
                 header
+                if let last = t.lastMatch {
+                    Text(
+                        "\(last.winner) beat \(last.loser) \(last.winnerScore)–\(last.loserScore)",
+                        bundle: .module
+                    )
+                    .font(.system(size: 15, weight: .semibold, design: .rounded))
+                    .foregroundStyle(Neon.inkSoft)
+                }
                 pairing(t)
                 if let next = t.upNext {
                     HStack(spacing: 6) {
@@ -162,16 +160,13 @@ struct TournamentView: View {
         stage = .interstitial
     }
 
-    /// The sim decided the match: tally it, then let the table show its verdict
-    /// for a beat before the interstitial takes over.
-    private func recordWin(_ side: Side) {
-        tournament?.recordWin(by: side)
+    /// The sim decided the match: tally it and cut straight to the interstitial
+    /// — the banner carries the result, so the table needs no verdict beat (and
+    /// nobody can sneak a rematch in behind one).
+    private func recordWin(_ side: Side, won: Int, lost: Int) {
+        tournament?.recordWin(by: side, winnerScore: won, loserScore: lost)
         persist()
-        deciding = true
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
-            stage = .interstitial
-            deciding = false
-        }
+        stage = .interstitial
     }
 
     /// A saved evening resumes right at the interstitial.

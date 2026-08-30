@@ -138,8 +138,9 @@ struct GameView: View {
 }
 
 /// What a tournament adds to one match on the table: whose name is on each end,
-/// and who to tell when the match is decided.
+/// and who to tell when the match is decided (winning side plus the two tallies
+/// that decided it).
 struct TournamentMatch {
     let names: EndNames
-    let onMatchOver: (Side) -> Void
+    let onMatchOver: (Side, Int, Int) -> Void
 }
