@@ -15,7 +15,7 @@ The `## vX.Y.Z` heading is written by the release lane too, whenever a release c
 ### Unreleased (next build)
 
 - **Set up a match from one place, wherever you are.** The front page is now just the wordmark and a "New match" button; it opens a modal with all the choices — players, first-to, match length, puck and walls — and a "Start match" that drops you onto the table. The same modal is a tap away mid-game, from the center-ring menu's "New match…", so you can start a fresh one with a different setup without quitting to the title. The pause menu still has "Restart" for a quick redo of the same setup.
-- **A "?" for a random puck or table.** Both the Puck and Walls pickers now offer a "?" — pick it and the shape (or solid-vs-wrap) is rolled fresh at the start of each game, so you don't know what you're getting until it drops. The two roll independently.
+- **A "?" for a random puck or table.** Both the Puck and Walls pickers now offer a "?" — pick it and the shape (or solid-vs-wrap) is rolled fresh when a match starts, so you don't know what you're getting until it drops. It re-rolls on Restart too; within a best-of match it stays fixed across the games. The two roll independently.
 - **Play a match, not just a game.** Pick "Best of 3" or "Best of 5" under Match and a win takes a game, not the whole thing — first to two (or three) games takes the match. Between games it's a fresh faceoff with the points reset, and a row of pips by each score tracks who's ahead. The result names what just ended — GAME won/lost between games, MATCH when it's decided — so it's never unclear whether the match is over. "Single" is the old one-game behavior.
 
 ### build 6 — 2026-08-29

@@ -1,10 +1,10 @@
 import PuckaroundCore
 import SwiftUI
 
-/// **The setup pickers**, shared by the front door and the in-game settings
-/// sheet: players, first-to, match length, puck (with a "?" for random) and
-/// walls (likewise). Bound to a `Setup` value so a caller can point them at
-/// `@AppStorage` (the front door) or a discardable draft (the in-game sheet).
+/// **The setup pickers**: players, first-to, match length, puck (with a "?" for
+/// random) and walls (likewise). Bound to a `Setup` value; the New match modal
+/// points them at a discardable draft. One picker set, used wherever a match is
+/// configured.
 struct SetupControls: View {
     @Binding var setup: Setup
 

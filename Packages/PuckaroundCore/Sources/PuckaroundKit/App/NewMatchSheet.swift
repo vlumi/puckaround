@@ -26,19 +26,25 @@ struct NewMatchSheet: View {
     var body: some View {
         ZStack {
             Color.black.opacity(0.85).ignoresSafeArea().onTapGesture(perform: onClose)
-            ScrollView {
-                VStack(spacing: 24) {
-                    header
+            // Header and Start are pinned; only the pickers scroll between them,
+            // so Start is always in reach — a short screen (SE) never has to
+            // scroll to it, and a tall one shows everything at once.
+            VStack(spacing: 0) {
+                header
+                    .padding(.horizontal, 24)
+                    .padding(.top, 20)
+                    .padding(.bottom, 8)
+                ScrollView {
                     SetupControls(setup: $draft)
-                    NeonButton(title: "Start match", tint: Neon.cyan, prominent: true) {
-                        onStart(draft)
-                    }
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 16)
                 }
-                .padding(24)
-                .frame(maxWidth: 440)
-                .background(card)
-                .padding(16)
+                start
+                    .padding(24)
             }
+            .frame(maxWidth: 440)
+            .background(card)
+            .padding(16)
         }
     }
 
@@ -53,6 +59,10 @@ struct NewMatchSheet: View {
                 NeonIconButton(systemName: "xmark", label: "Close", action: onClose)
             }
         }
+    }
+
+    private var start: some View {
+        NeonButton(title: "Start match", tint: Neon.cyan, prominent: true) { onStart(draft) }
     }
 
     private var card: some View {

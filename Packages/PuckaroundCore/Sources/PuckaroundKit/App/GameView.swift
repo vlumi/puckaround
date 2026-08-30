@@ -90,20 +90,23 @@ struct GameView: View {
         // through the ring stays ordinary play and only a tap opens the menu.
     }
 
-    /// The menu behind the center ring. Restart replays the same setup instantly
-    /// (fresh faceoff, score at zero, nobody readied); New match opens the modal
-    /// to set up a different one. Both are reachable from anywhere.
+    /// The menu behind the center ring. Restart begins a fresh match with the
+    /// same setup (re-rolling a "?" puck or walls); New match opens the modal to
+    /// set up a different one. Both are reachable from anywhere.
     private var pauseMenu: some View {
         ZStack {
             Color.black.opacity(0.6).ignoresSafeArea().onTapGesture { showingPause = false }
             VStack(spacing: 14) {
                 NeonButton(title: "Resume", tint: Neon.cyan) { showingPause = false }
+                // Restart is "new match, same setup" — a fresh seed, so a "?"
+                // puck or walls re-rolls (a match keeps its roll across its own
+                // games; restarting is a new match, so it rolls again).
                 NeonButton(title: "Restart") {
-                    game.newGame()
                     showingPause = false
+                    onNewGame(setup)
                 }
                 NeonButton(title: "New match…") { showingNewMatch = true }
-                NeonButton(title: "Quit to menu", tint: Neon.magenta, action: onExit)
+                NeonButton(title: "Quit to title", tint: Neon.magenta, action: onExit)
             }
             .frame(maxWidth: 260)
             .padding(24)
