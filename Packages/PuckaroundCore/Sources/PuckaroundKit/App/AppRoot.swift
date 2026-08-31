@@ -13,6 +13,10 @@ public struct AppRoot: View {
     @AppStorage("puckaround.puckShape") private var puckShapeKey = PuckShapeKey.circle.rawValue
     /// "?" for the puck — roll a shape each game instead of a fixed one.
     @AppStorage("puckaround.randomPuck") private var randomPuck = false
+    /// How many pucks fly at once (1–3).
+    @AppStorage("puckaround.puckCount") private var puckCount = 1
+    /// "?" for the count — roll 1–3 each game.
+    @AppStorage("puckaround.randomPuckCount") private var randomPuckCount = false
     /// Hands per side, 1 or 2 — the format, stored as two Ints because `Format`
     /// isn't a raw-representable `@AppStorage` value. Both default to singles.
     @AppStorage("puckaround.bottomHands") private var bottomHands = 1
@@ -60,7 +64,8 @@ public struct AppRoot: View {
     private var setup: Setup {
         Setup(
             pointsToWin: pointsToWin, gamesToWin: gamesToWin, puckShapeKey: puckShapeKey,
-            randomPuck: randomPuck, bottomHands: bottomHands, topHands: topHands,
+            randomPuck: randomPuck, puckCount: puckCount, randomPuckCount: randomPuckCount,
+            bottomHands: bottomHands, topHands: topHands,
             wrapWalls: wrapWalls, randomWalls: randomWalls)
     }
 
@@ -76,6 +81,8 @@ public struct AppRoot: View {
         gamesToWin = s.gamesToWin
         puckShapeKey = s.puckShapeKey
         randomPuck = s.randomPuck
+        puckCount = s.puckCount
+        randomPuckCount = s.randomPuckCount
         bottomHands = s.bottomHands
         topHands = s.topHands
         wrapWalls = s.wrapWalls

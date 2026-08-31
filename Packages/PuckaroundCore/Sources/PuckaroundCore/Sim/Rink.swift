@@ -9,6 +9,8 @@ public enum GameEvent: Equatable, Sendable {
     case malletHit(MalletSlot, speed: Double)
     /// The puck bounced off a wall; `speed` is how fast it was going into it.
     case wallBounce(speed: Double)
+    /// Two pucks clacked into each other; `speed` is their closing speed.
+    case puckHit(speed: Double)
     /// A goal went in against `conceder`, scored by `scorer`. On an own goal the
     /// two are opposite sides all the same — the puck crossing a side's own line
     /// is the other side's point, whoever last touched it.
@@ -85,9 +87,9 @@ public struct Rink: Equatable, Sendable {
     /// bleeds the rest. Below 1 so spin doesn't persist forever off the boards.
     static let discSpinKeptOnBounce = 0.8
 
-    /// The spin bite for the puck's own shape.
-    var spinBite: Double {
-        if case .circle = table.puckShape { return Rink.discSpinBite }
+    /// The spin bite for a given puck shape.
+    func spinBite(for shape: PuckShape) -> Double {
+        if case .circle = shape { return Rink.discSpinBite }
         return Rink.spinBite
     }
 
@@ -97,7 +99,12 @@ public struct Rink: Equatable, Sendable {
     /// for the life of the rink, so `mallets`, iteration, and hit order are all
     /// deterministic.
     public let slots: [MalletSlot]
-    public internal(set) var puck: Puck
+    /// Every puck in play, in a fixed order — most tables fly one, a chaotic one
+    /// up to three. The order is part of the state: physics resolves them by
+    /// index, so the mayhem stays deterministic.
+    public internal(set) var pucks: [Puck]
+    /// The first puck — the whole story on a one-puck table.
+    public var puck: Puck { pucks[0] }
     /// One per slot, in `slots` order.
     public internal(set) var mallets: [Mallet]
     /// One score per side, indexed by `Rink.scoreOrder` (bottom, top).
@@ -134,7 +141,7 @@ public struct Rink: Equatable, Sendable {
         self.rules = rules
         self.slots = table.format.slots
         self.rng = SeededRNG(seed: seed)
-        self.puck = Puck(position: table.center)
+        self.pucks = Rink.faceoffPucks(on: table)
         self.mallets = slots.map { Mallet(position: table.malletZone(for: $0).center) }
         self.score = Rink.scoreOrder.map { _ in 0 }
         self.gamesWon = Rink.scoreOrder.map { _ in 0 }
@@ -154,14 +161,25 @@ public struct Rink: Equatable, Sendable {
     }
 
     /// Start a fresh match: game score and games tally to zero, opening faceoff.
-    /// The puck sits frozen at center behind the force field until every mallet
+    /// The pucks sit frozen at center behind the force field until every mallet
     /// readies — no chance decides the opening, the players do by all grabbing
     /// in. The mallets stay where the hands left them.
     public mutating func newMatch() {
         score = Rink.scoreOrder.map { _ in 0 }
         gamesWon = Rink.scoreOrder.map { _ in 0 }
-        puck = Puck(position: table.center)
+        pucks = Rink.faceoffPucks(on: table)
         phase = .opening
+    }
+
+    /// The faceoff arrangement: every puck frozen in a row at center, inside the
+    /// force field, each wearing its table-given shape.
+    static func faceoffPucks(on table: Playfield) -> [Puck] {
+        let shapes = table.puckShapes
+        let spacing = table.puckRadius * 2.6
+        return shapes.indices.map { index in
+            let offset = (Double(index) - Double(shapes.count - 1) / 2) * spacing
+            return Puck(position: table.center + Vec2(offset, 0), shape: shapes[index])
+        }
     }
 
     /// A mallet declares itself ready. No take-backs — readiness is a latch.
@@ -210,16 +228,19 @@ public struct Rink: Equatable, Sendable {
         return false
     }
 
-    /// After a goal: the puck is served from center, gliding slowly into the
-    /// conceder's half. It moves AWAY from the far side — a puck heading into
-    /// the conceder's own end is unreachable by the opponent until it settles.
-    private mutating func serve(to side: Side) {
+    /// After a goal: the scored puck is served from center, gliding slowly into
+    /// the conceder's half — any other pucks play on undisturbed. It moves AWAY
+    /// from the far side — a puck heading into the conceder's own end is
+    /// unreachable by the opponent until it settles.
+    private mutating func serve(puckAt index: Int, to side: Side) {
         let towardOwnGoal = -side.inward
-        puck = Puck(position: table.center, velocity: towardOwnGoal * table.serveSpeed)
+        pucks[index] = Puck(
+            position: table.center, velocity: towardOwnGoal * table.serveSpeed,
+            shape: pucks[index].shape)
     }
 
-    /// One tick: every mallet moves (striking the puck on its way), then the
-    /// puck moves. A finished game freezes only the puck — the mallets are the
+    /// One tick: every mallet moves (striking any puck on its way), then the
+    /// pucks move. A finished game freezes only the pucks — the mallets are the
     /// players' hands and stay live.
     public mutating func advance(inputs: [MalletSlot: SeatInput]) {
         defer { tick += 1 }
@@ -237,23 +258,25 @@ public struct Rink: Equatable, Sendable {
                 at: index, grabTo: input?.malletGrab, by: input?.malletDrag ?? .zero,
                 strikes: playing)
         }
-        // The puck may already be touching a resting mallet — but that is not a
+        // A puck may already be touching a resting mallet — but that is not a
         // NEW hit, so it emits no event; only a closing contact during a move does.
         if playing {
-            stepPuck()
+            stepPucks()
         }
     }
 
-    /// A goal against `side`: that side concedes, the opposite side scores; the
-    /// conceder gets the puck, or the game ends.
-    mutating func goal(against side: Side) {
+    /// A goal against `side` by the puck at `index`: that side concedes, the
+    /// opposite side scores. The scored puck re-serves to the conceder while the
+    /// rest play on — unless this point won the game, which freezes the table
+    /// for the faceoff. Returns whether the game ended.
+    mutating func goal(against side: Side, puckAt index: Int) -> Bool {
         let conceder = side
         let scorer = side.opponent
         score[Rink.tallyIndex(scorer)] += 1
         events.append(.goal(scorer: scorer, conceder: conceder))
         guard score(of: scorer) >= rules.pointsToWin else {
-            serve(to: conceder)
-            return
+            serve(puckAt: index, to: conceder)
+            return false
         }
         // The game is won: tally it, and decide whether that took the match.
         gamesWon[Rink.tallyIndex(scorer)] += 1
@@ -261,16 +284,21 @@ public struct Rink: Equatable, Sendable {
         // Show the result and open the faceoff; readying up starts the next game
         // (or, if the match ended, a fresh match — see `ready`).
         phase = .faceoff(ready: [], afterWin: Outcome(winner: scorer, endedMatch: endedMatch))
-        puck = Puck(position: table.center)
+        pucks = Rink.faceoffPucks(on: table)
         events.append(endedMatch ? .matchOver(winner: scorer) : .gameWon(winner: scorer))
+        return true
     }
 }
 
 extension Rink {
     /// Test seams: stage a puck or a mallet by hand. `internal`, reached via
     /// `@testable import`; nothing shipped calls them.
-    mutating func setPuckForTesting(_ puck: Puck) {
-        self.puck = puck
+    /// Stages motion, not silhouette: the slot keeps the table's shape, so a
+    /// test that set `puckShape` and then stages a position isn't silently
+    /// handed a disc.
+    mutating func setPuckForTesting(_ puck: Puck, at index: Int = 0) {
+        pucks[index] = puck
+        pucks[index].shape = table.puckShapes[index]
     }
 
     mutating func setMalletForTesting(_ mallet: Mallet, at slot: MalletSlot) {

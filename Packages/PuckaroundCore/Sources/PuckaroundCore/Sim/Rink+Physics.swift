@@ -1,13 +1,15 @@
 import Foundation
 
-/// Rink's physics: mallets moving and striking, the puck integrating, bouncing
-/// off walls and posts, spinning, and being freed when pinned. The flow half
-/// (phase, scoring, serve) lives in Rink.swift; both extend the same struct.
+/// Rink's physics: mallets moving and striking, each puck integrating, bouncing
+/// off walls, posts and each other, spinning, and being freed when pinned. The
+/// flow half (phase, scoring, serve) lives in Rink.swift; both extend the same
+/// struct. Everything resolves in fixed index order, so the chaos of a
+/// multi-puck table stays deterministic.
 extension Rink {
     /// Moves a mallet to where the hand asks — clamped to its zone, out of the
     /// faceoff bubble, and swept in puck-radius steps so a fast hand can't tunnel
-    /// through the puck. A `grab` snaps it under the finger first (placing the
-    /// hand, not swinging), so the grab tick itself never strikes the puck.
+    /// through a puck. A `grab` snaps it under the finger first (placing the
+    /// hand, not swinging), so the grab tick itself never strikes.
     mutating func moveMallet(at index: Int, grabTo grab: Vec2? = nil, by drag: Vec2, strikes: Bool)
     {
         let slot = slots[index]
@@ -21,65 +23,69 @@ extension Rink {
         if strikes {
             let steps = max(1, Int(((to - from).length / table.puckRadius).rounded(.up)))
             for step in 1...steps {
-                collidePuck(
-                    withMalletAt: from + (to - from) * (Double(step) / Double(steps)),
-                    velocity: velocity, by: slot)
+                let at = from + (to - from) * (Double(step) / Double(steps))
+                for puckIndex in pucks.indices {
+                    collide(puckAt: puckIndex, withMalletAt: at, velocity: velocity, by: slot)
+                }
             }
         }
         mallets[index] = Mallet(position: to, velocity: velocity)
     }
 
-    /// Keeps a point clear of the faceoff force field around the puck: a point
-    /// inside the keep-out radius is pushed back to its rim, disconnected from
-    /// the finger, so nobody can ride onto the puck the instant the field drops.
+    /// Keeps a point clear of the faceoff force field around the parked pucks:
+    /// a point inside the keep-out radius is pushed back to its rim, disconnected
+    /// from the finger, so nobody can ride onto a puck the instant the field
+    /// drops. The field is centered on the table — where the faceoff row sits.
     private func clampedOutOfBubble(_ p: Vec2, side: Side) -> Vec2 {
         let keepOut = table.faceoffBubbleRadius + table.malletRadius
-        let offset = p - puck.position
+        let offset = p - table.center
         guard offset.length < keepOut else { return p }
         let direction = offset.length > 0 ? offset.normalized : -side.inward
-        return puck.position + direction * keepOut
+        return table.center + direction * keepOut
     }
 
     /// Circle–circle against a kinematic mallet: push the puck clear, and if they
     /// were closing, bounce it off with the mallet's motion and english added.
-    private mutating func collidePuck(
-        withMalletAt center: Vec2, velocity malletVelocity: Vec2, by slot: MalletSlot? = nil
+    private mutating func collide(
+        puckAt index: Int, withMalletAt center: Vec2, velocity malletVelocity: Vec2,
+        by slot: MalletSlot? = nil
     ) {
         let reach = table.puckRadius + table.malletRadius
-        let mallet = malletSeenAcrossSeam(from: center)
-        let offset = puck.position - mallet
+        let mallet = malletSeenAcrossSeam(by: pucks[index].position, from: center)
+        let offset = pucks[index].position - mallet
         guard offset.length < reach else { return }
         let normal = offset.length > 0 ? offset.normalized : Vec2(0, -1)
         let clear = pushedClear(of: mallet, along: normal, reach: reach)
-        puck.position = clear.position
+        pucks[index].position = clear.position
 
-        let closing = (puck.velocity - malletVelocity).dot(normal)
+        let closing = (pucks[index].velocity - malletVelocity).dot(normal)
         if closing < 0 {
-            puck.velocity -= normal * ((1 + table.restitution) * closing)
+            pucks[index].velocity -= normal * ((1 + table.restitution) * closing)
             if let slot { events.append(.malletHit(slot, speed: -closing)) }
-            let tangential = (puck.velocity - malletVelocity).dot(normal.perpendicular)
-            puck.angularVelocity -= tangential / table.puckRadius * spinBite
+            let tangential = (pucks[index].velocity - malletVelocity).dot(normal.perpendicular)
+            pucks[index].angularVelocity -=
+                tangential / table.puckRadius * spinBite(for: pucks[index].shape)
         }
-        if let wall = clear.wall { slideAlongWall(wall, from: mallet) }
+        if let wall = clear.wall { slideAlongWall(puckAt: index, wall: wall, from: mallet) }
     }
 
     /// A puck pinned between the mallet and a wall squirts out ALONG the wall
     /// instead of tunneling back through the mallet — the "mallet warped through
     /// the puck" bug. Redirects the into-wall speed sideways, along the wall.
-    private mutating func slideAlongWall(_ wall: Vec2, from center: Vec2) {
-        let into = puck.velocity.dot(wall)
+    private mutating func slideAlongWall(puckAt index: Int, wall: Vec2, from center: Vec2) {
+        let into = pucks[index].velocity.dot(wall)
         guard into > 0 else { return }
-        let offset = puck.position - center
+        let offset = pucks[index].position - center
         let along = (offset - wall * offset.dot(wall)).normalized
-        puck.velocity += along * into - wall * into
+        pucks[index].velocity += along * into - wall * into
     }
 
-    /// The mallet as the puck sees it: its own place, or — on a wrap table — its
+    /// The mallet as a puck sees it: its own place, or — on a wrap table — its
     /// image a table-width over when that is nearer, so a mallet at one side edge
     /// can strike a puck at the other.
-    private func malletSeenAcrossSeam(from center: Vec2) -> Vec2 {
+    private func malletSeenAcrossSeam(by puckPosition: Vec2, from center: Vec2) -> Vec2 {
         guard table.sideWalls == .wrap else { return center }
-        let dx = puck.position.x - center.x
+        let dx = puckPosition.x - center.x
         if dx > table.size.x / 2 { return center + Vec2(table.size.x, 0) }
         if dx < -table.size.x / 2 { return center - Vec2(table.size.x, 0) }
         return center
@@ -88,34 +94,35 @@ extension Rink {
     /// Peels a puck left resting against a wall off it — no mallet can reach
     /// between a puck and the boards, so the sim frees it once nothing holds it.
     /// The side walls only trap on a solid table; the goal openings never trap.
-    private mutating func freeStuckPuckFromWall() {
+    private mutating func freeStuckPuckFromWall(at index: Int) {
         let field = table.puckField
+        let position = pucks[index].position
         var inward = Vec2.zero
         if table.sideWalls == .solid {
-            if field.isAtLeftEdge(puck.position) { inward.x = 1 }
-            if field.isAtRightEdge(puck.position) { inward.x = -1 }
+            if field.isAtLeftEdge(position) { inward.x = 1 }
+            if field.isAtRightEdge(position) { inward.x = -1 }
         }
-        if field.isAtTopEdge(puck.position), !table.goal(.top).admitsOpening(puck.position.x) {
+        if field.isAtTopEdge(position), !table.goal(.top).admitsOpening(position.x) {
             inward.y = 1
         }
-        if field.isAtBottomEdge(puck.position), !table.goal(.bottom).admitsOpening(puck.position.x)
-        {
+        if field.isAtBottomEdge(position), !table.goal(.bottom).admitsOpening(position.x) {
             inward.y = -1
         }
         guard inward != .zero else { return }
 
         let escapeSpeed = table.puckRadius * 2
-        guard puck.velocity.dot(inward) < escapeSpeed else { return }
+        guard pucks[index].velocity.dot(inward) < escapeSpeed else { return }
         let reach = table.puckRadius + table.malletRadius
-        guard !mallets.contains(where: { puck.position.distance(to: $0.position) < reach }) else {
+        guard !mallets.contains(where: { position.distance(to: $0.position) < reach }) else {
             return  // still held; it pops free the tick the mallet lifts
         }
-        puck.position += inward * (table.puckRadius * 0.5)
-        puck.velocity += inward * (escapeSpeed - puck.velocity.dot(inward))
-        puck.position = field.clamping(puck.position)
+        pucks[index].position += inward * (table.puckRadius * 0.5)
+        pucks[index].velocity +=
+            inward * (escapeSpeed - pucks[index].velocity.dot(inward))
+        pucks[index].position = field.clamping(pucks[index].position)
     }
 
-    /// Where the puck goes to sit clear of a mallet: straight out along `normal`,
+    /// Where a puck goes to sit clear of a mallet: straight out along `normal`,
     /// unless that crosses a wall — then it slides along the wall (returned as its
     /// outward normal) to stay clear without tunneling through it. A wrap table's
     /// side walls don't confine, so only the goal walls bound x there.
@@ -149,10 +156,21 @@ extension Rink {
         return (field.clamping(target), wall)
     }
 
-    /// One tick of puck motion: integrate with drag and a speed cap, score if it
-    /// crosses a goal line cleanly, else bounce off walls/posts, wrap the sides,
-    /// re-touch any mallet it moved into, and peel it off a wall if it stuck.
-    mutating func stepPuck() {
+    /// One tick of puck motion: each puck steps in index order (stopping cold if
+    /// a goal ends the game), then the pucks resolve against each other.
+    mutating func stepPucks() {
+        for index in pucks.indices {
+            guard !step(puckAt: index) else { return }
+        }
+        collidePuckPairs()
+    }
+
+    /// One puck's step: integrate with drag and a speed cap, score if it crosses
+    /// a goal line cleanly (returning whether that ended the game), else bounce
+    /// off walls/posts, wrap the sides, re-touch any mallet it moved into, and
+    /// peel it off a wall if it stuck.
+    private mutating func step(puckAt index: Int) -> Bool {
+        let puck = pucks[index]
         var v = puck.velocity
         if v.length > table.maxSpeed { v *= table.maxSpeed / v.length }
         v *= exp(-table.drag * Rink.dt)
@@ -162,21 +180,49 @@ extension Rink {
         let p = puck.position + v * Rink.dt
 
         for side in Side.allCases where scores(p, into: side) {
-            goal(against: side)
-            return
+            return goal(against: side, puckAt: index)
         }
 
-        puck = Puck(
-            position: p, velocity: v, angle: puck.angle + omega * Rink.dt, angularVelocity: omega)
-        switch table.puckShape {
-        case .circle: bounceCircleOffWalls()
-        case .polygon: bouncePolygonOffWalls()
+        pucks[index] = Puck(
+            position: p, velocity: v, angle: puck.angle + omega * Rink.dt,
+            angularVelocity: omega, shape: puck.shape)
+        switch puck.shape {
+        case .circle: bounceCircleOffWalls(at: index)
+        case .polygon: bouncePolygonOffWalls(at: index)
         }
-        wrapSideWalls()
+        wrapSideWalls(at: index)
         for mallet in mallets {
-            collidePuck(withMalletAt: mallet.position, velocity: mallet.velocity)
+            collide(puckAt: index, withMalletAt: mallet.position, velocity: mallet.velocity)
         }
-        freeStuckPuckFromWall()
+        freeStuckPuckFromWall(at: index)
+        return false
+    }
+
+    /// Pucks bounce off each other as equal-mass discs — shaped pucks included,
+    /// approximated by their bounding circle, which reads fine at speed. Pairs
+    /// resolve in fixed index order, so the mayhem stays deterministic.
+    private mutating func collidePuckPairs() {
+        guard pucks.count > 1 else { return }
+        let reach = table.puckRadius * 2
+        for i in pucks.indices {
+            for j in pucks.indices where j > i {
+                let offset = pucks[j].position - pucks[i].position
+                let distance = offset.length
+                guard distance < reach else { continue }
+                let normal = distance > 0 ? offset.normalized : Vec2(0, -1)
+                let overlap = reach - distance
+                pucks[i].position -= normal * (overlap / 2)
+                pucks[j].position += normal * (overlap / 2)
+                let closing = (pucks[i].velocity - pucks[j].velocity).dot(normal)
+                guard closing > 0 else { continue }
+                // Equal masses: the closing speed splits between them, keeping
+                // the table's restitution — a clack, not a magnet.
+                let impulse = normal * (closing * (1 + table.restitution) / 2)
+                pucks[i].velocity -= impulse
+                pucks[j].velocity += impulse
+                events.append(.puckHit(speed: closing))
+            }
+        }
     }
 
     /// Whether a puck center at `p` has crossed `side`'s goal line fully and
@@ -189,12 +235,13 @@ extension Rink {
     /// On a wrap table a puck whose center has fully left one long side re-enters
     /// the opposite side at the same height, keeping its velocity. A no-op on a
     /// solid table, and never while the puck is in a goal recess.
-    private mutating func wrapSideWalls() {
-        guard table.sideWalls == .wrap, goalRecess(puck.position) == nil else { return }
-        if puck.position.x < 0 {
-            puck.position.x += table.size.x
-        } else if puck.position.x > table.size.x {
-            puck.position.x -= table.size.x
+    private mutating func wrapSideWalls(at index: Int) {
+        let position = pucks[index].position
+        guard table.sideWalls == .wrap, goalRecess(position) == nil else { return }
+        if position.x < 0 {
+            pucks[index].position.x += table.size.x
+        } else if position.x > table.size.x {
+            pucks[index].position.x -= table.size.x
         }
     }
 
@@ -209,20 +256,20 @@ extension Rink {
 
     /// A circle mirrors off each wall (position and velocity), then its spin
     /// steers the outgoing angle a little and the wall bleeds some of it. Goal
-    /// crossings were already scored in `stepPuck`.
-    private mutating func bounceCircleOffWalls() {
-        var p = puck.position
-        var v = puck.velocity
+    /// crossings were already scored in `step(puckAt:)`.
+    private mutating func bounceCircleOffWalls(at index: Int) {
+        var p = pucks[index].position
+        var v = pucks[index].velocity
         let shortHit = bounceShortWalls(&p, &v)
         let xHit = bounceXWalls(&p, &v)
         let bounced = shortHit || xHit
-        if bounced, puck.angularVelocity != 0 {
-            v = v.rotated(by: puck.angularVelocity * Rink.discSteerPerSpin)
-            puck.angularVelocity *= Rink.discSpinKeptOnBounce
+        if bounced, pucks[index].angularVelocity != 0 {
+            v = v.rotated(by: pucks[index].angularVelocity * Rink.discSteerPerSpin)
+            pucks[index].angularVelocity *= Rink.discSpinKeptOnBounce
         }
         clampToBounds(&p)
-        puck.position = p
-        puck.velocity = v
+        pucks[index].position = p
+        pucks[index].velocity = v
     }
 
     /// Reflects the puck off whichever short (goal-end) wall it crossed — but not
@@ -278,7 +325,7 @@ extension Rink {
         vel = -vel * table.restitution
     }
 
-    /// Confines the puck's center: to the mouth's posts inside a goal recess, to
+    /// Confines a puck's center: to the mouth's posts inside a goal recess, to
     /// the field on a solid table, and — off a goal opening — to the field in y.
     private mutating func clampToBounds(_ p: inout Vec2) {
         let field = table.puckField
@@ -294,18 +341,19 @@ extension Rink {
 
     /// A polygon resolves against each active wall in a fixed order (deterministic
     /// tie-break), taking a rigid impulse that both reflects and spins it.
-    private mutating func bouncePolygonOffWalls() {
-        for wall in activeWalls(for: puck.position) {
+    private mutating func bouncePolygonOffWalls(at index: Int) {
+        for wall in activeWalls(for: pucks[index].position) {
+            let puck = pucks[index]
             let body = PolygonCollision.Body(
-                shape: table.puckShape, center: puck.position, angle: puck.angle,
+                shape: puck.shape, center: puck.position, angle: puck.angle,
                 radius: table.puckRadius, velocity: puck.velocity,
                 angularVelocity: puck.angularVelocity)
             guard
                 let hit = PolygonCollision.resolve(body, wall: wall, restitution: table.restitution)
             else { continue }
-            puck.position += hit.positionShift
-            puck.velocity = hit.velocity
-            puck.angularVelocity = hit.angularVelocity
+            pucks[index].position += hit.positionShift
+            pucks[index].velocity = hit.velocity
+            pucks[index].angularVelocity = hit.angularVelocity
             if hit.impactSpeed > 0 { events.append(.wallBounce(speed: hit.impactSpeed)) }
         }
     }

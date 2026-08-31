@@ -98,14 +98,15 @@ enum RinkRenderer {
         // read as broken.
         drawMenuGlyph(projection: projection, in: &context)
         if scene.rink.isFaceoff {
+            // The field is centered on the table — where the faceoff row parks.
             drawFaceoffBubble(
-                around: scene.rink.puck.position, radius: table.faceoffBubbleRadius,
+                around: table.center, radius: table.faceoffBubbleRadius,
                 ripple: Ripple(active: true, time: scene.time, reducedMotion: scene.reducedMotion),
                 projection: projection, in: &context)
         }
-        drawPuck(
-            scene.rink.puck, radius: table.puckRadius, shape: table.puckShape,
-            projection: projection, in: &context)
+        for puck in scene.rink.pucks {
+            drawPuck(puck, radius: table.puckRadius, projection: projection, in: &context)
+        }
         // Mallets last — above the puck and the center glyph, since they're hands.
         drawMallets(scene, projection: projection, in: &context)
         if let burst = scene.faceoffBurst, !scene.reducedMotion {

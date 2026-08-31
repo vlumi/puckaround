@@ -6,14 +6,19 @@ public struct Puck: Equatable, Codable, Sendable {
     public var angle: Double
     /// Radians per second.
     public var angularVelocity: Double
+    /// Its silhouette — per puck, so a mixed table can fly a disc beside a
+    /// tumbling square. Constant for the puck's life.
+    public var shape: PuckShape
 
     public init(
-        position: Vec2, velocity: Vec2 = .zero, angle: Double = 0, angularVelocity: Double = 0
+        position: Vec2, velocity: Vec2 = .zero, angle: Double = 0, angularVelocity: Double = 0,
+        shape: PuckShape = .circle
     ) {
         self.position = position
         self.velocity = velocity
         self.angle = angle
         self.angularVelocity = angularVelocity
+        self.shape = shape
     }
 
     public var isMoving: Bool { velocity != .zero || angularVelocity != 0 }

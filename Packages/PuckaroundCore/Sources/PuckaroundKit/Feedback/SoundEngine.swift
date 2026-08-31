@@ -111,32 +111,42 @@ final class SoundEngine {
     func play(_ events: [GameEvent]) {
         guard running else { return }
         for event in events {
-            switch event {
-            case .malletHit(_, let speed):
-                // A bright, short click; harder hits ring a touch higher and louder.
-                let hard = min(1, speed / 260)
-                state.fire(
-                    slot: 0,
-                    Trigger(hz: 320 + hard * 140, gain: 0.4 + hard * 0.4, noise: 0.5, decay: 0.9992)
-                )
-            case .wallBounce(let speed):
-                guard speed > 40 else { continue }
-                let hard = min(1, speed / 300)
-                state.fire(
-                    slot: 1,
-                    Trigger(
-                        hz: 150 + hard * 60, gain: 0.25 + hard * 0.35, noise: 0.7, decay: 0.9988))
-            case .goal:
-                state.fire(slot: 2, Trigger(hz: 523, gain: 0.7, noise: 0.05, decay: 0.99985))
-            case .gameWon:
-                state.fire(slot: 3, Trigger(hz: 659, gain: 0.8, noise: 0.03, decay: 0.99992))
-            case .matchOver:
-                // The match: higher and longer than a game — the bigger flourish.
-                state.fire(slot: 3, Trigger(hz: 784, gain: 0.9, noise: 0.03, decay: 0.99995))
-            case .faceoffCleared:
-                // The "GO": a bright, punchy whistle-crack as the field bursts.
-                state.fire(slot: 3, Trigger(hz: 880, gain: 0.9, noise: 0.25, decay: 0.9994))
-            }
+            fire(event)
+        }
+    }
+
+    private func fire(_ event: GameEvent) {
+        switch event {
+        case .malletHit(_, let speed):
+            // A bright, short click; harder hits ring a touch higher and louder.
+            let hard = min(1, speed / 260)
+            state.fire(
+                slot: 0,
+                Trigger(hz: 320 + hard * 140, gain: 0.4 + hard * 0.4, noise: 0.5, decay: 0.9992))
+        case .wallBounce(let speed):
+            guard speed > 40 else { return }
+            let hard = min(1, speed / 300)
+            state.fire(
+                slot: 1,
+                Trigger(hz: 150 + hard * 60, gain: 0.25 + hard * 0.35, noise: 0.7, decay: 0.9988))
+        case .puckHit(let speed):
+            // Puck on puck: a dry clack, brighter than the boards but with none
+            // of the mallet's ring.
+            guard speed > 40 else { return }
+            let hard = min(1, speed / 300)
+            state.fire(
+                slot: 1,
+                Trigger(hz: 230 + hard * 80, gain: 0.2 + hard * 0.3, noise: 0.6, decay: 0.999))
+        case .goal:
+            state.fire(slot: 2, Trigger(hz: 523, gain: 0.7, noise: 0.05, decay: 0.99985))
+        case .gameWon:
+            state.fire(slot: 3, Trigger(hz: 659, gain: 0.8, noise: 0.03, decay: 0.99992))
+        case .matchOver:
+            // The match: higher and longer than a game — the bigger flourish.
+            state.fire(slot: 3, Trigger(hz: 784, gain: 0.9, noise: 0.03, decay: 0.99995))
+        case .faceoffCleared:
+            // The "GO": a bright, punchy whistle-crack as the field bursts.
+            state.fire(slot: 3, Trigger(hz: 880, gain: 0.9, noise: 0.25, decay: 0.9994))
         }
     }
 

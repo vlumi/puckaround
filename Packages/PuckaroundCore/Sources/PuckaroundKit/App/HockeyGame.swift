@@ -21,14 +21,14 @@ final class HockeyGame: ObservableObject {
     private(set) var placement = BoardPlacement(board: Vec2(1, 1), screen: .zero)
 
     init(
-        rules: Rules = .standard, puckShape: PuckShape = .circle,
+        rules: Rules = .standard, pucks: [PuckShape] = [.circle],
         format: Format = .oneVsOne, sideWalls: SideWalls = .solid,
         seed: UInt64 = UInt64.random(in: 0...UInt64.max)
     ) {
         // The chosen format sets each side's hand count; the zones follow the
         // table's own format, so they split into lanes wherever a side fields two.
         var table = Playfield.duel.with(format: format)
-        table.puckShape = puckShape
+        table.puckShapes = pucks
         table.sideWalls = sideWalls
         let rink = Rink(table: table, rules: rules, seed: seed)
         let controls = MalletControlSource(

@@ -29,15 +29,23 @@ public struct Playfield: Equatable, Codable, Sendable {
     public var faceoffBubbleRadius: Double
     /// How fast the puck glides into the conceder's half on a serve after a goal.
     public var serveSpeed: Double
-    /// The puck's silhouette — circle by default; a polygon tumbles.
-    public var puckShape: PuckShape
+    /// The pucks in play — one entry per puck, each its own silhouette, so a
+    /// mixed table can fly a disc beside a tumbling square. One disc by default.
+    public var puckShapes: [PuckShape]
+
+    /// The single-puck view of `puckShapes`: reads the first, and setting it
+    /// makes this a one-puck table of that shape.
+    public var puckShape: PuckShape {
+        get { puckShapes[0] }
+        set { puckShapes = [newValue] }
+    }
     /// How the long side walls behave — solid (bounce) by default, or wrap.
     public var sideWalls: SideWalls
 
     public init(
         size: Vec2, puckRadius: Double, malletRadius: Double, goalWidth: Double,
         restitution: Double, drag: Double, maxSpeed: Double, restSpeed: Double,
-        faceoffBubbleRadius: Double, serveSpeed: Double, puckShape: PuckShape = .circle,
+        faceoffBubbleRadius: Double, serveSpeed: Double, puckShapes: [PuckShape] = [.circle],
         doublesGoalWidth: Double? = nil, format: Format = .oneVsOne,
         sideWalls: SideWalls = .solid
     ) {
@@ -51,7 +59,7 @@ public struct Playfield: Equatable, Codable, Sendable {
         self.restSpeed = restSpeed
         self.faceoffBubbleRadius = faceoffBubbleRadius
         self.serveSpeed = serveSpeed
-        self.puckShape = puckShape
+        self.puckShapes = puckShapes
         self.doublesGoalWidth = doublesGoalWidth ?? goalWidth * 2.2
         self.format = format
         self.sideWalls = sideWalls
