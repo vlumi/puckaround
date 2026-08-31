@@ -97,7 +97,8 @@ puckaround/
     │   ├── Table/                  Playfield + Goal geometry, Table (Side/Lane/MalletSlot/Format), PuckShape
     │   ├── Input/                  SeatInput + ControlSource, SeatZones, MalletControlSource,
     │   │                           PatternControlSource (the practice machine)
-    │   └── Couch/                  Tournament (winner stays — names never reach the sim)
+    │   └── Couch/                  The evening layer — Tournament (winner stays), Bracket, League,
+    │                               the Evening handle, MatchResult; names never reach the sim
     ├── Sources/PuckaroundKit/      SwiftUI + UIKit, depends on Core; coverage-ignored
     │   ├── App/                    AppRoot, MenuView + NewMatchSheet/SetupControls/Setup (the front door),
     │   │                           GameView + HockeyGame (one table), TournamentView + RosterSheet (winner

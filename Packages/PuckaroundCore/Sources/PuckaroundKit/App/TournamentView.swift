@@ -92,18 +92,24 @@ struct TournamentView: View {
             lineDetails(t)
         case .bracket(let b):
             BracketSheet(rounds: b.rounds, current: b.current)
+        case .league(let l):
+            leagueDetails(l)
         }
     }
 
     /// Roster picked: draw the shape and take the table.
-    private func begin(_ roster: [String], _ shape: Evening.Shape) {
-        switch shape {
+    private func begin(_ roster: [String], _ plan: EveningPlan) {
+        switch plan {
         case .winnerStays:
             guard let t = Tournament(roster: roster) else { return }
             evening = .winnerStays(t)
         case .bracket:
             guard let b = Bracket(roster: roster, seed: freshSeed()) else { return }
             evening = .bracket(b)
+        case .league(let doubleRound):
+            guard let l = League(roster: roster, doubleRound: doubleRound, seed: freshSeed())
+            else { return }
+            evening = .league(l)
         }
         persist()
         stage = .interstitial
@@ -244,6 +250,40 @@ extension TournamentView {
                         .foregroundStyle(Neon.ink)
                     Spacer()
                     Text(verbatim: "\(row.wins)")
+                        .foregroundStyle(Neon.inkSoft)
+                        .monospacedDigit()
+                }
+                .font(.system(size: 16, weight: .semibold, design: .rounded))
+            }
+        }
+        .frame(maxWidth: 260)
+    }
+
+    /// The league middle: where the season stands, then the table so far.
+    private func leagueDetails(_ l: League) -> some View {
+        VStack(spacing: 12) {
+            if l.contenders != nil {
+                // The season ended tied — sudden death until one name stands.
+                caption("Deciders")
+            } else if l.champion == nil {
+                Text("Match \(l.played.count + 1) of \(l.fixtures.count)", bundle: .module)
+                    .font(.system(size: 13, weight: .medium, design: .rounded))
+                    .foregroundStyle(Neon.inkSoft)
+            }
+            leagueStandings(l)
+        }
+    }
+
+    /// The league table, best first: wins–losses per name.
+    private func leagueStandings(_ l: League) -> some View {
+        VStack(spacing: 6) {
+            ForEach(l.standings, id: \.name) { row in
+                HStack {
+                    Text(verbatim: row.name)
+                        .foregroundStyle(Neon.ink)
+                        .lineLimit(1)
+                    Spacer()
+                    Text(verbatim: "\(row.wins)–\(row.losses)")
                         .foregroundStyle(Neon.inkSoft)
                         .monospacedDigit()
                 }

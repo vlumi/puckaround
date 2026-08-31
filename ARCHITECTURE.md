@@ -177,10 +177,12 @@ pair earns a wide one, so in 1v2 the harder goal to keep goes to the
 better-staffed side. In doubles a side's half splits into left/right lanes, each
 mallet confined to one, with a drawn divider down the middle.
 
-**Tournaments sit on top, not inside.** Two shapes behind one handle
+**Tournaments sit on top, not inside.** Three shapes behind one handle
 (`Evening`, in Core): winner-stays (`Tournament` — a line behind the table, the
-loser to its back) and a knockout `Bracket` (a seeded random draw on a
-power-of-two sheet, byes for uneven counts, up to 32). Both are pure, tested
+loser to its back), a knockout `Bracket` (a seeded random draw on a
+power-of-two sheet, byes for uneven counts, up to 32), and a `League` season
+(circle-method round robin once or twice, standings by wins, ties by
+head-to-head then sudden-death deciders, up to 10). All are pure, tested
 scheduling that survives the app quitting. Names are labels the Kit pins on the
 ends for the evening (`EndNames`, and a remembered tap-to-pick pool — no
 profiles, no history); the sim still never learns who is playing.
@@ -200,11 +202,10 @@ offset.
 
 Not built. Nothing below describes existing code.
 
-**The couch's tail.** The front door shipped (a bare title with two modes — the
-New match modal and the winner-stays tournament; a rematch is the faceoff
-returning). Still planned: more tournament shapes (round-robin, a bracket) on
-the same roster machinery, and a per-person accent color — cosmetic identity
-only; the sim stays side-based.
+**The couch's tail.** The front door shipped (a bare title with three modes —
+the New match modal, tournaments in all three shapes, and practice against the
+machine; a rematch is the faceoff returning). Still planned: a per-person
+accent color — cosmetic identity only; the sim stays side-based.
 
 **A curved table (the ellipse).** Slice goals and curved walls, and the payoff
 the flat table can't express: a forward-spun puck that rolls the wall toward the
