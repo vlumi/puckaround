@@ -5,25 +5,29 @@
 public enum Evening: Equatable, Codable, Sendable {
     case winnerStays(Tournament)
     case bracket(Bracket)
+    case league(League)
 
     /// The shapes on offer, for the roster sheet's picker.
     public enum Shape: String, CaseIterable, Codable, Sendable {
         case winnerStays
         case bracket
+        case league
     }
 
     public var shape: Shape {
         switch self {
         case .winnerStays: return .winnerStays
         case .bracket: return .bracket
+        case .league: return .league
         }
     }
 
-    /// Who takes the table now — nil once a knockout is decided.
+    /// Who takes the table now — nil once a knockout or season is decided.
     public var pairing: Pairing? {
         switch self {
         case .winnerStays(let t): return Pairing(bottom: t.bottom, top: t.top)
         case .bracket(let b): return b.current
+        case .league(let l): return l.current
         }
     }
 
@@ -32,6 +36,7 @@ public enum Evening: Equatable, Codable, Sendable {
         switch self {
         case .winnerStays(let t): return t.lastMatch
         case .bracket(let b): return b.lastMatch
+        case .league(let l): return l.lastMatch
         }
     }
 
@@ -40,6 +45,7 @@ public enum Evening: Equatable, Codable, Sendable {
         switch self {
         case .winnerStays: return nil
         case .bracket(let b): return b.champion
+        case .league(let l): return l.champion
         }
     }
 
@@ -51,6 +57,9 @@ public enum Evening: Equatable, Codable, Sendable {
         case .bracket(var b):
             b.recordWin(by: side, winnerScore: winnerScore, loserScore: loserScore)
             self = .bracket(b)
+        case .league(var l):
+            l.recordWin(by: side, winnerScore: winnerScore, loserScore: loserScore)
+            self = .league(l)
         }
     }
 }

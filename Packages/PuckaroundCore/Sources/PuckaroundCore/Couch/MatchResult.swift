@@ -7,8 +7,12 @@ public struct MatchResult: Equatable, Codable, Sendable {
     public let loserScore: Int
 }
 
-/// Who takes the table, by the end they defend.
-public struct Pairing: Equatable, Sendable {
+/// Who takes the table, by the end they defend. Codable because a league
+/// season persists its whole schedule of these.
+public struct Pairing: Equatable, Codable, Sendable {
     public let bottom: String
     public let top: String
+
+    /// The same two with the ends swapped — a return leg.
+    public var mirrored: Pairing { Pairing(bottom: top, top: bottom) }
 }

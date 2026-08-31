@@ -8,7 +8,7 @@ import SwiftUI
 struct RosterSheet: View {
     /// The evening's match rules — the same stored setup New match edits.
     @Binding var setup: Setup
-    let onStart: ([String], Evening.Shape) -> Void
+    let onStart: ([String], EveningPlan) -> Void
     let onClose: () -> Void
 
     /// The remembered pool, most recently used first, JSON in storage.
@@ -17,6 +17,8 @@ struct RosterSheet: View {
     @State private var roster: [String] = []
     @State private var newName = ""
     @State private var shape = Evening.Shape.winnerStays
+    /// League only: everyone meets twice (return legs) instead of once.
+    @State private var doubleRound = false
     @FocusState private var nameFocused: Bool
 
     private let columns = [GridItem(.adaptive(minimum: 110), spacing: 8)]
@@ -199,30 +201,55 @@ struct RosterSheet: View {
         }
     }
 
-    /// Winner stays takes any lineup of two or more; a bracket also caps the
-    /// field so its first column fits a screen.
+    /// Two or more to play at all; a bracket and a league also cap the field —
+    /// a sheet must fit a screen, a season must fit an evening.
     private var canStart: Bool {
-        roster.count >= 2 && (shape == .winnerStays || roster.count <= Bracket.maxPlayers)
+        guard roster.count >= 2 else { return false }
+        switch shape {
+        case .winnerStays: return true
+        case .bracket: return roster.count <= Bracket.maxPlayers
+        case .league: return roster.count <= League.maxPlayers
+        }
     }
 
-    /// The shape of the evening: an endless line, or a knockout sheet.
+    /// The shape of the evening: an endless line, a knockout sheet, or a
+    /// season — which also picks its length here.
     private var shapePicker: some View {
-        HStack(spacing: 10) {
-            shapeOption("Winner stays", .winnerStays)
-            shapeOption("Bracket", .bracket)
+        VStack(spacing: 10) {
+            HStack(spacing: 10) {
+                shapeOption("Winner stays", .winnerStays)
+                shapeOption("Bracket", .bracket)
+                shapeOption("League", .league)
+            }
+            if shape == .league {
+                HStack(spacing: 10) {
+                    seasonOption("Once", false)
+                    seasonOption("Twice", true)
+                }
+            }
         }
     }
 
     private func shapeOption(_ label: LocalizedStringKey, _ s: Evening.Shape) -> some View {
-        let selected = shape == s
-        return Button {
-            shape = s
-        } label: {
+        pill(label, selected: shape == s) { shape = s }
+    }
+
+    private func seasonOption(_ label: LocalizedStringKey, _ twice: Bool) -> some View {
+        pill(label, selected: doubleRound == twice) { doubleRound = twice }
+    }
+
+    private func pill(
+        _ label: LocalizedStringKey, selected: Bool, act: @escaping () -> Void
+    ) -> some View {
+        Button(action: act) {
             Text(label, bundle: .module)
                 .font(.system(size: 15, weight: .bold, design: .rounded))
                 .foregroundStyle(selected ? Neon.ground : Neon.ink)
-                .padding(.horizontal, 14)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+                .padding(.horizontal, 10)
                 .frame(height: 44)
+                .frame(maxWidth: .infinity)
                 .background(
                     RoundedRectangle(cornerRadius: 12)
                         .fill(selected ? Neon.ink : Color.clear)
@@ -260,7 +287,11 @@ struct RosterSheet: View {
     private func start() {
         pool = roster + pool.filter { !roster.contains($0) }
         savePool()
-        onStart(roster, shape)
+        switch shape {
+        case .winnerStays: onStart(roster, .winnerStays)
+        case .bracket: onStart(roster, .bracket)
+        case .league: onStart(roster, .league(doubleRound: doubleRound))
+        }
     }
 
     private func load() {
@@ -270,4 +301,12 @@ struct RosterSheet: View {
     private func savePool() {
         savedPool = (try? JSONEncoder().encode(pool)) ?? Data()
     }
+}
+
+/// What the roster sheet hands back: the shape, with whatever the shape needs
+/// picked alongside it — a league carries its season length.
+enum EveningPlan {
+    case winnerStays
+    case bracket
+    case league(doubleRound: Bool)
 }
