@@ -11,6 +11,8 @@ struct MenuView: View {
     let onPlay: () -> Void
     /// Open the tournament flow (resuming a saved evening if one exists).
     let onTournament: () -> Void
+    /// Start practice against the machine, with the current stored setup.
+    let onPractice: () -> Void
 
     @State private var showingNewMatch = false
 
@@ -24,6 +26,7 @@ struct MenuView: View {
                         showingNewMatch = true
                     }
                     NeonButton(title: "Tournament", action: onTournament)
+                    NeonButton(title: "Practice", action: onPractice)
                 }
                 .frame(maxWidth: 280)
                 .padding(.horizontal, 40)

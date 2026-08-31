@@ -47,16 +47,12 @@ struct TournamentView: View {
     /// One pairing on the table. The pause menu's exit leads back to the
     /// interstitial, not the title — the tournament owns the table now.
     private func match(_ pairing: Pairing, seed: UInt64) -> some View {
-        // A pairing is two people: whatever the stored format says, a
-        // tournament match fields one mallet per name.
-        var single = setup
-        single.bottomHands = 1
-        single.topHands = 1
-        return GameView(
-            setup: single, seed: seed,
-            tournament: TournamentMatch(
-                names: EndNames(bottom: pairing.bottom, top: pairing.top),
-                onMatchOver: recordWin),
+        GameView(
+            setup: setup, seed: seed,
+            mode: .tournament(
+                TournamentMatch(
+                    names: EndNames(bottom: pairing.bottom, top: pairing.top),
+                    onMatchOver: recordWin)),
             onNewMatch: { _ in stage = .playing(seed: freshSeed()) },
             onExit: { stage = .interstitial })
     }

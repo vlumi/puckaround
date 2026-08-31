@@ -33,6 +33,8 @@ public struct AppRoot: View {
         case playing(seed: UInt64)
         /// The tournament flow — roster, interstitials and its own matches.
         case tournament
+        /// Practice against the machine, keyed like a game.
+        case practice(seed: UInt64)
     }
 
     public init() {}
@@ -42,7 +44,8 @@ public struct AppRoot: View {
         case .menu:
             MenuView(
                 setup: setupBinding, onPlay: { phase = .playing(seed: freshSeed()) },
-                onTournament: { phase = .tournament })
+                onTournament: { phase = .tournament },
+                onPractice: { phase = .practice(seed: freshSeed()) })
         case .playing(let seed):
             GameView(
                 setup: setup, seed: seed,
@@ -57,6 +60,16 @@ public struct AppRoot: View {
             .id(seed)
         case .tournament:
             TournamentView(setup: setupBinding, onExit: { phase = .menu })
+        case .practice(let seed):
+            GameView(
+                setup: setup, seed: seed, mode: .practice,
+                onNewMatch: { newSetup in
+                    apply(newSetup)
+                    phase = .practice(seed: freshSeed())
+                },
+                onExit: { phase = .menu }
+            )
+            .id(seed)
         }
     }
 

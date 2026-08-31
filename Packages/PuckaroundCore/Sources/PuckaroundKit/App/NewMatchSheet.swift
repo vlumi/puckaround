@@ -11,14 +11,20 @@ struct NewMatchSheet: View {
     let onStart: (Setup) -> Void
     /// Dismiss without starting; the draft is discarded.
     let onClose: () -> Void
+    /// Practice hides the Players row — the machine's end isn't up for picking.
+    let showsFormat: Bool
 
     @State private var draft: Setup
 
     /// `initial` seeds the draft — the stored setup, so the pickers show last
     /// time's picks.
-    init(initial: Setup, onStart: @escaping (Setup) -> Void, onClose: @escaping () -> Void) {
+    init(
+        initial: Setup, showsFormat: Bool = true,
+        onStart: @escaping (Setup) -> Void, onClose: @escaping () -> Void
+    ) {
         self.onStart = onStart
         self.onClose = onClose
+        self.showsFormat = showsFormat
         _draft = State(initialValue: initial)
     }
 
@@ -34,7 +40,7 @@ struct NewMatchSheet: View {
                     .padding(.top, 20)
                     .padding(.bottom, 8)
                 ScrollView {
-                    SetupControls(setup: $draft)
+                    SetupControls(setup: $draft, showsFormat: showsFormat)
                         .padding(.horizontal, 24)
                         .padding(.vertical, 16)
                 }

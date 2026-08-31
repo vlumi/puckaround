@@ -22,9 +22,10 @@ public protocol ControlSource {
 
 `SeatInput` is data about the table, not about the screen: it carries how far
 the mallet wants moving this tick (and, on a fresh grab, an absolute point to
-snap to), in world units. Fingers on glass, a future AI hand, anything else are
-all just `ControlSource`s. The sim never knows which, and decides for itself
-what the movement did (below).
+snap to), in world units. Fingers on glass (`MalletControlSource`), the practice
+machine (`PatternControlSource`, a pure function of the tick sweeping its goal
+mouth), a future AI hand — all just `ControlSource`s. The sim never knows
+which, and decides for itself what the movement did (below).
 
 ## Two targets, one seam
 
