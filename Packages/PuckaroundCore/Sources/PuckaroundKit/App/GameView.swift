@@ -24,9 +24,13 @@ struct GameView: View {
         setup: Setup, seed: UInt64, mode: TableMode = .free,
         onNewMatch: @escaping (Setup) -> Void, onExit: @escaping () -> Void
     ) {
+        // In practice every serve comes to the human — a puck served into the
+        // machine's end would just wait on the sweep to send it back.
+        var rules = setup.rules
+        if mode.isPractice { rules.serveTo = .bottom }
         _game = StateObject(
             wrappedValue: HockeyGame(
-                rules: setup.rules,
+                rules: rules,
                 table: setup.resolvedTable(roll: seed, singles: mode.forcesSingles),
                 seed: seed, practice: mode.isPractice))
         self.setup = setup
