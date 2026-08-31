@@ -26,7 +26,35 @@ struct SetupControls: View {
             firstToPicker
             matchPicker
             puckPicker
+            countPicker
             wallsPicker
+        }
+    }
+
+    /// How many pucks fly at once, plus a "?" that rolls 1–3 each game.
+    private var countPicker: some View {
+        VStack(spacing: 12) {
+            sectionLabel("Pucks")
+            HStack(spacing: 10) {
+                ForEach(1...3, id: \.self) { count in
+                    let selected = !setup.randomPuckCount && count == setup.puckCount
+                    Button {
+                        setup.puckCount = count
+                        setup.randomPuckCount = false
+                    } label: {
+                        Text(verbatim: "\(count)")
+                            .font(.system(size: 20, weight: .bold, design: .rounded))
+                            .foregroundStyle(selected ? Neon.ground : Neon.ink)
+                            .frame(width: 52, height: 48)
+                            .background(pillBackground(selected: selected))
+                    }
+                    .buttonStyle(.plain)
+                }
+                randomPill(selected: setup.randomPuckCount, width: 52) {
+                    setup.randomPuckCount = true
+                }
+                .accessibilityLabel(Text(verbatim: "Random puck count"))
+            }
         }
     }
 

@@ -4,13 +4,14 @@ import XCTest
 @testable import PuckaroundKit
 
 /// The stored setup resolving to a concrete table: fixed picks pass through,
-/// "?" rolls per game, and the two "?" rolls stay independent of each other.
+/// "?" rolls per game, and the separate "?" rolls stay independent.
 final class SetupTests: XCTestCase {
     func testFixedPicksIgnoreTheRoll() {
         var s = Setup()
         s.puckShapeKey = PuckShapeKey.triangle.rawValue
+        s.puckCount = 2
         s.wrapWalls = true
-        XCTAssertEqual(s.resolvedPuck(roll: 7), PuckShapeKey.triangle.shape)
+        XCTAssertEqual(s.resolvedPucks(roll: 7), [.triangle, .triangle])
         XCTAssertEqual(s.resolvedWalls(roll: 7), .wrap)
     }
 
@@ -18,16 +19,33 @@ final class SetupTests: XCTestCase {
     func testABadStoredShapeFallsBackToTheDisc() {
         var s = Setup()
         s.puckShapeKey = "hexagon"
-        XCTAssertEqual(s.resolvedPuck(roll: 0), .circle)
+        XCTAssertEqual(s.resolvedPucks(roll: 0), [.circle])
     }
 
     func testARandomPuckCanRollEveryShape() {
         var s = Setup()
         s.randomPuck = true
-        let rolled = (0..<PuckShapeKey.allCases.count).map { s.resolvedPuck(roll: UInt64($0)) }
+        let rolled = (0..<PuckShapeKey.allCases.count).map { s.resolvedPucks(roll: UInt64($0))[0] }
         for key in PuckShapeKey.allCases {
             XCTAssertTrue(rolled.contains(key.shape))
         }
+    }
+
+    /// With the shape on "?", every puck rolls its own — a mixed table.
+    func testEachRandomPuckRollsItsOwnShape() {
+        var s = Setup()
+        s.randomPuck = true
+        s.puckCount = 3
+        // roll 36 = 0b100100: slices 0b00, 0b01·2… land on circle, circle, triangle.
+        XCTAssertEqual(s.resolvedPucks(roll: 36), [.circle, .circle, .triangle])
+    }
+
+    func testARandomCountRollsOneToThree() {
+        var s = Setup()
+        s.randomPuckCount = true
+        XCTAssertEqual(s.resolvedPucks(roll: 0).count, 1)
+        XCTAssertEqual(s.resolvedPucks(roll: 1 << 16).count, 2)
+        XCTAssertEqual(s.resolvedPucks(roll: 2 << 16).count, 3)
     }
 
     func testRandomWallsFlipOnTheHighBit() {
@@ -46,7 +64,7 @@ final class SetupTests: XCTestCase {
         // 3 << 32 keeps roll % 3 == 0 (same shape as roll 0) but sets bit 32.
         let a: UInt64 = 0
         let b: UInt64 = 3 << 32
-        XCTAssertEqual(s.resolvedPuck(roll: a), s.resolvedPuck(roll: b))
+        XCTAssertEqual(s.resolvedPucks(roll: a), s.resolvedPucks(roll: b))
         XCTAssertNotEqual(s.resolvedWalls(roll: a), s.resolvedWalls(roll: b))
     }
 }

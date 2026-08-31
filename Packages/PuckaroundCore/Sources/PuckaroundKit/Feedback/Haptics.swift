@@ -37,28 +37,39 @@ final class Haptics {
         guard enabled else { return }
         #if os(iOS)
         for event in events {
-            switch event {
-            case .malletHit(_, let speed):
-                // A hit's weight is its speed: a nudge stays soft, a slap is rigid.
-                rigid.impactOccurred(intensity: intensity(forSpeed: speed, fast: 260))
-            case .wallBounce(let speed):
-                // Only bounces you'd feel — a slow drift into the boards is silent.
-                if speed > 40 {
-                    light.impactOccurred(intensity: intensity(forSpeed: speed, fast: 300) * 0.7)
-                }
-            case .goal:
-                soft.impactOccurred(intensity: 1)
-            case .gameWon:
-                soft.impactOccurred(intensity: 1)
-            case .matchOver:
-                notice.notificationOccurred(.success)
-            case .faceoffCleared:
-                // The "GO": a firm pop as the force field bursts and play begins.
-                rigid.impactOccurred(intensity: 1)
-            }
+            fire(event)
         }
         #endif
     }
+
+    #if os(iOS)
+    private func fire(_ event: GameEvent) {
+        switch event {
+        case .malletHit(_, let speed):
+            // A hit's weight is its speed: a nudge stays soft, a slap is rigid.
+            rigid.impactOccurred(intensity: intensity(forSpeed: speed, fast: 260))
+        case .wallBounce(let speed):
+            // Only bounces you'd feel — a slow drift into the boards is silent.
+            if speed > 40 {
+                light.impactOccurred(intensity: intensity(forSpeed: speed, fast: 300) * 0.7)
+            }
+        case .puckHit(let speed):
+            // A puck-on-puck clack, felt like a light board touch.
+            if speed > 40 {
+                light.impactOccurred(intensity: intensity(forSpeed: speed, fast: 300) * 0.6)
+            }
+        case .goal:
+            soft.impactOccurred(intensity: 1)
+        case .gameWon:
+            soft.impactOccurred(intensity: 1)
+        case .matchOver:
+            notice.notificationOccurred(.success)
+        case .faceoffCleared:
+            // The "GO": a firm pop as the force field bursts and play begins.
+            rigid.impactOccurred(intensity: 1)
+        }
+    }
+    #endif
 
     /// 0.35…1 over 0…`fast` world units/s, so even a gentle touch is felt and a
     /// hard hit tops out rather than clipping.

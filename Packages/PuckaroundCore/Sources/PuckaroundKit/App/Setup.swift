@@ -15,6 +15,8 @@ struct Setup: Equatable {
     var gamesToWin = 1
     var puckShapeKey = PuckShapeKey.circle.rawValue
     var randomPuck = false
+    var puckCount = 1
+    var randomPuckCount = false
     var bottomHands = 1
     var topHands = 1
     var wrapWalls = false
@@ -30,14 +32,21 @@ extension Setup {
         Format(bottom: bottomHands == 2 ? .two : .one, top: topHands == 2 ? .two : .one)
     }
 
-    /// The puck to play with — the picked shape, or a random one when "?" is on.
-    /// `roll` is drawn once per game so the shape holds for that whole game.
-    func resolvedPuck(roll: UInt64) -> PuckShape {
-        let key =
-            randomPuck
-            ? PuckShapeKey.allCases[Int(roll % UInt64(PuckShapeKey.allCases.count))]
-            : PuckShapeKey(rawValue: puckShapeKey) ?? .circle
-        return key.shape
+    /// The pucks to play with — one shape per puck. A fixed shape fills every
+    /// slot; with the shape on "?" each puck rolls its own, so a disc, a square
+    /// and a triangle can share the table. The count is the picked one, or 1–3
+    /// when the count's own "?" is on. `roll` is drawn once per game, and each
+    /// choice reads its own bits so the picks stay independent.
+    func resolvedPucks(roll: UInt64) -> [PuckShape] {
+        let count = randomPuckCount ? Int((roll >> 16) % 3) + 1 : puckCount
+        let shapes = PuckShapeKey.allCases
+        return (0..<count).map { index in
+            let key =
+                randomPuck
+                ? shapes[Int((roll >> (2 * UInt64(index))) % UInt64(shapes.count))]
+                : PuckShapeKey(rawValue: puckShapeKey) ?? .circle
+            return key.shape
+        }
     }
 
     /// Solid or wrap walls — the picked one, or a coin-flip when "?" is on. The

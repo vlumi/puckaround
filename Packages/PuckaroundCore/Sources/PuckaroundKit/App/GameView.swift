@@ -27,7 +27,7 @@ struct GameView: View {
     ) {
         _game = StateObject(
             wrappedValue: HockeyGame(
-                rules: setup.rules, puckShape: setup.resolvedPuck(roll: seed),
+                rules: setup.rules, pucks: setup.resolvedPucks(roll: seed),
                 format: setup.format, sideWalls: setup.resolvedWalls(roll: seed), seed: seed))
         self.setup = setup
         self.tournament = tournament

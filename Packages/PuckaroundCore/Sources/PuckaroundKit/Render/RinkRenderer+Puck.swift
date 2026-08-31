@@ -6,7 +6,7 @@ extension RinkRenderer {
     /// grows with speed — a slow drift barely trails, a hard shot smears. The
     /// trail is decorative, so reduced motion shortens it to almost nothing.
     static func drawPuck(
-        _ puck: Puck, radius: Double, shape: PuckShape, projection: Projection,
+        _ puck: Puck, radius: Double, projection: Projection,
         in context: inout GraphicsContext
     ) {
         // Off a wrap table, or not yet straddling a side, the puck draws plainly.
@@ -15,8 +15,7 @@ extension RinkRenderer {
         let width = projection.table.size.x
         let edgeGap = min(puck.position.x, width - puck.position.x)  // dist to nearest side
         guard projection.table.sideWalls == .wrap, edgeGap < radius else {
-            drawPuckInstance(
-                puck, radius: radius, shape: shape, projection: projection, in: &context)
+            drawPuckInstance(puck, radius: radius, projection: projection, in: &context)
             return
         }
         // Straddling the seam: the puck is warping through at light speed, so the
@@ -44,8 +43,7 @@ extension RinkRenderer {
                 ctx.translateBy(x: anchorX, y: p.y)
                 ctx.scaleBy(x: stretch, y: 1)
                 ctx.translateBy(x: -anchorX, y: -p.y)
-                drawPuckInstance(
-                    image, radius: radius, shape: shape, projection: projection, in: &ctx)
+                drawPuckInstance(image, radius: radius, projection: projection, in: &ctx)
             }
         }
     }
@@ -54,7 +52,7 @@ extension RinkRenderer {
     /// spin mark — at its own position. `drawPuck` calls this once, plus a second
     /// time for the wrap ghost.
     private static func drawPuckInstance(
-        _ puck: Puck, radius: Double, shape: PuckShape, projection: Projection,
+        _ puck: Puck, radius: Double, projection: Projection,
         in context: inout GraphicsContext
     ) {
         let p = projection.point(puck.position)
@@ -74,12 +72,12 @@ extension RinkRenderer {
                 streak, with: .color(RinkRenderer.puck.opacity(0.35)),
                 style: StrokeStyle(lineWidth: r * 1.2, lineCap: .round))
         }
-        let body = puckBodyPath(puck, radius: radius, shape: shape, projection: projection)
+        let body = puckBodyPath(puck, radius: radius, projection: projection)
         glow(body, color: RinkRenderer.puck, blur: 5 * projection.scale, in: &context)
         // A polygon shows its spin by its own rotation; a disc can't, so it wears
         // a small mark that turns with `angle` — off-center enough to read english
         // at a glance, without cluttering the neon core.
-        if case .circle = shape {
+        if case .circle = puck.shape {
             drawDiscSpinMark(at: p, radius: r, angle: puck.angle, in: &context)
         }
     }
@@ -103,9 +101,9 @@ extension RinkRenderer {
 
     /// The puck's outline on screen: a disc, or the rotated polygon.
     private static func puckBodyPath(
-        _ puck: Puck, radius: Double, shape: PuckShape, projection: Projection
+        _ puck: Puck, radius: Double, projection: Projection
     ) -> Path {
-        let vertices = shape.worldVertices(
+        let vertices = puck.shape.worldVertices(
             position: puck.position, angle: puck.angle, radius: radius)
         guard !vertices.isEmpty else {
             return projection.disc(
