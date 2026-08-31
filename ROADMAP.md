@@ -8,7 +8,7 @@ The implementation plan, as **named milestones in rough order** — and *only op
 
 Guiding order: **the mallet is the game**, and **what comes early is whatever answers a question that changes the plan**.
 
-Shipped so far (in TestFlight, detail in [CHANGELOG.md](CHANGELOG.md)): 1v1/1v2/2v2 air hockey with the faceoff/rematch flow, best-of matches, round/square/triangle pucks with spin (polygon and disc), wrap-wall tables, winner-stays tournaments with remembered names, sound + haptics, and a front door. What's left is below.
+Shipped so far (in TestFlight, detail in [CHANGELOG.md](CHANGELOG.md)): 1v1/1v2/2v2 air hockey with the faceoff/rematch flow, best-of matches, round/square/triangle pucks with spin (polygon and disc) and up to three at once, wrap-wall tables, "?" randoms, tournaments in three shapes (winner stays, brackets, league seasons) with remembered names, practice against the machine, landscape play, sound + haptics, and a front door with the New match modal. What's left is below.
 
 ## Tune & fit — *the table on real hardware*
 
@@ -18,9 +18,8 @@ Shipped so far (in TestFlight, detail in [CHANGELOG.md](CHANGELOG.md)): 1v1/1v2/
 
 ## The couch — *who is playing*
 
-Winner-stays tournaments shipped: remembered names (a tap-to-pick pool, no profiles), the line, and tonight's tally. Left here:
+Tournaments shipped in all three shapes — winner stays, knockout brackets, and league seasons — on remembered names (a tap-to-pick pool, no profiles). Left here:
 
-- [x] **A league season (round robin).** Shipped: everyone plays everyone once or twice on the same roster machinery (circle-method schedule, up to 10); standings by wins, ties broken head-to-head and then by sudden-death decider matches — playing beats bookkeeping. (Brackets shipped beside winner-stays earlier.)
 - [ ] **A color of one's own.** A per-person accent on chips and verdicts — cosmetic identity; the sim stays side-based.
 
 ## Puck & table variety — *what changes how it plays*
@@ -47,7 +46,6 @@ The lane is in place (see [RELEASING.md](RELEASING.md)) and builds are shipping 
 A parking lot for what could flesh the game out before 1.0. None of these is committed; each earns a milestone only if, tried on a device, it makes a game between people better. Ordered roughly by how much they lean on what already exists.
 
 - [ ] **Pinball-style obstacles.** Bumpers on the ice — fixed discs (or pads) the puck bounces off, maybe with a kick. Cheap: the mallet collision is already a kinematic circle, so a bumper is a mallet that never moves and adds speed. The design question is placement — a few table layouts to choose from, not an editor. Once bumpers exist, more pinball furniture is the same idea: spinners, one-way gates, targets, a multiplier lane — each a fixed piece riding the one collision routine.
-- [x] **Multiple pucks.** Shipped: 1–3 or "?" in the setup, per-puck shapes when the shape is "?" too, the scored puck re-serves while the rest keep flying, and pucks clack off each other. Still a natural pairing with bumpers if those come.
 - [ ] **A single-player mode — a different game sharing the physics.** Ideas from pinball and breakout: a wall of bricks the puck chips away, a table of bumpers and targets to rack up a score, a survival mode where you keep the puck off your own goal. Honestly: this **changes what the app is** — the premise everywhere else is "the device is the table, people around one screen," and a solo score-attack is a genuinely different game that reuses the puck sim. So it earns a mode, never the front door, and only if the multiplayer game is proven first. The light take shipped as **Practice** (a machine mallet on a fixed sweep, normal scoring — a drill target, not a new game); this bullet is the heavier reframing, still parked.
 - [ ] **A curved table (the ellipse).** An ellipse wastes less portrait space than a circle and brings **curved walls**, where the bounce angle depends on *where* on the wall you hit — reflection off the local tangent, not a fixed normal. **Goals are pie-slices** of the perimeter (defend an arc, not a gap in a flat wall). The payoff — the reason it's worth building — is the **rolling shot**: a low, wall-hugging shot with forward spin that hugs the curve through each bounce and accelerates toward the goal, a skill the flat table can't express (needs grip-spin, above; disc spin is invisible, so decide then whether a drawn puck symbol shows rotation). Cost is a whole table's worth of physics — elliptical-sector mallet zones, an angular goal test, and generalizing `PolygonCollision` off its axis-aligned assumption to an arbitrary wall normal. Comparable to the shaped-puck spike, so a spike not a variant; iPad-forgiving, and off the singles/doubles path.
 - [ ] **Nearby multiplayer.** Two devices, each its own table half, over the local network — no server, no accounts. The sim was built for it: inputs are data and the state is deterministic, so host-authoritative snapshots or lockstep over MultipeerConnectivity (as Skid does) is reachable without a rewrite. Changes the premise (one shared screen) enough that it needs its own decision before any code; listed so it isn't forgotten, not because it is planned.
