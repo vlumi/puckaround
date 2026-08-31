@@ -83,7 +83,7 @@ struct GameView: View {
     private func overlay(for scene: RinkScene) -> some View {
         if showingNewMatch {
             NewMatchSheet(
-                initial: setup, showsFormat: !mode.forcesSingles,
+                initial: setup, practice: mode.isPractice,
                 onStart: { chosen in
                     showingNewMatch = false
                     showingPause = false
@@ -116,7 +116,9 @@ struct GameView: View {
                     onNewMatch(setup)
                 }
                 if mode.tournament == nil {
-                    NeonButton(title: "New match…") { showingNewMatch = true }
+                    NeonButton(title: mode.isPractice ? "New practice…" : "New match…") {
+                        showingNewMatch = true
+                    }
                 }
                 NeonButton(
                     title: mode.tournament == nil ? "Quit to title" : "Back to tournament",
