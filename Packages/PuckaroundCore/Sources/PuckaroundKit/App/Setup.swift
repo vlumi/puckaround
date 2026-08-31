@@ -56,4 +56,14 @@ extension Setup {
         let wrap = randomWalls ? (roll >> 32 & 1) == 1 : wrapWalls
         return wrap ? .wrap : .solid
     }
+
+    /// The table this setup builds for one game: the duel field with the
+    /// resolved pucks and walls, in the picked format — or forced to one mallet
+    /// per end, since tournament pairings and practice are one-on-one by nature.
+    func resolvedTable(roll: UInt64, singles: Bool = false) -> Playfield {
+        var table = Playfield.duel.with(format: singles ? .oneVsOne : format)
+        table.puckShapes = resolvedPucks(roll: roll)
+        table.sideWalls = resolvedWalls(roll: roll)
+        return table
+    }
 }

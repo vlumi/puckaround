@@ -20,22 +20,26 @@ final class HockeyGame: ObservableObject {
     /// lands where it looks in either orientation. Set by the view on layout.
     private(set) var placement = BoardPlacement(board: Vec2(1, 1), screen: .zero)
 
+    /// In practice the machine drives the top end; nil otherwise.
+    private let machine: PatternControlSource?
+
     init(
-        rules: Rules = .standard, pucks: [PuckShape] = [.circle],
-        format: Format = .oneVsOne, sideWalls: SideWalls = .solid,
-        seed: UInt64 = UInt64.random(in: 0...UInt64.max)
+        rules: Rules = .standard, table: Playfield = .duel,
+        seed: UInt64 = UInt64.random(in: 0...UInt64.max), practice: Bool = false
     ) {
-        // The chosen format sets each side's hand count; the zones follow the
-        // table's own format, so they split into lanes wherever a side fields two.
-        var table = Playfield.duel.with(format: format)
-        table.puckShapes = pucks
-        table.sideWalls = sideWalls
+        // The table's format sets each side's hand count; the zones follow it,
+        // so they split into lanes wherever a side fields two.
         let rink = Rink(table: table, rules: rules, seed: seed)
         let controls = MalletControlSource(
             zones: SeatZones(format: table.format, bounds: table.bounds))
         self.controls = controls
+        let machine = practice ? PatternControlSource(table: table) : nil
+        self.machine = machine
         self.session = GameSession(rink: rink) { slot, tick in
-            controls.input(for: slot, at: tick)
+            if let machine, slot == machine.slot {
+                return machine.input(for: slot, at: tick)
+            }
+            return controls.input(for: slot, at: tick)
         }
     }
 
@@ -72,6 +76,12 @@ final class HockeyGame: ObservableObject {
     /// because the Canvas renderer closure is not MainActor. `reducedMotion`
     /// comes from the view.
     func frame(at time: TimeInterval, reducedMotion: Bool) -> RinkScene {
+        // The machine is always ready — only the human's grab starts play.
+        if let machine, session.rink.isFaceoff,
+            !session.rink.readyMallets.contains(machine.slot)
+        {
+            session.ready(machine.slot)
+        }
         session.update(to: time)
         // Fire feedback for every tick actually stepped this frame. `events`
         // holds only the LATEST tick's, so a frame that stepped several would

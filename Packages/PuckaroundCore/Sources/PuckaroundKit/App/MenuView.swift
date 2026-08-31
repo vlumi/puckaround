@@ -11,8 +11,11 @@ struct MenuView: View {
     let onPlay: () -> Void
     /// Open the tournament flow (resuming a saved evening if one exists).
     let onTournament: () -> Void
+    /// Start practice against the machine, with the current stored setup.
+    let onPractice: () -> Void
 
     @State private var showingNewMatch = false
+    @State private var showingPractice = false
 
     var body: some View {
         ZStack {
@@ -24,6 +27,7 @@ struct MenuView: View {
                         showingNewMatch = true
                     }
                     NeonButton(title: "Tournament", action: onTournament)
+                    NeonButton(title: "Practice") { showingPractice = true }
                 }
                 .frame(maxWidth: 280)
                 .padding(.horizontal, 40)
@@ -38,6 +42,16 @@ struct MenuView: View {
                         onPlay()
                     },
                     onClose: { showingNewMatch = false })
+            }
+            if showingPractice {
+                NewMatchSheet(
+                    initial: setup, practice: true,
+                    onStart: { chosen in
+                        setup = chosen
+                        showingPractice = false
+                        onPractice()
+                    },
+                    onClose: { showingPractice = false })
             }
         }
     }

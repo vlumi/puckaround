@@ -14,23 +14,27 @@ struct GameView: View {
     /// The setup the running game was built from — the New match modal opens on
     /// it, so the pickers show what's in play.
     let setup: Setup
-    /// Set when this match belongs to a tournament: the ends wear names, and
-    /// the tournament hears who won.
-    let tournament: TournamentMatch?
+    /// What kind of table this is — free, one tournament pairing, or practice.
+    let mode: TableMode
     /// Commit a chosen setup and start a fresh match with it.
     let onNewMatch: (Setup) -> Void
     let onExit: () -> Void
 
     init(
-        setup: Setup, seed: UInt64, tournament: TournamentMatch? = nil,
+        setup: Setup, seed: UInt64, mode: TableMode = .free,
         onNewMatch: @escaping (Setup) -> Void, onExit: @escaping () -> Void
     ) {
+        // In practice every serve comes to the human — a puck served into the
+        // machine's end would just wait on the sweep to send it back.
+        var rules = setup.rules
+        if mode.isPractice { rules.serveTo = .bottom }
         _game = StateObject(
             wrappedValue: HockeyGame(
-                rules: setup.rules, pucks: setup.resolvedPucks(roll: seed),
-                format: setup.format, sideWalls: setup.resolvedWalls(roll: seed), seed: seed))
+                rules: rules,
+                table: setup.resolvedTable(roll: seed, singles: mode.forcesSingles),
+                seed: seed, practice: mode.isPractice))
         self.setup = setup
-        self.tournament = tournament
+        self.mode = mode
         self.onNewMatch = onNewMatch
         self.onExit = onExit
     }
@@ -61,8 +65,8 @@ struct GameView: View {
                 relayout(geo.size)
                 game.begin()
                 game.onMenuTap = { showingPause = true }
-                game.endNames = tournament?.names
-                game.onMatchOver = tournament?.onMatchOver
+                game.endNames = mode.tournament?.names
+                game.onMatchOver = mode.tournament?.onMatchOver
             }
             .onChangeCompat(of: geo.size) { size in relayout(size) }
             // The flips that keep the same size (left↔right landscape, portrait↔
@@ -83,7 +87,7 @@ struct GameView: View {
     private func overlay(for scene: RinkScene) -> some View {
         if showingNewMatch {
             NewMatchSheet(
-                initial: setup,
+                initial: setup, practice: mode.isPractice,
                 onStart: { chosen in
                     showingNewMatch = false
                     showingPause = false
@@ -115,11 +119,13 @@ struct GameView: View {
                     showingPause = false
                     onNewMatch(setup)
                 }
-                if tournament == nil {
-                    NeonButton(title: "New match…") { showingNewMatch = true }
+                if mode.tournament == nil {
+                    NeonButton(title: mode.isPractice ? "New practice…" : "New match…") {
+                        showingNewMatch = true
+                    }
                 }
                 NeonButton(
-                    title: tournament == nil ? "Quit to title" : "Back to tournament",
+                    title: mode.tournament == nil ? "Quit to title" : "Back to tournament",
                     tint: Neon.magenta, action: onExit)
             }
             .frame(maxWidth: 260)
@@ -143,4 +149,28 @@ struct GameView: View {
 struct TournamentMatch {
     let names: EndNames
     let onMatchOver: (Side, Int, Int) -> Void
+}
+
+/// What kind of table this is: a free match, one tournament pairing, or
+/// practice against the machine.
+enum TableMode {
+    case free
+    case tournament(TournamentMatch)
+    case practice
+
+    var tournament: TournamentMatch? {
+        if case .tournament(let match) = self { return match }
+        return nil
+    }
+
+    /// Tournament pairings and practice both field one mallet per end.
+    var forcesSingles: Bool {
+        if case .free = self { return false }
+        return true
+    }
+
+    var isPractice: Bool {
+        if case .practice = self { return true }
+        return false
+    }
 }

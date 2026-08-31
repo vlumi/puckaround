@@ -11,14 +11,21 @@ struct NewMatchSheet: View {
     let onStart: (Setup) -> Void
     /// Dismiss without starting; the draft is discarded.
     let onClose: () -> Void
+    /// A practice sheet says so — and hides the Players row, since the
+    /// machine's end isn't up for picking.
+    let practice: Bool
 
     @State private var draft: Setup
 
     /// `initial` seeds the draft — the stored setup, so the pickers show last
     /// time's picks.
-    init(initial: Setup, onStart: @escaping (Setup) -> Void, onClose: @escaping () -> Void) {
+    init(
+        initial: Setup, practice: Bool = false,
+        onStart: @escaping (Setup) -> Void, onClose: @escaping () -> Void
+    ) {
         self.onStart = onStart
         self.onClose = onClose
+        self.practice = practice
         _draft = State(initialValue: initial)
     }
 
@@ -34,7 +41,7 @@ struct NewMatchSheet: View {
                     .padding(.top, 20)
                     .padding(.bottom, 8)
                 ScrollView {
-                    SetupControls(setup: $draft)
+                    SetupControls(setup: $draft, showsFormat: !practice)
                         .padding(.horizontal, 24)
                         .padding(.vertical, 16)
                 }
@@ -50,7 +57,7 @@ struct NewMatchSheet: View {
     /// The title, with the X to back out sitting in the corner beside it.
     private var header: some View {
         ZStack {
-            Text("New match", bundle: .module)
+            Text(practice ? "New practice" : "New match", bundle: .module)
                 .font(.system(size: 22, weight: .black, design: .rounded))
                 .foregroundStyle(Neon.ink)
             HStack {
@@ -61,6 +68,9 @@ struct NewMatchSheet: View {
     }
 
     private var start: some View {
-        NeonButton(title: "Start match", tint: Neon.cyan, prominent: true) { onStart(draft) }
+        NeonButton(
+            title: practice ? "Start practice" : "Start match",
+            tint: Neon.cyan, prominent: true
+        ) { onStart(draft) }
     }
 }

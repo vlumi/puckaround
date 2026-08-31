@@ -28,10 +28,15 @@ public enum GameEvent: Equatable, Sendable {
 public struct Rules: Equatable, Codable, Sendable {
     public var pointsToWin: Int
     public var gamesToWin: Int
+    /// Who gets the serve after a goal: nil is standard air hockey (the
+    /// conceder), a side pins every serve there — practice serves the human,
+    /// so nobody waits on the machine to knock a serve back into play.
+    public var serveTo: Side?
 
-    public init(pointsToWin: Int = 7, gamesToWin: Int = 1) {
+    public init(pointsToWin: Int = 7, gamesToWin: Int = 1, serveTo: Side? = nil) {
         self.pointsToWin = pointsToWin
         self.gamesToWin = gamesToWin
+        self.serveTo = serveTo
     }
 
     /// Standard air hockey: a single game, first to seven.
@@ -275,7 +280,7 @@ public struct Rink: Equatable, Sendable {
         score[Rink.tallyIndex(scorer)] += 1
         events.append(.goal(scorer: scorer, conceder: conceder))
         guard score(of: scorer) >= rules.pointsToWin else {
-            serve(puckAt: index, to: conceder)
+            serve(puckAt: index, to: rules.serveTo ?? conceder)
             return false
         }
         // The game is won: tally it, and decide whether that took the match.

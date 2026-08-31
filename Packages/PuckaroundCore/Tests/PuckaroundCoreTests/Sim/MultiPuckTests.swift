@@ -49,6 +49,28 @@ final class MultiPuckTests: XCTestCase {
         XCTAssertNotEqual(r.pucks[1].position, bystander.position)
     }
 
+    /// With the serve pinned (practice), a goal against the far side still
+    /// serves toward the pinned end — nobody waits on the machine's half.
+    func testAPinnedServeIgnoresTheConceder() {
+        var r = Rink(table: table, rules: Rules(serveTo: .bottom), seed: 1)
+        for slot in r.slots { r.ready(slot) }
+        r.advance(inputs: [:])
+        let y = r.table.puckField.minY + 1
+        r.setPuckForTesting(
+            Puck(position: Vec2(table.center.x, y), velocity: Vec2(0, -300)), at: 0)
+        // Park the others clear of center, or the re-serve lands on the row.
+        r.setPuckForTesting(Puck(position: Vec2(20, 100)), at: 1)
+        r.setPuckForTesting(Puck(position: Vec2(80, 140)), at: 2)
+        while !r.events.contains(where: { if case .goal = $0 { return true } else { return false } }
+        ) {
+            r.advance(inputs: [:])
+        }
+        XCTAssertEqual(r.score(of: .bottom), 1, "the goal was against the top")
+        XCTAssertEqual(r.pucks[0].position, table.center, "the scored puck re-serves")
+        XCTAssertGreaterThan(
+            r.pucks[0].velocity.y, 0, "gliding to the pinned end, not the conceder's")
+    }
+
     /// A game-winning goal freezes the table: every puck returns to the row.
     func testAWinningGoalParksEveryPuck() {
         var r = rink(pointsToWin: 1)
