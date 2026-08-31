@@ -3,9 +3,12 @@ import SwiftUI
 
 /// **The sheet, drawn.** Rounds as columns — the first the tallest, the
 /// champion's slot last — with elbow connectors carrying winners rightward.
-/// Byes are gaps, losers dim out, the live pairing wears the end colors, and a
-/// decided champion glows. Wide fields scroll sideways; the tallest column is
-/// sized to fit the card without vertical scrolling, even at the 32-player cap.
+/// Each connector picks up where its name ends, an undecided slot shows a dim
+/// blank where the advancing winner will land, and a round-one bye hole stays
+/// truly empty (nothing ever arrives there). Losers dim out, the live pairing
+/// wears the end colors, and a decided champion glows. Wide fields scroll
+/// sideways; the tallest column is sized to fit the card without vertical
+/// scrolling, even at the 32-player cap.
 struct BracketSheet: View {
     let rounds: [[String?]]
     let current: Pairing?
@@ -32,38 +35,34 @@ struct BracketSheet: View {
             let pitch = size.height / CGFloat(slots.count)
             let x = CGFloat(round) * columnWidth
             for slot in slots.indices {
+                let name = slots[slot]
+                // A round-one hole is a bye: nothing ever arrives, draw nothing.
+                if round == 0 && name == nil { continue }
                 let y = pitch * (CGFloat(slot) + 0.5)
+                let end = drawSlot(
+                    name, at: CGPoint(x: x + 4, y: y), round: round, slot: slot, in: &context)
                 if round + 1 < rounds.count {
                     connect(
-                        from: CGPoint(x: x, y: y), round: round, slot: slot, size: size,
+                        fromX: end + 6, y: y, round: round, slot: slot, size: size,
                         in: &context)
                 }
-                guard let name = slots[slot] else { continue }
-                drawName(
-                    name, at: CGPoint(x: x + 4, y: y), round: round, slot: slot, in: &context)
             }
         }
     }
 
-    /// The elbow from a slot to its parent: out to the column's junction, up or
-    /// down to the parent's height, and into the parent's slot.
-    private func connect(
-        from point: CGPoint, round: Int, slot: Int, size: CGSize, in context: inout GraphicsContext
-    ) {
-        let junction = point.x + columnWidth - 10
-        let parentPitch = size.height / CGFloat(rounds[round + 1].count)
-        let parentY = parentPitch * (CGFloat(slot / 2) + 0.5)
-        var path = Path()
-        path.move(to: CGPoint(x: point.x + columnWidth - 26, y: point.y))
-        path.addLine(to: CGPoint(x: junction, y: point.y))
-        path.addLine(to: CGPoint(x: junction, y: parentY))
-        path.addLine(to: CGPoint(x: point.x + columnWidth + 2, y: parentY))
-        context.stroke(path, with: .color(Neon.inkSoft.opacity(0.35)), lineWidth: 1)
-    }
-
-    private func drawName(
-        _ name: String, at point: CGPoint, round: Int, slot: Int, in context: inout GraphicsContext
-    ) {
+    /// Draws a slot — the name, or a dim blank awaiting the advancing winner —
+    /// and reports where it ends, so the connector picks up right after it.
+    private func drawSlot(
+        _ name: String?, at point: CGPoint, round: Int, slot: Int,
+        in context: inout GraphicsContext
+    ) -> CGFloat {
+        guard let name else {
+            var blank = Path()
+            blank.move(to: point)
+            blank.addLine(to: CGPoint(x: point.x + 28, y: point.y))
+            context.stroke(blank, with: .color(Neon.inkSoft.opacity(0.5)), lineWidth: 1)
+            return point.x + 28
+        }
         let champion = round == rounds.count - 1
         let maxChars = Int((columnWidth - 26) / (fontSize * 0.55))
         let shown = name.count > maxChars ? String(name.prefix(maxChars - 1)) + "…" : name
@@ -77,6 +76,25 @@ struct BracketSheet: View {
             haze.draw(colored, at: point, anchor: .leading)
         }
         context.draw(colored, at: point, anchor: .leading)
+        return point.x + text.measure(in: CGSize(width: columnWidth, height: 100)).width
+    }
+
+    /// The elbow from a slot to its parent: out from where the content ends,
+    /// up or down at the column's junction, and into the parent's slot.
+    private func connect(
+        fromX: CGFloat, y: CGFloat, round: Int, slot: Int, size: CGSize,
+        in context: inout GraphicsContext
+    ) {
+        let columnStart = CGFloat(round) * columnWidth
+        let junction = columnStart + columnWidth - 10
+        let parentPitch = size.height / CGFloat(rounds[round + 1].count)
+        let parentY = parentPitch * (CGFloat(slot / 2) + 0.5)
+        var path = Path()
+        path.move(to: CGPoint(x: min(fromX, junction - 2), y: y))
+        path.addLine(to: CGPoint(x: junction, y: y))
+        path.addLine(to: CGPoint(x: junction, y: parentY))
+        path.addLine(to: CGPoint(x: columnStart + columnWidth + 2, y: parentY))
+        context.stroke(path, with: .color(Neon.ink.opacity(0.4)), lineWidth: 1)
     }
 
     /// A name's state on the sheet: live (the current pairing, in end colors),
