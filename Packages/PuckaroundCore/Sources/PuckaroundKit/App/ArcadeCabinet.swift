@@ -27,12 +27,18 @@ struct ArcadeAttract: View {
         .frame(maxWidth: 290)
     }
 
-    /// A translucent pane, so the overlay reads on top of the glowing table.
+    /// A near-opaque pane with a defined edge: the table's glow, rings and
+    /// furniture must not bleed through the text.
     private func card(@ViewBuilder body: () -> some View) -> some View {
         VStack(spacing: 8, content: body)
             .padding(14)
             .frame(maxWidth: .infinity)
-            .background(RoundedRectangle(cornerRadius: 12).fill(Neon.ground.opacity(0.74)))
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Neon.ground.opacity(0.94))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .strokeBorder(Neon.inkSoft.opacity(0.35), lineWidth: 1)))
     }
 
     @ViewBuilder

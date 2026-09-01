@@ -69,7 +69,10 @@ extension RinkRenderer {
     static func drawArcadeHUD(
         _ scene: RinkScene, projection: Projection, in context: inout GraphicsContext
     ) {
-        guard let run = scene.arcade else { return }
+        // Only during live play: at the faceoff the attract panes sit exactly
+        // here, and a zero score under them is just bleed-through noise —
+        // this also keeps the index thumbnails clean.
+        guard let run = scene.arcade, !scene.rink.isFaceoff else { return }
         let table = scene.rink.table
         let seat = Seat(side: .bottom, boardTurn: scene.placement.turn)
         var ctx = context
