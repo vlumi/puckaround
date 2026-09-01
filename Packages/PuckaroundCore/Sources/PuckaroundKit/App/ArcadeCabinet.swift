@@ -16,26 +16,40 @@ struct ArcadeAttract: View {
     @State private var newName = ""
 
     var body: some View {
-        VStack(spacing: 12) {
-            if let pendingScore {
-                card { signSection(pendingScore) }
-            } else if let lastScore {
-                card { lastRun(lastScore) }
+        ZStack {
+            // The board keeps to the machine's empty half, up top.
+            VStack {
+                VStack(spacing: 12) {
+                    if pendingScore == nil, let lastScore {
+                        card { lastRun(lastScore) }
+                    }
+                    card { boardRows }
+                }
+                .frame(maxWidth: 290)
+                Spacer()
             }
-            card { boardRows }
+            .padding(.top, 24)
+            // The pen demands the middle of the screen, fully solid — and it
+            // leaves the moment a name lands, handing back to the board.
+            if let pendingScore {
+                card(opacity: 1) { signSection(pendingScore) }
+                    .frame(maxWidth: 300)
+            }
         }
-        .frame(maxWidth: 290)
+        .padding(.horizontal, 24)
     }
 
     /// A near-opaque pane with a defined edge: the table's glow, rings and
     /// furniture must not bleed through the text.
-    private func card(@ViewBuilder body: () -> some View) -> some View {
+    private func card(
+        opacity: Double = 0.94, @ViewBuilder body: () -> some View
+    ) -> some View {
         VStack(spacing: 8, content: body)
             .padding(14)
             .frame(maxWidth: .infinity)
             .background(
                 RoundedRectangle(cornerRadius: 12)
-                    .fill(Neon.ground.opacity(0.94))
+                    .fill(Neon.ground.opacity(opacity))
                     .overlay(
                         RoundedRectangle(cornerRadius: 12)
                             .strokeBorder(Neon.inkSoft.opacity(0.35), lineWidth: 1)))
@@ -105,8 +119,12 @@ struct ArcadeAttract: View {
     }
 
     private var poolChips: some View {
+        // Only the freshest chips: the pool is most-recent-first, so whoever
+        // is holding the phone is almost always here — a huge pool must not
+        // shove the pane off screen. Anyone rarer types below; the field
+        // knows every name.
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 100), spacing: 8)], spacing: 8) {
-            ForEach(pool, id: \.name) { player in
+            ForEach(pool.prefix(8), id: \.name) { player in
                 Button {
                     onSign(player.name)
                 } label: {

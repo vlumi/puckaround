@@ -111,12 +111,7 @@ struct GameView: View {
             // The attract screen IS the faceoff: the real table at full size,
             // the board floating over the machine's empty half, and grabbing
             // the mallet as the start button. It clears when the field drops.
-            VStack {
-                spec.attract
-                Spacer()
-            }
-            .padding(.top, 24)
-            .padding(.horizontal, 24)
+            spec.attract
         }
         // The center ring IS the menu, but it is NOT a view on top of the table:
         // an overlapping tap view would swallow the touches that grab and drive a
