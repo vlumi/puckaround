@@ -28,7 +28,8 @@ struct ArcadeAttract: View {
                     // The board holds ONE place — inside the field, below the
                     // goal and its guardian furniture — whether or not a last
                     // run shows. Sheer, with dark-glowing text: the field
-                    // stays visible through it.
+                    // stays visible through it. It carries no controls, so it
+                    // takes no touches — the center-ring menu works through it.
                     VStack(spacing: 0) {
                         Spacer().frame(height: fieldTop + fieldHeight * 0.17)
                         card(opacity: 0.55) {
@@ -38,6 +39,7 @@ struct ArcadeAttract: View {
                         .frame(maxWidth: 280)
                         Spacer()
                     }
+                    .allowsHitTesting(false)
                     // The last run takes the letterbox band above the field.
                     if let lastScore {
                         VStack(spacing: 0) {
@@ -46,6 +48,7 @@ struct ArcadeAttract: View {
                                 .frame(height: max(fieldTop, 56))
                             Spacer()
                         }
+                        .allowsHitTesting(false)
                     }
                 }
                 // The pen demands the middle of the screen, fully solid — and
@@ -211,14 +214,26 @@ struct ArcadeAttract: View {
 struct TablePreview: View {
     let table: Playfield
     var crop: Double = 1
+    /// Show the player's end of the strip instead of the machine's.
+    var bottomAnchored = false
+    /// Deterministic ticks to play before the snapshot — zero poses the
+    /// faceoff; a warmed-up marquee shows the game actually flying.
+    var warmup = 0
 
     var body: some View {
         Canvas { context, size in
             // Lay the FULL board out at the view's width; the view's aspect
-            // only admits the top `crop` of it, and the rest clips away.
+            // only admits `crop` of it, and the rest clips away.
             let full = CGSize(
                 width: size.width, height: size.width * table.size.y / table.size.x)
-            let rink = Rink(table: table, seed: 0)
+            if bottomAnchored {
+                context.translateBy(x: 0, y: size.height - full.height)
+            }
+            var rink = Rink(table: table, seed: 0)
+            if warmup > 0 {
+                for slot in rink.slots { rink.ready(slot) }
+                for _ in 0..<warmup { rink.advance(inputs: [:]) }
+            }
             let scene = RinkScene(
                 rink: rink,
                 placement: BoardPlacement(board: table.size, screen: full),

@@ -8,6 +8,15 @@ struct ArcadeMachine: Identifiable, Equatable {
     let id: String
     let title: LocalizedStringKey
     let table: Playfield
+    /// A separate table for the index card's marquee, when the real one poses
+    /// badly at tick zero (nil = the table itself).
+    var marquee: Playfield?
+    /// Deterministic ticks to run the marquee's sim before the snapshot —
+    /// zero shows the faceoff, more shows the game mid-flight.
+    var warmupTicks = 0
+    /// Crop the card from the player's end instead of the machine's — for a
+    /// game whose signature is what comes AT you.
+    var bottomCrop = false
 }
 
 /// The arcade's cabinets, in shelf order. The shared rules: the sim must
@@ -29,7 +38,15 @@ enum ArcadeSpec {
             table.feed = PuckFeed(
                 every: 7, cap: 3, shapes: [.circle, .square, .triangle], ramp: 0.015)
             return table
-        }())
+        }(),
+        // The marquee: a dense feed run a few seconds in and cropped from the
+        // player's end — pucks streaming at your goal IS the game.
+        marquee: {
+            var table = Playfield.duel
+            table.feed = PuckFeed(every: 2, cap: 3, shapes: [.circle, .square, .triangle])
+            return table
+        }(),
+        warmupTicks: 400, bottomCrop: true)
 
     /// Bumper field: your mallet is the flipper. Nobody home up top — each
     /// stage seats a different bumper pattern guarding the target goal
@@ -124,6 +141,7 @@ struct ArcadeView: View {
 
     @AppStorage("puckaround.hiscores.bumperField") private var bumperBoard = Data()
     @AppStorage("puckaround.hiscores.brickWall") private var brickBoard = Data()
+    @AppStorage("puckaround.hiscores.survival") private var survivalBoard = Data()
     @AppStorage("puckaround.playerNames") private var savedPool = Data()
     @State private var stage = Stage.index
     /// A finished run that made the board, waiting for its signature.
@@ -191,16 +209,25 @@ struct ArcadeView: View {
     }
 
     private func board(for machine: ArcadeMachine) -> Hiscores {
-        let data = machine.id == ArcadeSpec.brickWall.id ? brickBoard : bumperBoard
-        return (try? JSONDecoder().decode(Hiscores.self, from: data)) ?? Hiscores()
+        (try? JSONDecoder().decode(Hiscores.self, from: data(for: machine))) ?? Hiscores()
+    }
+
+    /// Every machine keeps its OWN board — runs on different tables never
+    /// share a ladder.
+    private func data(for machine: ArcadeMachine) -> Data {
+        switch machine.id {
+        case ArcadeSpec.brickWall.id: return brickBoard
+        case ArcadeSpec.survival.id: return survivalBoard
+        default: return bumperBoard
+        }
     }
 
     private func setBoard(_ board: Hiscores, for machine: ArcadeMachine) {
         let data = (try? JSONEncoder().encode(board)) ?? Data()
-        if machine.id == ArcadeSpec.brickWall.id {
-            brickBoard = data
-        } else {
-            bumperBoard = data
+        switch machine.id {
+        case ArcadeSpec.brickWall.id: brickBoard = data
+        case ArcadeSpec.survival.id: survivalBoard = data
+        default: bumperBoard = data
         }
     }
 
@@ -213,13 +240,13 @@ struct ArcadeView: View {
                 .padding(.top, 20)
                 .padding(.bottom, 8)
             ScrollView {
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 14)], spacing: 14) {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 10)], spacing: 10) {
                     ForEach(ArcadeSpec.machines) { machine in
                         machineCard(machine)
                     }
                 }
                 .padding(.horizontal, 24)
-                .padding(.vertical, 16)
+                .padding(.vertical, 12)
             }
         }
         .frame(maxWidth: 440)
@@ -245,10 +272,12 @@ struct ArcadeView: View {
             pendingScore = nil
             stage = .playing(machine, seed: freshSeed())
         } label: {
-            VStack(spacing: 8) {
-                // Just the top of the table — the far goal and its guardian
-                // furniture are the game's signature, not the empty ice.
-                TablePreview(table: machine.table, crop: 0.42)
+            VStack(spacing: 6) {
+                // A slim strip of the table's signature end — slim enough
+                // that the whole shelf fits one small screen.
+                TablePreview(
+                    table: machine.marquee ?? machine.table, crop: 0.25,
+                    bottomAnchored: machine.bottomCrop, warmup: machine.warmupTicks)
                 Text(machine.title, bundle: .module)
                     .font(.system(size: 15, weight: .bold, design: .rounded))
                     .foregroundStyle(Neon.cyan)
@@ -261,7 +290,7 @@ struct ArcadeView: View {
                         .lineLimit(1)
                 }
             }
-            .padding(10)
+            .padding(8)
             .background(
                 RoundedRectangle(cornerRadius: 14)
                     .strokeBorder(Neon.inkSoft.opacity(0.4), lineWidth: 1.5))
