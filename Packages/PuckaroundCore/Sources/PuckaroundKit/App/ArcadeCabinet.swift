@@ -16,43 +16,63 @@ struct ArcadeAttract: View {
     @State private var newName = ""
 
     var body: some View {
-        ZStack {
-            // The board keeps to the machine's empty half, up top.
-            VStack {
-                VStack(spacing: 12) {
-                    if pendingScore == nil, let lastScore {
-                        card { lastRun(lastScore) }
+        GeometryReader { geo in
+            // Where the playfield actually sits: portrait letterboxes a
+            // width-fit 100×160 board, and the overlay lays out around it.
+            let fieldTop = max(0, (geo.size.height - geo.size.width * 1.6) / 2)
+            let fieldHeight = geo.size.width * 1.6
+            ZStack {
+                // While the pen is out nothing competes with it: no board in
+                // the background, just the field.
+                if pendingScore == nil {
+                    // The board holds ONE place — inside the field, below the
+                    // goal and its guardian furniture — whether or not a last
+                    // run shows. Sheer, with dark-glowing text: the field
+                    // stays visible through it.
+                    VStack(spacing: 0) {
+                        Spacer().frame(height: fieldTop + fieldHeight * 0.17)
+                        card(opacity: 0.55) {
+                            boardRows
+                                .shadow(color: Neon.ground.opacity(0.9), radius: 2)
+                        }
+                        .frame(maxWidth: 280)
+                        Spacer()
                     }
-                    card { boardRows }
+                    // The last run takes the letterbox band above the field.
+                    if let lastScore {
+                        VStack(spacing: 0) {
+                            card(opacity: 0.7, pad: 8) { lastRun(lastScore) }
+                                .frame(maxWidth: 220)
+                                .frame(height: max(fieldTop, 56))
+                            Spacer()
+                        }
+                    }
                 }
-                .frame(maxWidth: 290)
-                Spacer()
+                // The pen demands the middle of the screen, fully solid — and
+                // it leaves the moment a name lands, handing back the field.
+                if let pendingScore {
+                    card(opacity: 1) { signSection(pendingScore) }
+                        .frame(maxWidth: 300)
+                }
             }
-            .padding(.top, 24)
-            // The pen demands the middle of the screen, fully solid — and it
-            // leaves the moment a name lands, handing back to the board.
-            if let pendingScore {
-                card(opacity: 1) { signSection(pendingScore) }
-                    .frame(maxWidth: 300)
-            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding(.horizontal, 24)
         }
-        .padding(.horizontal, 24)
     }
 
-    /// A near-opaque pane with a defined edge: the table's glow, rings and
-    /// furniture must not bleed through the text.
+    /// A pane over the table: `opacity` sets how much field shows through.
     private func card(
-        opacity: Double = 0.94, @ViewBuilder body: () -> some View
+        opacity: Double = 0.94, pad: CGFloat = 14, @ViewBuilder body: () -> some View
     ) -> some View {
         VStack(spacing: 8, content: body)
-            .padding(14)
+            .padding(pad)
             .frame(maxWidth: .infinity)
             .background(
                 RoundedRectangle(cornerRadius: 12)
                     .fill(Neon.ground.opacity(opacity))
                     .overlay(
                         RoundedRectangle(cornerRadius: 12)
-                            .strokeBorder(Neon.inkSoft.opacity(0.35), lineWidth: 1)))
+                            .strokeBorder(Neon.inkSoft.opacity(0.25), lineWidth: 1)))
     }
 
     @ViewBuilder
@@ -86,11 +106,17 @@ struct ArcadeAttract: View {
         SeatPalette.neon(PlayerPool.kit(for: name, in: pool).home)
     }
 
-    /// The last run's score when it didn't board — still worth showing.
-    @ViewBuilder
+    /// The last run's score when it didn't board — one compact row, sized for
+    /// the letterbox band above the field.
     private func lastRun(_ score: Int) -> some View {
-        caption("Last run")
-        scoreText(score)
+        HStack(spacing: 10) {
+            caption("Last run")
+            Text(verbatim: "\(score)")
+                .font(.system(size: 20, weight: .black, design: .rounded))
+                .foregroundStyle(Neon.cyan)
+                .monospacedDigit()
+                .shadow(color: Neon.cyan.opacity(0.6), radius: 6)
+        }
     }
 
     /// A boarded run waits for its name: one tap on a pool chip signs it, or
