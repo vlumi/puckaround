@@ -105,7 +105,8 @@ puckaround/
     │   ├── App/                    AppRoot, MenuView + NewMatchSheet/SetupControls/Setup (the front door),
     │   │                           GameView + HockeyGame (one table), TournamentView + RosterSheet +
     │   │                           PlayerPool (the couch), ArcadeView + ArcadeSpec (the arcade),
-    │   │                           InterfaceTurn, NeonUI, Compat (iOS 16 wrappers)
+    │   │                           SettingsSheet + AboutSheet (the gear and the i), InterfaceTurn,
+    │   │                           NeonUI, Compat (iOS 16 wrappers)
     │   ├── Feedback/               Haptics + SoundEngine — procedural, off the sim's GameEvent stream
     │   ├── Input/                  MultiTouchSurface — every finger, id-tagged, to the control source
     │   ├── Render/                 RinkRenderer (+Puck/+Faceoff/+Score/+Arcade, Canvas), BoardPlacement, Seat, SeatPalette

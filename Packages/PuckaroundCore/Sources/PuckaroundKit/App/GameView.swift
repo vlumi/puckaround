@@ -10,6 +10,8 @@ struct GameView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var showingPause = false
     @State private var showingNewMatch = false
+    @AppStorage("puckaround.soundOn") private var soundOn = true
+    @AppStorage("puckaround.hapticsOn") private var hapticsOn = true
 
     /// The setup the running game was built from — the New match modal opens on
     /// it, so the pickers show what's in play.
@@ -73,6 +75,7 @@ struct GameView: View {
             .onAppear {
                 relayout(geo.size)
                 game.begin()
+                game.setFeedback(sound: soundOn, haptics: hapticsOn)
                 game.onMenuTap = { showingPause = true }
                 game.endNames = mode.tournament?.names
                 game.endColors = mode.tournament?.colors
@@ -87,6 +90,12 @@ struct GameView: View {
             // modal is up, and resumes without a catch-up burst.
             .onChangeCompat(of: showingPause) { _ in syncPause() }
             .onChangeCompat(of: showingNewMatch) { _ in syncPause() }
+            .onChangeCompat(of: soundOn) { _ in
+                game.setFeedback(sound: soundOn, haptics: hapticsOn)
+            }
+            .onChangeCompat(of: hapticsOn) { _ in
+                game.setFeedback(sound: soundOn, haptics: hapticsOn)
+            }
         }
         .background(RinkRenderer.ground.ignoresSafeArea())
         .statusBarHiddenIfAvailable()
@@ -140,6 +149,8 @@ struct GameView: View {
                         showingNewMatch = true
                     }
                 }
+                // A loud table can be hushed without leaving the game.
+                NeonButton(title: soundOn ? "Sound off" : "Sound on") { soundOn.toggle() }
                 NeonButton(title: mode.exitTitle, tint: Neon.magenta, action: onExit)
             }
             .frame(maxWidth: 260)
