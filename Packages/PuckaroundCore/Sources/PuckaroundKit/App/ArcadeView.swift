@@ -133,6 +133,8 @@ struct ArcadeView: View {
     @State private var pendingScore: Int?
     /// The last run's score, shown on the next attract screen.
     @State private var lastScore: Int?
+    /// The stage the last run died on (staged cabinets), signed with it.
+    @State private var lastStage: Int?
 
     private enum Stage: Equatable {
         case index
@@ -164,17 +166,19 @@ struct ArcadeView: View {
                         ArcadeAttract(
                             board: board(for: machine), pool: PlayerPool.decode(savedPool),
                             lastScore: lastScore, pendingScore: pendingScore,
+                            pendingStage: lastStage,
                             onSign: { name in sign(name, on: machine) },
                             onSkip: { pendingScore = nil })),
-                    onGameOver: { score in gameOver(score, on: machine) })),
+                    onGameOver: { score, stage in gameOver(score, stage: stage, on: machine) })),
             onNewMatch: { _ in stage = .playing(machine, seed: freshSeed()) },
             onExit: { stage = .index })
     }
 
     /// The run ended: a fresh table racks at its faceoff — the attract screen
     /// — showing the score, with the pen out if it boarded.
-    private func gameOver(_ score: Int, on machine: ArcadeMachine) {
+    private func gameOver(_ score: Int, stage runStage: Int?, on machine: ArcadeMachine) {
         lastScore = score
+        lastStage = runStage
         pendingScore = board(for: machine).qualifies(score) ? score : nil
         stage = .playing(machine, seed: freshSeed())
     }
@@ -188,7 +192,7 @@ struct ArcadeView: View {
             savedPool = PlayerPool.encode(pool)
         }
         var signed = board(for: machine)
-        _ = signed.submit(name: name, score: score)
+        _ = signed.submit(name: name, score: score, stage: lastStage)
         setBoard(signed, for: machine)
         pendingScore = nil
     }

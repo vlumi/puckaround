@@ -10,6 +10,8 @@ struct ArcadeAttract: View {
     let pool: [NamedPlayer]
     let lastScore: Int?
     let pendingScore: Int?
+    /// The stage the boarding run died on, shown under its score.
+    let pendingStage: Int?
     let onSign: (String) -> Void
     let onSkip: () -> Void
 
@@ -96,6 +98,12 @@ struct ArcadeAttract: View {
                         .foregroundStyle(kitColor(entry.name))
                         .lineLimit(1)
                     Spacer()
+                    if let stage = entry.stage {
+                        Text(verbatim: "S\(stage)")
+                            .font(.system(size: 11, weight: .semibold, design: .rounded))
+                            .foregroundStyle(Neon.inkSoft.opacity(0.8))
+                            .monospacedDigit()
+                    }
                     Text(verbatim: "\(entry.score)")
                         .foregroundStyle(Neon.ink)
                         .monospacedDigit()
@@ -128,6 +136,11 @@ struct ArcadeAttract: View {
     private func signSection(_ score: Int) -> some View {
         caption("Sign the board")
         scoreText(score)
+        if let pendingStage {
+            Text("Stage \(pendingStage)", bundle: .module)
+                .font(.system(size: 13, weight: .semibold, design: .rounded))
+                .foregroundStyle(Neon.inkSoft)
+        }
         poolChips
         signField
         Button(action: onSkip) {

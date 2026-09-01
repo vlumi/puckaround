@@ -24,8 +24,9 @@ final class HockeyGame: ObservableObject {
     private let machine: PatternControlSource?
     /// The arcade's score-attack run riding this table; nil on a couch table.
     private(set) var arcade: ScoreAttack?
-    /// Fired once when an arcade run ends, with the final score.
-    var onArcadeOver: ((Int) -> Void)?
+    /// Fired once when an arcade run ends, with the final score and — on a
+    /// staged cabinet — the stage it died on.
+    var onArcadeOver: ((Int, Int?) -> Void)?
     private var arcadeOverReported = false
 
     /// What drives the table besides fingers: nothing (the couch), the
@@ -119,7 +120,9 @@ final class HockeyGame: ObservableObject {
                 controls.releaseAll()
                 let report = onArcadeOver
                 let score = run.score
-                DispatchQueue.main.async { report?(score) }
+                let stage =
+                    session.rink.table.stages.isEmpty ? nil : session.rink.wallLevel + 1
+                DispatchQueue.main.async { report?(score, stage) }
             }
             if session.rink.events.contains(.faceoffCleared) {
                 faceoffBurstStart = time  // the field bursts — kick off the visual

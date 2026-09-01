@@ -72,9 +72,18 @@ final class ArcadeTests: XCTestCase {
 
     func testTheBoardRoundTripsThroughJSON() throws {
         var board = Hiscores()
-        _ = board.submit(name: "ヴィレ", score: 800)
+        _ = board.submit(name: "ヴィレ", score: 800, stage: 4)
         let data = try JSONEncoder().encode(board)
         let back = try JSONDecoder().decode(Hiscores.self, from: data)
         XCTAssertEqual(back, board)
+        XCTAssertEqual(back.entries[0].stage, 4)
+    }
+
+    /// Boards signed before stages were recorded still decode — stage nil.
+    func testALegacyBoardDecodesWithoutStages() throws {
+        let legacy = Data(#"{"entries":[{"name":"Aki","score":500}]}"#.utf8)
+        let board = try JSONDecoder().decode(Hiscores.self, from: legacy)
+        XCTAssertEqual(board.entries[0].score, 500)
+        XCTAssertNil(board.entries[0].stage)
     }
 }
