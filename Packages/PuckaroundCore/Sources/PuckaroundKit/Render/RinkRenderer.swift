@@ -89,11 +89,12 @@ enum RinkRenderer {
             projection: projection, time: scene.time, reducedMotion: scene.reducedMotion,
             in: &context)
         drawBumpers(scene, projection: projection, in: &context)
+        drawBricks(scene, projection: projection, in: &context)
         drawLaneDividers(scene, projection: projection, in: &context)
         // Labels face the players: head-to-head in portrait, or turned to the
         // down long edge (the bench) when the device is held sideways.
         drawSides(scene, projection: projection, in: &context)
-        drawArcadeHUD(scene, projection: projection, in: &context)
+        drawArcadeHUD(scene, projection: projection, screen: size, in: &context)
         // The menu glyph is always there — the center ring is always the menu.
         // It sits UNDER the puck (drawn next), so during a faceoff the frozen
         // puck rests on it; that's fine, it's furniture, and an empty ring would
@@ -109,6 +110,7 @@ enum RinkRenderer {
         for puck in scene.rink.pucks {
             drawPuck(puck, radius: table.puckRadius, projection: projection, in: &context)
         }
+        drawBeam(scene, projection: projection, in: &context)
         // Mallets last — above the puck and the center glyph, since they're hands.
         drawMallets(scene, projection: projection, in: &context)
         if let burst = scene.faceoffBurst, !scene.reducedMotion {

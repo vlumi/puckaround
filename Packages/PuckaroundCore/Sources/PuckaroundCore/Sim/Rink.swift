@@ -14,6 +14,18 @@ public enum GameEvent: Equatable, Sendable {
     /// The puck hit a bumper, which kicked it; `speed` is the closing speed.
     /// The arcade's score-attack loop feeds on these.
     case bumperHit(speed: Double)
+    /// The puck smashed a brick out of the wall; `speed` is the closing speed.
+    /// Score-attack fuel, like a bumper hit.
+    case brickBroken(speed: Double)
+    /// A sturdy brick took a hit and held — chipped, not yet broken. Pays
+    /// like a break; sounds duller.
+    case brickChipped(speed: Double)
+    /// A doomed puck was beamed from `from` back to the serve — the unmanned-
+    /// half rescue. The renderer animates the beam; no points, no penalty.
+    case puckBeamed(from: Vec2)
+    /// A stage's every puck drained without one finding the machine's goal —
+    /// the rack failed and replays, and the run loses a life.
+    case stageFailed
     /// A goal went in against `conceder`, scored by `scorer`. On an own goal the
     /// two are opposite sides all the same — the puck crossing a side's own line
     /// is the other side's point, whoever last touched it.
@@ -111,6 +123,25 @@ public struct Rink: Equatable, Sendable {
     /// up to three. The order is part of the state: physics resolves them by
     /// index, so the mayhem stays deterministic.
     public internal(set) var pucks: [Puck]
+    /// The brick wall still standing — sim state, since bricks break. Racks
+    /// fresh from the table's stages each game and per stage.
+    public internal(set) var bricks: [Brick]
+    /// The bumpers on the ice — rink state so stages can swap patterns in;
+    /// a stageless table just carries its own set unchanged.
+    public internal(set) var bumpers: [Bumper]
+    /// Whether anything has found the machine's goal since this rack — the
+    /// stage clears on it once the last puck is gone.
+    var rackCleared = false
+    /// How many times the wall's own half has been scored into — the index
+    /// into the table's stages, so each rack can come back harder.
+    public internal(set) var wallLevel = 0
+    /// The speed of play: 1 on the first lap of the stages, rising each time
+    /// the whole loop is cleared — serves come faster, the ice gets slicker,
+    /// the speed cap lifts. Always 1 on a stageless table.
+    public internal(set) var pace: Double = 1
+
+    /// How much faster each full lap of the stages plays. A feel dial.
+    static let paceStepPerLap = 0.25
     /// The first puck — the whole story on a one-puck table.
     public var puck: Puck { pucks[0] }
     /// One per slot, in `slots` order.
@@ -150,6 +181,8 @@ public struct Rink: Equatable, Sendable {
         self.slots = table.format.slots
         self.rng = SeededRNG(seed: seed)
         self.pucks = Rink.faceoffPucks(on: table)
+        self.bricks = table.stages.first?.bricks ?? []
+        self.bumpers = table.stages.first?.bumpers ?? table.bumpers
         self.mallets = slots.map { Mallet(position: table.malletZone(for: $0).center) }
         self.score = Rink.scoreOrder.map { _ in 0 }
         self.gamesWon = Rink.scoreOrder.map { _ in 0 }
@@ -176,13 +209,19 @@ public struct Rink: Equatable, Sendable {
         score = Rink.scoreOrder.map { _ in 0 }
         gamesWon = Rink.scoreOrder.map { _ in 0 }
         pucks = Rink.faceoffPucks(on: table)
+        wallLevel = 0
+        pace = 1
+        rackCleared = false
+        bricks = table.stages.first?.bricks ?? []
+        bumpers = table.stages.first?.bumpers ?? table.bumpers
         phase = .opening
     }
 
     /// The faceoff arrangement: every puck frozen in a row at center, inside the
-    /// force field, each wearing its table-given shape.
+    /// force field, each wearing its table-given shape — or, on a staged table,
+    /// the opening stage's pucks.
     static func faceoffPucks(on table: Playfield) -> [Puck] {
-        let shapes = table.puckShapes
+        let shapes = table.stages.first?.pucks ?? table.puckShapes
         let spacing = table.puckRadius * 2.6
         return shapes.indices.map { index in
             let offset = (Double(index) - Double(shapes.count - 1) / 2) * spacing
@@ -239,12 +278,30 @@ public struct Rink: Equatable, Sendable {
     /// After a goal: the scored puck is served from center, gliding slowly into
     /// the conceder's half — any other pucks play on undisturbed. It moves AWAY
     /// from the far side — a puck heading into the conceder's own end is
-    /// unreachable by the opponent until it settles.
-    private mutating func serve(puckAt index: Int, to side: Side) {
+    /// unreachable by the opponent until it settles. Internal, not private:
+    /// the physics half also serves (rescuing a puck dead in an unmanned half).
+    mutating func serve(puckAt index: Int, to side: Side) {
         let towardOwnGoal = -side.inward
         pucks[index] = Puck(
-            position: table.center, velocity: towardOwnGoal * table.serveSpeed,
+            position: table.center, velocity: towardOwnGoal * (table.serveSpeed * pace),
             shape: pucks[index].shape)
+    }
+
+    /// A stage rack: the furniture rebuilds and the stage's pucks serve as a
+    /// row gliding to the served side — and every full lap of the stages
+    /// lifts the pace: the same stages, played faster, until the run ends.
+    private mutating func serveStage(_ stage: TableStage) {
+        pace = 1 + Double(wallLevel / max(1, table.stages.count)) * Rink.paceStepPerLap
+        bricks = stage.bricks
+        bumpers = stage.bumpers
+        let side = rules.serveTo ?? .bottom
+        let spacing = table.puckRadius * 2.6
+        pucks = stage.pucks.indices.map { index in
+            let offset = (Double(index) - Double(stage.pucks.count - 1) / 2) * spacing
+            return Puck(
+                position: table.center + Vec2(offset, 0),
+                velocity: -side.inward * (table.serveSpeed * pace), shape: stage.pucks[index])
+        }
     }
 
     /// One tick: every mallet moves (striking any puck on its way), then the
@@ -282,6 +339,25 @@ public struct Rink: Equatable, Sendable {
         let scorer = side.opponent
         score[Rink.tallyIndex(scorer)] += 1
         events.append(.goal(scorer: scorer, conceder: conceder))
+        // Staged tables: a scored puck LEAVES the table — nothing respawns.
+        // The stage resolves when the last one is gone: cleared and advanced
+        // if anything found the machine's goal, failed (the run's life) if
+        // everything drained. Failing isn't progress: the same stage racks.
+        if !table.stages.isEmpty {
+            if conceder == table.machineSide { rackCleared = true }
+            pucks.remove(at: index)
+            if pucks.isEmpty {
+                if rackCleared {
+                    wallLevel += 1
+                } else {
+                    events.append(.stageFailed)
+                }
+                rackCleared = false
+                if let stage = table.stage(at: wallLevel) { serveStage(stage) }
+            }
+            // The puck array changed shape — this tick's stepping is done.
+            return true
+        }
         guard score(of: scorer) >= rules.pointsToWin else {
             serve(puckAt: index, to: rules.serveTo ?? conceder)
             return false

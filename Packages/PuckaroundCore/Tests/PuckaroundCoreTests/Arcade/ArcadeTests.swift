@@ -4,7 +4,7 @@ import XCTest
 
 /// The score-attack loop and the hiscore board.
 final class ArcadeTests: XCTestCase {
-    func testBumpersAndGoalsPayAndDrainsCostLives() {
+    func testBumpersAndGoalsPayAndFailedStagesCostLives() {
         var run = ScoreAttack(lives: 2)
         run.ingest([.bumperHit(speed: 100), .bumperHit(speed: 50)])
         XCTAssertEqual(run.score, 2 * ScoreAttack.bumperPoints)
@@ -12,13 +12,21 @@ final class ArcadeTests: XCTestCase {
         XCTAssertEqual(run.score, 2 * ScoreAttack.bumperPoints + ScoreAttack.goalPoints)
         XCTAssertEqual(run.lives, 2, "scoring costs nothing")
         run.ingest([.goal(scorer: .top, conceder: .bottom)])
+        XCTAssertEqual(run.lives, 2, "a drain alone isn't the life — the failed stage is")
+        run.ingest([.stageFailed])
         XCTAssertEqual(run.lives, 1)
         XCTAssertFalse(run.isOver)
-        run.ingest([.goal(scorer: .top, conceder: .bottom)])
+        run.ingest([.stageFailed])
         XCTAssertTrue(run.isOver)
         let final = run
         run.ingest([.bumperHit(speed: 100)])
         XCTAssertEqual(run, final, "a finished run ignores everything after")
+    }
+
+    func testBricksPayLikeBumpers() {
+        var run = ScoreAttack()
+        run.ingest([.brickBroken(speed: 80), .brickBroken(speed: 200), .brickChipped(speed: 90)])
+        XCTAssertEqual(run.score, 3 * ScoreAttack.brickPoints, "chips pay like breaks")
     }
 
     func testTheBoardHoldsTenBestFirst() {

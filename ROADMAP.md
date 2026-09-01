@@ -32,11 +32,12 @@ Tournaments shipped in all three shapes — winner stays, knockout brackets, and
 
 Decided 2026-09-01: solo content lives behind one Arcade shelf so the front door stays "people around one screen", and minigames reuse the sim rather than growing a second engine. Doesn't gate 1.0.
 
-- [x] **The seams first.** Shipped: `Bumper` is table furniture on `Playfield` (a mallet that never moves and kicks — the same piece the multiplayer table variants want), `Hands.none` gives a solo table with an empty machine end, `ScoreAttack` folds the event stream into a run (bumpers pay, drains cost lives), and `Hiscores` is the ten-line board. Bricks (static rects that vanish) wait on breakout below.
+- [x] **The seams first.** Shipped: `Bumper` is table furniture on `Playfield` (a mallet that never moves and kicks — the same piece the multiplayer table variants want), `Hands.none` gives a solo table with an empty machine end, `ScoreAttack` folds the event stream into a run (bumpers and bricks pay, drains cost lives), and `Hiscores` is the ten-line board. Bricks are `Playfield` furniture whose standing wall is `Rink` state, since they break.
 - [x] **Hiscores, arcade-rendered.** Shipped: top 10 per minigame — rank, name, score, each name in its kit color. Signing is one tap on a pool chip (or a new name that joins the pool), and each minigame has one canonical config so scores stay comparable; no "?" randoms on the board.
 - [x] **Bumper field (pinball-lite).** Shipped: your mallet is the flipper — three bumpers guard the far goal, pay 100 a clang and kick; a goal pays 1000 and serves straight back; three lives.
-- [ ] **Breakout, fused with the goal.** A brick wall defends the top goal mouth — chip through and score into it; draining into your own goal costs a life. Static-rect collision is the genuinely new piece (`PolygonCollision` is close).
+- [x] **Breakout, fused with the goal.** Shipped as **Brick Wall**: a two-row wall defends the far goal — smash through (100 a brick), score behind it (1000), and the wall racks fresh after every goal; three lives. The shelf became a real index along the way — each cabinet a card wearing its actual table (the renderer draws the spec at tick zero), and the attract screen floats the board over the playfield until Play.
 - [ ] **Survival.** The machine feeds pucks and the pace ramps; the score is how long your goal stays clean. Nearly free — multi-puck, the machine mallet and serving all exist.
+- [ ] **Stage furniture, further.** Moving bumpers (a fixed deterministic pattern, like the practice machine's sweep), per-stage warp walls (needs `sideWalls` to become rink state the way bumpers and bricks are), bumpers set into the boards. The stage seam (`TableStage`) is ready to carry them.
 - Unscheduled sub-idea: a daily seeded challenge — the deterministic sim hands everyone the same table that day for free.
 
 ## Release & submission — *1.0 by definition*

@@ -107,6 +107,11 @@ struct GameView: View {
                 onClose: { showingNewMatch = false })
         } else if showingPause {
             pauseMenu
+        } else if let spec = mode.arcade, scene.rink.isFaceoff {
+            // The attract screen IS the faceoff: the real table at full size,
+            // the board floating over the machine's empty half, and grabbing
+            // the mallet as the start button. It clears when the field drops.
+            spec.attract
         }
         // The center ring IS the menu, but it is NOT a view on top of the table:
         // an overlapping tap view would swallow the touches that grab and drive a
@@ -164,10 +169,13 @@ struct TournamentMatch {
 
 /// What the arcade adds to one table: the minigame's canonical spec — its
 /// table and rules never come from the setup, or the board's scores wouldn't
-/// compare — and who to tell when the run ends (with the final score).
+/// compare — the attract content that floats on the table during the faceoff
+/// (the board, and the pen after a boarding run), and who to tell when the
+/// run ends (with the final score).
 struct ArcadeTable {
     let table: Playfield
     let rules: Rules
+    let attract: AnyView
     let onGameOver: (Int) -> Void
 }
 

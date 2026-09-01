@@ -172,10 +172,14 @@ extension Rink {
     private mutating func step(puckAt index: Int) -> Bool {
         let puck = pucks[index]
         var v = puck.velocity
-        if v.length > table.maxSpeed { v *= table.maxSpeed / v.length }
-        v *= exp(-table.drag * Rink.dt)
+        // Pace lifts the cap and thins the drag — a later lap plays faster
+        // and the ice stays slick longer. 1 everywhere but staged tables.
+        let cap = table.maxSpeed * pace
+        let drag = table.drag / pace
+        if v.length > cap { v *= cap / v.length }
+        v *= exp(-drag * Rink.dt)
         if v.length < table.restSpeed { v = .zero }
-        var omega = puck.angularVelocity * exp(-table.drag * Rink.dt)
+        var omega = puck.angularVelocity * exp(-drag * Rink.dt)
         if abs(omega) < Rink.restAngularVelocity { omega = 0 }
         let p = puck.position + v * Rink.dt
 
@@ -195,28 +199,10 @@ extension Rink {
             collide(puckAt: index, withMalletAt: mallet.position, velocity: mallet.velocity)
         }
         collideBumpers(puckAt: index)
+        collideBricks(puckAt: index)
         freeStuckPuckFromWall(at: index)
+        rescueDeadPuck(at: index)
         return false
-    }
-
-    /// Bumpers: fixed discs that bounce the puck and kick it faster — pinball
-    /// furniture riding the same circle math as a mallet that never moves.
-    /// Fixed index order, so the mayhem stays deterministic. Only a real hit
-    /// (closing speed) kicks and clangs; a puck resting against a bumper is
-    /// pushed clear without being machine-gunned to the moon.
-    private mutating func collideBumpers(puckAt index: Int) {
-        for bumper in table.bumpers {
-            let reach = table.puckRadius + bumper.radius
-            let offset = pucks[index].position - bumper.position
-            guard offset.length < reach else { continue }
-            let normal = offset.length > 0 ? offset.normalized : Vec2(0, -1)
-            pucks[index].position = bumper.position + normal * reach
-            let closing = pucks[index].velocity.dot(normal)
-            guard closing < 0 else { continue }
-            pucks[index].velocity -= normal * ((1 + table.restitution) * closing)
-            pucks[index].velocity += normal * bumper.kick
-            events.append(.bumperHit(speed: -closing))
-        }
     }
 
     /// Pucks bounce off each other as equal-mass discs — shaped pucks included,

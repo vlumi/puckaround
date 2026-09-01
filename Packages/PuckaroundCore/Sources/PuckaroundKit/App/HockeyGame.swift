@@ -119,6 +119,9 @@ final class HockeyGame: ObservableObject {
             if session.rink.events.contains(.faceoffCleared) {
                 faceoffBurstStart = time  // the field bursts — kick off the visual
             }
+            for case .puckBeamed(let from) in session.rink.events {
+                beamStart = (time, from)  // the rescue beam — telegraph it
+            }
             for case .matchOver(let winner) in session.rink.events {
                 let rink = session.rink
                 let best = rink.rules.gamesToWin > 1
@@ -133,14 +136,20 @@ final class HockeyGame: ObservableObject {
             }
         }
         let burst = faceoffBurstStart.map { min(1, (time - $0) / RinkScene.burstDuration) }
+        let beam: BeamGhost? = beamStart.flatMap { start in
+            let progress = (time - start.time) / RinkScene.beamDuration
+            return progress < 1 ? BeamGhost(from: start.from, progress: progress) : nil
+        }
         return RinkScene(
             rink: session.rink, placement: placement, reducedMotion: reducedMotion, time: time,
             faceoffBurst: (burst ?? 1) < 1 ? burst : nil, names: endNames, colors: endColors,
-            arcade: arcade)
+            arcade: arcade, beam: beam)
     }
 
     /// When the last faceoff cleared, so the burst ring can be animated from it.
     private var faceoffBurstStart: TimeInterval?
+    /// When a rescue beam last fired, and from where — drives its animation.
+    private var beamStart: (time: TimeInterval, from: Vec2)?
 
     // MARK: - Touches (screen points in, world points on)
 

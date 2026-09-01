@@ -144,6 +144,28 @@ final class SoundEngine {
             state.fire(
                 slot: 1,
                 Trigger(hz: 500 + hard * 180, gain: 0.3 + hard * 0.35, noise: 0.15, decay: 0.9992))
+        case .brickBroken(let speed):
+            // A brick going: a crunchy snap, more noise than tone — something
+            // broke, nothing rang.
+            let hard = min(1, speed / 300)
+            state.fire(
+                slot: 1,
+                Trigger(hz: 360 + hard * 120, gain: 0.35 + hard * 0.3, noise: 0.75, decay: 0.9985))
+        case .brickChipped(let speed):
+            // A chip: the wall held — duller and lower than a break.
+            let hard = min(1, speed / 300)
+            state.fire(
+                slot: 1,
+                Trigger(hz: 230 + hard * 80, gain: 0.3 + hard * 0.25, noise: 0.8, decay: 0.9982))
+        default:
+            fireFanfare(event)
+        }
+    }
+
+    /// The ceremonial family — goals, wins, and the GO — split from the
+    /// percussive hits to keep each switch under the complexity limit.
+    private func fireFanfare(_ event: GameEvent) {
+        switch event {
         case .goal:
             state.fire(slot: 2, Trigger(hz: 523, gain: 0.7, noise: 0.05, decay: 0.99985))
         case .gameWon:
@@ -154,6 +176,15 @@ final class SoundEngine {
         case .faceoffCleared:
             // The "GO": a bright, punchy whistle-crack as the field bursts.
             state.fire(slot: 3, Trigger(hz: 880, gain: 0.9, noise: 0.25, decay: 0.9994))
+        case .puckBeamed:
+            // The rescue beam: a soft high shimmer — out, and back in play.
+            state.fire(slot: 2, Trigger(hz: 980, gain: 0.3, noise: 0.1, decay: 0.9994))
+        case .stageFailed:
+            // The stage lost: a low womp — heavier than any hit, sadder than
+            // the goal horn.
+            state.fire(slot: 3, Trigger(hz: 165, gain: 0.7, noise: 0.2, decay: 0.99988))
+        default:
+            break
         }
     }
 

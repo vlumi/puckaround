@@ -199,9 +199,11 @@ keeps the classic magenta/cyan.
 second engine: a solo table is just a `Format` with an empty end (`Hands.none`
 — one ready starts play, and touches on the machine's half drive nothing),
 bumpers are table furniture (`Bumper` on `Playfield`: a mallet that never
-moves and kicks back, resolved in fixed index order like everything), and a
-run is `ScoreAttack` folding the same `GameEvent` stream the feedback layers
-feed on — the sim's own points target sits out of reach, so the cabinet, not
+moves and kicks back, resolved in fixed index order like everything), bricks
+split across the seam (`Brick` on the table is the STARTING wall; the standing
+wall is `Rink` state, since bricks break — and racks fresh after every goal),
+and a run is `ScoreAttack` folding the same `GameEvent` stream the feedback
+layers feed on — the sim's own points target sits out of reach, so the cabinet, not
 the rink, ends a run. `Hiscores` is the ten-line board, signed from the same
 remembered pool. Each minigame has one canonical table spec (`ArcadeSpec`, in
 the Kit), so its board's scores actually compare.

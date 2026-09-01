@@ -23,6 +23,11 @@ struct RinkScene {
     /// The arcade run riding this table, or nil on a couch table. When set,
     /// the renderer swaps the per-side scores for the cabinet HUD.
     var arcade: ScoreAttack?
+    /// A rescued puck's beam animation, while one plays.
+    var beam: BeamGhost?
+
+    /// How long the rescue beam animates, in seconds.
+    static let beamDuration = 0.5
 
     /// What a side's furniture (mallet, goal, score, verdicts) wears: the
     /// player's kit when the ends are named, the classic pair otherwise.
@@ -41,6 +46,13 @@ struct EndNames {
     var top: String
 
     func name(for side: Side) -> String { side == .bottom ? bottom : top }
+}
+
+/// A rescued puck's beam, mid-animation: where it died, and how far along
+/// the out-and-back-in is (0→1).
+struct BeamGhost {
+    var from: Vec2
+    var progress: Double
 }
 
 /// The kit colors on the two ends — already clash-resolved (see
