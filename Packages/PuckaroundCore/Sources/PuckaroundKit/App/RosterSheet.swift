@@ -42,12 +42,6 @@ struct RosterSheet: View {
                     section("Lineup") { lineup }
                     if !benched.isEmpty {
                         section("Names") { poolChips }
-                        if let editing, let i = pool.firstIndex(where: { $0.name == editing }) {
-                            KitEditor(name: editing, kit: pool[i].kit) { picked in
-                                pool[i].kit = picked
-                                savePool()
-                            }
-                        }
                     }
                     addField
                     // The match rules, right here — no separate step. No players
@@ -94,27 +88,28 @@ struct RosterSheet: View {
         }
     }
 
-    /// Remembered names not yet in the lineup: tap to seat, the kit swatch to
-    /// dress them, × to forget.
+    /// Remembered names not yet in the lineup, two per row: tap to seat, the
+    /// kit swatch to dress them, × to forget. The kit editor slots in right
+    /// under the row of the name it dresses, so with a long bench the open
+    /// rows are never far from their owner.
     private var poolChips: some View {
-        LazyVGrid(columns: columns, spacing: 8) {
-            ForEach(benched, id: \.name) { player in
-                HStack(spacing: 0) {
-                    chip(player.name, tint: SeatPalette.neon(player.kit.home), selected: false) {
-                        roster.append(player.name)
+        VStack(spacing: 8) {
+            ForEach(poolRows, id: \.first!.name) { row in
+                HStack(spacing: 8) {
+                    ForEach(row, id: \.name) { player in
+                        poolChip(player)
                     }
-                    kitDot(player)
-                    Button {
-                        pool.removeAll { $0.name == player.name }
+                    if row.count == 1 {
+                        Color.clear.frame(maxWidth: .infinity, maxHeight: 1)
+                    }
+                }
+                if let editing, row.contains(where: { $0.name == editing }),
+                    let i = pool.firstIndex(where: { $0.name == editing })
+                {
+                    KitEditor(name: editing, kit: pool[i].kit) { picked in
+                        pool[i].kit = picked
                         savePool()
-                    } label: {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 11, weight: .bold))
-                            .foregroundStyle(Neon.inkSoft)
-                            .frame(width: 24, height: 40)
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(Text("Forget name", bundle: .module))
                 }
             }
         }
@@ -156,6 +151,14 @@ struct RosterSheet: View {
             }
             if editingDraft, !draftName.isEmpty {
                 KitEditor(name: draftName, kit: currentDraftKit) { draftKit = $0 }
+            }
+        }
+        // An emptied field is the next person starting over: the pick clears
+        // and the swatch goes back to following the typed name.
+        .onChange(of: newName) { _ in
+            if draftName.isEmpty {
+                draftKit = nil
+                editingDraft = false
             }
         }
     }
@@ -337,8 +340,37 @@ struct RosterSheet: View {
 // MARK: - Kits
 
 extension RosterSheet {
+    /// One bench row's cell: the chip, its kit swatch, and the × to forget.
+    fileprivate func poolChip(_ player: NamedPlayer) -> some View {
+        HStack(spacing: 0) {
+            chip(player.name, tint: SeatPalette.neon(player.kit.home), selected: false) {
+                roster.append(player.name)
+            }
+            kitDot(player)
+            Button {
+                pool.removeAll { $0.name == player.name }
+                savePool()
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(Neon.inkSoft)
+                    .frame(width: 24, height: 40)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(Text("Forget name", bundle: .module))
+        }
+    }
+
+    /// The bench, two seats per row — fixed rows (not an adaptive grid) so the
+    /// kit editor can slot under exactly the right one.
+    fileprivate var poolRows: [[NamedPlayer]] {
+        stride(from: 0, to: benched.count, by: 2).map {
+            Array(benched[$0..<min($0 + 2, benched.count)])
+        }
+    }
+
     /// The kit swatch on a pool chip — home over away — and the way into the
-    /// editor below the grid.
+    /// editor below its row; a ring marks it while its colors are open.
     fileprivate func kitDot(_ player: NamedPlayer) -> some View {
         Button {
             editing = editing == player.name ? nil : player.name
@@ -349,6 +381,10 @@ extension RosterSheet {
                 Circle().fill(SeatPalette.neon(player.kit.away)).frame(width: 9, height: 9)
             }
             .frame(width: 22, height: 40)
+            .background(
+                RoundedRectangle(cornerRadius: 7)
+                    .strokeBorder(
+                        Neon.ink.opacity(editing == player.name ? 0.9 : 0), lineWidth: 1.5))
         }
         .buttonStyle(.plain)
         .accessibilityLabel(Text("Kit", bundle: .module))
@@ -380,6 +416,9 @@ extension RosterSheet {
                 Circle().fill(SeatPalette.neon(currentDraftKit.away)).frame(width: 9, height: 9)
             }
             .frame(width: 22, height: 44)
+            .background(
+                RoundedRectangle(cornerRadius: 7)
+                    .strokeBorder(Neon.ink.opacity(editingDraft ? 0.9 : 0), lineWidth: 1.5))
         }
         .buttonStyle(.plain)
         .accessibilityLabel(Text("Kit", bundle: .module))
