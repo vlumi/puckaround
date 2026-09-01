@@ -33,16 +33,17 @@ enum ArcadeSpec {
         }())
 
     /// Brick Wall: a wall defends the far goal — smash through (each hit
-    /// pays), score behind it, and every clear racks it back harder: two rows
-    /// grow to five, then the bricks turn sturdy. The last rack holds forever.
+    /// pays), score behind it, and every clear racks it back harder in a
+    /// sawtooth: one row grows to three, then five; then the wall thins back
+    /// to one row of sturdier bricks and climbs again. Nine racks to the max
+    /// — five rows of triple-hit bricks — which then holds forever.
     static let brickWall = ArcadeMachine(
         id: "brickWall", title: "Brick Wall",
         table: {
             var table = Playfield.duel.with(format: .solo)
-            table.brickWalls = [
-                wall(rows: 2, hits: 1), wall(rows: 3, hits: 1), wall(rows: 4, hits: 1),
-                wall(rows: 5, hits: 1), wall(rows: 5, hits: 2), wall(rows: 5, hits: 3),
-            ]
+            table.brickWalls = (0..<9).map { level in
+                wall(rows: 1 + (level % 3) * 2, hits: 1 + level / 3)
+            }
             return table
         }())
 
