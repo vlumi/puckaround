@@ -36,6 +36,10 @@ enum PlayerPool {
 struct KitEditor: View {
     let kit: PlayerKit
     let onPick: (PlayerKit) -> Void
+    /// Present for pool names: forgetting lives in here, deliberately a
+    /// second tap away from the bench — an × crammed beside the tiny swatch
+    /// was one stray thumb from wiping a friend.
+    var onForget: (() -> Void)?
 
     var body: some View {
         VStack(spacing: 8) {
@@ -50,6 +54,15 @@ struct KitEditor: View {
                 if pick == k.home { k.home = k.away }
                 k.away = pick
                 onPick(k)
+            }
+            if let onForget {
+                Button(action: onForget) {
+                    Text("Forget name", bundle: .module)
+                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                        .foregroundStyle(Neon.magenta.opacity(0.9))
+                        .frame(height: 32)
+                }
+                .buttonStyle(.plain)
             }
         }
     }

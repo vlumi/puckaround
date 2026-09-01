@@ -89,7 +89,7 @@ struct RosterSheet: View {
     }
 
     /// Remembered names not yet in the lineup, two per row: tap to seat, the
-    /// kit swatch to dress them, × to forget. The kit editor slots in right
+    /// kit swatch to dress — or forget — them. The kit editor slots in right
     /// under the row of the name it dresses, so with a long bench the open
     /// rows are never far from their owner.
     private var poolChips: some View {
@@ -108,6 +108,10 @@ struct RosterSheet: View {
                 {
                     KitEditor(kit: pool[i].kit) { picked in
                         pool[i].kit = picked
+                        savePool()
+                    } onForget: {
+                        pool.removeAll { $0.name == editing }
+                        self.editing = nil
                         savePool()
                     }
                 }
@@ -340,24 +344,14 @@ struct RosterSheet: View {
 // MARK: - Kits
 
 extension RosterSheet {
-    /// One bench row's cell: the chip, its kit swatch, and the × to forget.
+    /// One bench row's cell: the chip and its kit swatch. Forgetting lives in
+    /// the swatch's editor — no delete sits a stray thumb from the swatch.
     fileprivate func poolChip(_ player: NamedPlayer) -> some View {
         HStack(spacing: 0) {
             chip(player.name, tint: SeatPalette.neon(player.kit.home), selected: false) {
                 roster.append(player.name)
             }
             kitDot(player)
-            Button {
-                pool.removeAll { $0.name == player.name }
-                savePool()
-            } label: {
-                Image(systemName: "xmark")
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundStyle(Neon.inkSoft)
-                    .frame(width: 24, height: 40)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(Text("Forget name", bundle: .module))
         }
     }
 
@@ -380,7 +374,7 @@ extension RosterSheet {
                 Circle().fill(SeatPalette.neon(player.kit.home)).frame(width: 9, height: 9)
                 Circle().fill(SeatPalette.neon(player.kit.away)).frame(width: 9, height: 9)
             }
-            .frame(width: 22, height: 40)
+            .frame(width: 30, height: 40)
             .background(
                 RoundedRectangle(cornerRadius: 7)
                     .strokeBorder(
