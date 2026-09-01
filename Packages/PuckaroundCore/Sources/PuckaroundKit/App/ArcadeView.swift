@@ -8,15 +8,8 @@ struct ArcadeMachine: Identifiable, Equatable {
     let id: String
     let title: LocalizedStringKey
     let table: Playfield
-    /// A separate table for the index card's marquee, when the real one poses
-    /// badly at tick zero (nil = the table itself).
-    var marquee: Playfield?
-    /// Deterministic ticks to run the marquee's sim before the snapshot —
-    /// zero shows the faceoff, more shows the game mid-flight.
-    var warmupTicks = 0
-    /// Crop the card from the player's end instead of the machine's — for a
-    /// game whose signature is what comes AT you.
-    var bottomCrop = false
+    /// The index card's square close-up — the game's signature furniture.
+    let icon: ArcadeIcon.Kind
 }
 
 /// The arcade's cabinets, in shelf order. The shared rules: the sim must
@@ -38,15 +31,7 @@ enum ArcadeSpec {
             table.feed = PuckFeed(
                 every: 7, cap: 3, shapes: [.circle, .square, .triangle], ramp: 0.015)
             return table
-        }(),
-        // The marquee: a dense feed run a few seconds in and cropped from the
-        // player's end — pucks streaming at your goal IS the game.
-        marquee: {
-            var table = Playfield.duel
-            table.feed = PuckFeed(every: 2, cap: 3, shapes: [.circle, .square, .triangle])
-            return table
-        }(),
-        warmupTicks: 400, bottomCrop: true)
+        }(), icon: .pucks)
 
     /// Bumper field: your mallet is the flipper. Nobody home up top — each
     /// stage seats a different bumper pattern guarding the target goal
@@ -64,7 +49,7 @@ enum ArcadeSpec {
                 TableStage(bumpers: cross, pucks: [.circle, .square]),
             ]
             return table
-        }())
+        }(), icon: .bumper)
 
     private static let triangle = [
         Bumper(position: Vec2(30, 46), radius: 6, kick: 60),
@@ -114,7 +99,7 @@ enum ArcadeSpec {
                 TableStage(bricks: wall(rows: 5, hits: 3), pucks: [.circle, .square, .triangle]),
             ]
             return table
-        }())
+        }(), icon: .bricks)
 
     /// One Brick Wall rack: full-width rows down from the goal, every brick
     /// `hits` strong.
@@ -240,7 +225,7 @@ struct ArcadeView: View {
                 .padding(.top, 20)
                 .padding(.bottom, 8)
             ScrollView {
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 10)], spacing: 10) {
+                VStack(spacing: 10) {
                     ForEach(ArcadeSpec.machines) { machine in
                         machineCard(machine)
                     }
@@ -266,31 +251,33 @@ struct ArcadeView: View {
         }
     }
 
+    /// One shelf row: the game's square icon on the left — its signature
+    /// furniture, unmistakable at a glance — and the words on the right.
     private func machineCard(_ machine: ArcadeMachine) -> some View {
         Button {
             lastScore = nil
             pendingScore = nil
             stage = .playing(machine, seed: freshSeed())
         } label: {
-            VStack(spacing: 6) {
-                // A slim strip of the table's signature end — slim enough
-                // that the whole shelf fits one small screen.
-                TablePreview(
-                    table: machine.marquee ?? machine.table, crop: 0.25,
-                    bottomAnchored: machine.bottomCrop, warmup: machine.warmupTicks)
-                Text(machine.title, bundle: .module)
-                    .font(.system(size: 15, weight: .bold, design: .rounded))
-                    .foregroundStyle(Neon.cyan)
-                    .lineLimit(1)
-                if let top = board(for: machine).entries.first {
-                    Text(verbatim: "\(top.score) · \(top.name)")
-                        .font(.system(size: 12, weight: .semibold, design: .rounded))
-                        .foregroundStyle(Neon.inkSoft)
-                        .monospacedDigit()
+            HStack(spacing: 14) {
+                ArcadeIcon(kind: machine.icon)
+                    .frame(width: 64, height: 64)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(machine.title, bundle: .module)
+                        .font(.system(size: 17, weight: .black, design: .rounded))
+                        .foregroundStyle(Neon.cyan)
                         .lineLimit(1)
+                    if let top = board(for: machine).entries.first {
+                        Text(verbatim: "\(top.score) · \(top.name)")
+                            .font(.system(size: 13, weight: .semibold, design: .rounded))
+                            .foregroundStyle(Neon.inkSoft)
+                            .monospacedDigit()
+                            .lineLimit(1)
+                    }
                 }
+                Spacer()
             }
-            .padding(8)
+            .padding(12)
             .background(
                 RoundedRectangle(cornerRadius: 14)
                     .strokeBorder(Neon.inkSoft.opacity(0.4), lineWidth: 1.5))
