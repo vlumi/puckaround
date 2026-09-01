@@ -23,6 +23,21 @@ final class ArcadeTests: XCTestCase {
         XCTAssertEqual(run, final, "a finished run ignores everything after")
     }
 
+    /// Survival: the clock pays, drains charge directly, and the run's end
+    /// stops the clock.
+    func testSurvivalPaysTheClockAndChargesDrains() {
+        var run = ScoreAttack(lives: 2, survival: true)
+        for _ in 0..<60 { run.survive() }
+        XCTAssertEqual(run.score, 10, "ten points a second at 60 Hz")
+        run.ingest([.goal(scorer: .top, conceder: .bottom)])
+        XCTAssertEqual(run.lives, 1, "a survival drain is the life directly")
+        run.ingest([.goal(scorer: .top, conceder: .bottom)])
+        XCTAssertTrue(run.isOver)
+        let final = run
+        run.survive()
+        XCTAssertEqual(run, final, "the clock stops with the run")
+    }
+
     func testBricksPayLikeBumpers() {
         var run = ScoreAttack()
         run.ingest([.brickBroken(speed: 80), .brickBroken(speed: 200), .brickChipped(speed: 90)])
@@ -57,9 +72,18 @@ final class ArcadeTests: XCTestCase {
 
     func testTheBoardRoundTripsThroughJSON() throws {
         var board = Hiscores()
-        _ = board.submit(name: "ヴィレ", score: 800)
+        _ = board.submit(name: "ヴィレ", score: 800, stage: 4)
         let data = try JSONEncoder().encode(board)
         let back = try JSONDecoder().decode(Hiscores.self, from: data)
         XCTAssertEqual(back, board)
+        XCTAssertEqual(back.entries[0].stage, 4)
+    }
+
+    /// Boards signed before stages were recorded still decode — stage nil.
+    func testALegacyBoardDecodesWithoutStages() throws {
+        let legacy = Data(#"{"entries":[{"name":"Aki","score":500}]}"#.utf8)
+        let board = try JSONDecoder().decode(Hiscores.self, from: legacy)
+        XCTAssertEqual(board.entries[0].score, 500)
+        XCTAssertNil(board.entries[0].stage)
     }
 }

@@ -8,6 +8,8 @@ struct ArcadeMachine: Identifiable, Equatable {
     let id: String
     let title: LocalizedStringKey
     let table: Playfield
+    /// The index card's square close-up — the game's signature furniture.
+    let icon: ArcadeIcon.Kind
 }
 
 /// The arcade's cabinets, in shelf order. The shared rules: the sim must
@@ -16,7 +18,20 @@ struct ArcadeMachine: Identifiable, Equatable {
 enum ArcadeSpec {
     static let rules = Rules(pointsToWin: 1_000_000, gamesToWin: 1, serveTo: .bottom)
 
-    static let machines: [ArcadeMachine] = [bumperField, brickWall]
+    static let machines: [ArcadeMachine] = [bumperField, brickWall, survival]
+
+    /// Survival: the machine sweeps its goal while the feeder beams in one
+    /// more puck every few seconds — shapes cycling, the whole table
+    /// relentlessly accelerating. Living pays; every drain costs a life. How
+    /// long can you keep your goal clean?
+    static let survival = ArcadeMachine(
+        id: "survival", title: "Survival",
+        table: {
+            var table = Playfield.duel
+            table.feed = PuckFeed(
+                every: 7, cap: 3, shapes: [.circle, .square, .triangle], ramp: 0.015)
+            return table
+        }(), icon: .pucks)
 
     /// Bumper field: your mallet is the flipper. Nobody home up top — each
     /// stage seats a different bumper pattern guarding the target goal
@@ -34,7 +49,7 @@ enum ArcadeSpec {
                 TableStage(bumpers: cross, pucks: [.circle, .square]),
             ]
             return table
-        }())
+        }(), icon: .bumper)
 
     private static let triangle = [
         Bumper(position: Vec2(30, 46), radius: 6, kick: 60),
@@ -84,7 +99,7 @@ enum ArcadeSpec {
                 TableStage(bricks: wall(rows: 5, hits: 3), pucks: [.circle, .square, .triangle]),
             ]
             return table
-        }())
+        }(), icon: .bricks)
 
     /// One Brick Wall rack: full-width rows down from the goal, every brick
     /// `hits` strong.
@@ -111,12 +126,15 @@ struct ArcadeView: View {
 
     @AppStorage("puckaround.hiscores.bumperField") private var bumperBoard = Data()
     @AppStorage("puckaround.hiscores.brickWall") private var brickBoard = Data()
+    @AppStorage("puckaround.hiscores.survival") private var survivalBoard = Data()
     @AppStorage("puckaround.playerNames") private var savedPool = Data()
     @State private var stage = Stage.index
     /// A finished run that made the board, waiting for its signature.
     @State private var pendingScore: Int?
     /// The last run's score, shown on the next attract screen.
     @State private var lastScore: Int?
+    /// The stage the last run died on (staged cabinets), signed with it.
+    @State private var lastStage: Int?
 
     private enum Stage: Equatable {
         case index
@@ -148,17 +166,19 @@ struct ArcadeView: View {
                         ArcadeAttract(
                             board: board(for: machine), pool: PlayerPool.decode(savedPool),
                             lastScore: lastScore, pendingScore: pendingScore,
+                            pendingStage: lastStage,
                             onSign: { name in sign(name, on: machine) },
                             onSkip: { pendingScore = nil })),
-                    onGameOver: { score in gameOver(score, on: machine) })),
+                    onGameOver: { score, stage in gameOver(score, stage: stage, on: machine) })),
             onNewMatch: { _ in stage = .playing(machine, seed: freshSeed()) },
             onExit: { stage = .index })
     }
 
     /// The run ended: a fresh table racks at its faceoff — the attract screen
     /// — showing the score, with the pen out if it boarded.
-    private func gameOver(_ score: Int, on machine: ArcadeMachine) {
+    private func gameOver(_ score: Int, stage runStage: Int?, on machine: ArcadeMachine) {
         lastScore = score
+        lastStage = runStage
         pendingScore = board(for: machine).qualifies(score) ? score : nil
         stage = .playing(machine, seed: freshSeed())
     }
@@ -172,22 +192,31 @@ struct ArcadeView: View {
             savedPool = PlayerPool.encode(pool)
         }
         var signed = board(for: machine)
-        _ = signed.submit(name: name, score: score)
+        _ = signed.submit(name: name, score: score, stage: lastStage)
         setBoard(signed, for: machine)
         pendingScore = nil
     }
 
     private func board(for machine: ArcadeMachine) -> Hiscores {
-        let data = machine.id == ArcadeSpec.brickWall.id ? brickBoard : bumperBoard
-        return (try? JSONDecoder().decode(Hiscores.self, from: data)) ?? Hiscores()
+        (try? JSONDecoder().decode(Hiscores.self, from: data(for: machine))) ?? Hiscores()
+    }
+
+    /// Every machine keeps its OWN board — runs on different tables never
+    /// share a ladder.
+    private func data(for machine: ArcadeMachine) -> Data {
+        switch machine.id {
+        case ArcadeSpec.brickWall.id: return brickBoard
+        case ArcadeSpec.survival.id: return survivalBoard
+        default: return bumperBoard
+        }
     }
 
     private func setBoard(_ board: Hiscores, for machine: ArcadeMachine) {
         let data = (try? JSONEncoder().encode(board)) ?? Data()
-        if machine.id == ArcadeSpec.brickWall.id {
-            brickBoard = data
-        } else {
-            bumperBoard = data
+        switch machine.id {
+        case ArcadeSpec.brickWall.id: brickBoard = data
+        case ArcadeSpec.survival.id: survivalBoard = data
+        default: bumperBoard = data
         }
     }
 
@@ -200,13 +229,13 @@ struct ArcadeView: View {
                 .padding(.top, 20)
                 .padding(.bottom, 8)
             ScrollView {
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 14)], spacing: 14) {
+                VStack(spacing: 10) {
                     ForEach(ArcadeSpec.machines) { machine in
                         machineCard(machine)
                     }
                 }
                 .padding(.horizontal, 24)
-                .padding(.vertical, 16)
+                .padding(.vertical, 12)
             }
         }
         .frame(maxWidth: 440)
@@ -226,29 +255,33 @@ struct ArcadeView: View {
         }
     }
 
+    /// One shelf row: the game's square icon on the left — its signature
+    /// furniture, unmistakable at a glance — and the words on the right.
     private func machineCard(_ machine: ArcadeMachine) -> some View {
         Button {
             lastScore = nil
             pendingScore = nil
             stage = .playing(machine, seed: freshSeed())
         } label: {
-            VStack(spacing: 8) {
-                // Just the top of the table — the far goal and its guardian
-                // furniture are the game's signature, not the empty ice.
-                TablePreview(table: machine.table, crop: 0.42)
-                Text(machine.title, bundle: .module)
-                    .font(.system(size: 15, weight: .bold, design: .rounded))
-                    .foregroundStyle(Neon.cyan)
-                    .lineLimit(1)
-                if let top = board(for: machine).entries.first {
-                    Text(verbatim: "\(top.score) · \(top.name)")
-                        .font(.system(size: 12, weight: .semibold, design: .rounded))
-                        .foregroundStyle(Neon.inkSoft)
-                        .monospacedDigit()
+            HStack(spacing: 14) {
+                ArcadeIcon(kind: machine.icon)
+                    .frame(width: 64, height: 64)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(machine.title, bundle: .module)
+                        .font(.system(size: 17, weight: .black, design: .rounded))
+                        .foregroundStyle(Neon.cyan)
                         .lineLimit(1)
+                    if let top = board(for: machine).entries.first {
+                        Text(verbatim: "\(top.score) · \(top.name)")
+                            .font(.system(size: 13, weight: .semibold, design: .rounded))
+                            .foregroundStyle(Neon.inkSoft)
+                            .monospacedDigit()
+                            .lineLimit(1)
+                    }
                 }
+                Spacer()
             }
-            .padding(10)
+            .padding(12)
             .background(
                 RoundedRectangle(cornerRadius: 14)
                     .strokeBorder(Neon.inkSoft.opacity(0.4), lineWidth: 1.5))

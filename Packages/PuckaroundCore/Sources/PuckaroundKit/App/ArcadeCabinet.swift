@@ -10,6 +10,8 @@ struct ArcadeAttract: View {
     let pool: [NamedPlayer]
     let lastScore: Int?
     let pendingScore: Int?
+    /// The stage the boarding run died on, shown under its score.
+    let pendingStage: Int?
     let onSign: (String) -> Void
     let onSkip: () -> Void
 
@@ -28,7 +30,8 @@ struct ArcadeAttract: View {
                     // The board holds ONE place — inside the field, below the
                     // goal and its guardian furniture — whether or not a last
                     // run shows. Sheer, with dark-glowing text: the field
-                    // stays visible through it.
+                    // stays visible through it. It carries no controls, so it
+                    // takes no touches — the center-ring menu works through it.
                     VStack(spacing: 0) {
                         Spacer().frame(height: fieldTop + fieldHeight * 0.17)
                         card(opacity: 0.55) {
@@ -38,6 +41,7 @@ struct ArcadeAttract: View {
                         .frame(maxWidth: 280)
                         Spacer()
                     }
+                    .allowsHitTesting(false)
                     // The last run takes the letterbox band above the field.
                     if let lastScore {
                         VStack(spacing: 0) {
@@ -46,6 +50,7 @@ struct ArcadeAttract: View {
                                 .frame(height: max(fieldTop, 56))
                             Spacer()
                         }
+                        .allowsHitTesting(false)
                     }
                 }
                 // The pen demands the middle of the screen, fully solid — and
@@ -93,6 +98,12 @@ struct ArcadeAttract: View {
                         .foregroundStyle(kitColor(entry.name))
                         .lineLimit(1)
                     Spacer()
+                    if let stage = entry.stage {
+                        Text(verbatim: "S\(stage)")
+                            .font(.system(size: 11, weight: .semibold, design: .rounded))
+                            .foregroundStyle(Neon.inkSoft.opacity(0.8))
+                            .monospacedDigit()
+                    }
                     Text(verbatim: "\(entry.score)")
                         .foregroundStyle(Neon.ink)
                         .monospacedDigit()
@@ -125,6 +136,11 @@ struct ArcadeAttract: View {
     private func signSection(_ score: Int) -> some View {
         caption("Sign the board")
         scoreText(score)
+        if let pendingStage {
+            Text("Stage \(pendingStage)", bundle: .module)
+                .font(.system(size: 13, weight: .semibold, design: .rounded))
+                .foregroundStyle(Neon.inkSoft)
+        }
         poolChips
         signField
         Button(action: onSkip) {
@@ -203,29 +219,86 @@ struct ArcadeAttract: View {
     }
 }
 
-/// A table drawn as it will play — through the real renderer, at tick zero:
-/// the furniture, a fresh run's HUD. The game is its own marquee art, and a
-/// spec change redraws itself for free. `crop` shows only that fraction of
-/// the table from the top — an index icon crops to the signature furniture
-/// (the far goal, the bumpers, the wall) instead of the whole field.
-struct TablePreview: View {
-    let table: Playfield
-    var crop: Double = 1
+/// A cabinet's square icon: a close-up of its signature furniture, drawn in
+/// the table's own materials — one glowing bumper, a staggered course of
+/// bricks, a hail of pucks. What you'll play, at a glance.
+struct ArcadeIcon: View {
+    enum Kind {
+        case bumper
+        case bricks
+        case pucks
+    }
+
+    let kind: Kind
 
     var body: some View {
         Canvas { context, size in
-            // Lay the FULL board out at the view's width; the view's aspect
-            // only admits the top `crop` of it, and the rest clips away.
-            let full = CGSize(
-                width: size.width, height: size.width * table.size.y / table.size.x)
-            let rink = Rink(table: table, seed: 0)
-            let scene = RinkScene(
-                rink: rink,
-                placement: BoardPlacement(board: table.size, screen: full),
-                reducedMotion: true, arcade: ScoreAttack())
-            RinkRenderer.draw(scene, in: &context, size: full)
+            let s = size.width
+            let frame = Path(
+                roundedRect: CGRect(origin: .zero, size: size), cornerRadius: s * 0.18)
+            context.fill(frame, with: .color(RinkRenderer.ice))
+            context.clip(to: frame)
+            switch kind {
+            case .bumper: drawBumper(&context, s)
+            case .bricks: drawBricks(&context, s)
+            case .pucks: drawPucks(&context, s)
+            }
         }
-        .aspectRatio(table.size.x / (table.size.y * crop), contentMode: .fit)
-        .clipped()
+        .aspectRatio(1, contentMode: .fit)
+    }
+
+    private func drawBumper(_ context: inout GraphicsContext, _ s: CGFloat) {
+        let ring = Path(ellipseIn: CGRect(x: s * 0.2, y: s * 0.2, width: s * 0.6, height: s * 0.6))
+        context.fill(ring, with: .color(RinkRenderer.line.opacity(0.08)))
+        RinkRenderer.glowStroke(
+            ring, color: RinkRenderer.line.opacity(0.85), lineWidth: max(1.5, s * 0.045),
+            blur: s * 0.09, in: &context)
+        let hub = Path(
+            ellipseIn: CGRect(x: s * 0.42, y: s * 0.42, width: s * 0.16, height: s * 0.16))
+        context.fill(hub, with: .color(RinkRenderer.line.opacity(0.5)))
+    }
+
+    private func drawBricks(_ context: inout GraphicsContext, _ s: CGFloat) {
+        // Two staggered courses, the outer bricks running off the frame — a
+        // close-up of a wall, not a diagram of one.
+        let rows: [(y: CGFloat, xs: [CGFloat])] = [
+            (0.24, [0.10, 0.54]), (0.46, [-0.12, 0.32, 0.76]), (0.68, [0.10, 0.54]),
+        ]
+        for row in rows {
+            for x in row.xs {
+                let brick = Path(
+                    roundedRect: CGRect(x: x * s, y: row.y * s, width: s * 0.4, height: s * 0.17),
+                    cornerRadius: s * 0.03)
+                context.fill(brick, with: .color(RinkRenderer.line.opacity(0.12)))
+                RinkRenderer.glowStroke(
+                    brick, color: RinkRenderer.line.opacity(0.55), lineWidth: max(1, s * 0.02),
+                    blur: s * 0.05, in: &context)
+            }
+        }
+    }
+
+    private func drawPucks(_ context: inout GraphicsContext, _ s: CGFloat) {
+        // A hail of white-hot pucks, trails saying they're all incoming.
+        let pucks: [(center: CGPoint, r: CGFloat)] = [
+            (CGPoint(x: 0.30, y: 0.26), 0.10), (CGPoint(x: 0.70, y: 0.42), 0.12),
+            (CGPoint(x: 0.42, y: 0.70), 0.14),
+        ]
+        for puck in pucks {
+            for ghost in stride(from: 3, through: 1, by: -1) {
+                let offset = CGFloat(ghost) * puck.r * 0.9
+                let trail = Path(
+                    ellipseIn: CGRect(
+                        x: (puck.center.x - puck.r) * s + offset * s * 0.3,
+                        y: (puck.center.y - puck.r) * s - offset * s,
+                        width: puck.r * 2 * s, height: puck.r * 2 * s))
+                context.fill(
+                    trail, with: .color(RinkRenderer.puck.opacity(0.10 / CGFloat(ghost))))
+            }
+            let core = Path(
+                ellipseIn: CGRect(
+                    x: (puck.center.x - puck.r) * s, y: (puck.center.y - puck.r) * s,
+                    width: puck.r * 2 * s, height: puck.r * 2 * s))
+            RinkRenderer.glow(core, color: RinkRenderer.puck, blur: s * 0.06, in: &context)
+        }
     }
 }

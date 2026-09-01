@@ -176,7 +176,8 @@ struct ArcadeTable {
     let table: Playfield
     let rules: Rules
     let attract: AnyView
-    let onGameOver: (Int) -> Void
+    /// The run ended: its score, and the stage it died on (staged cabinets).
+    let onGameOver: (Int, Int?) -> Void
 }
 
 /// What kind of table this is: a free match, one tournament pairing, practice

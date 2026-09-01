@@ -132,6 +132,8 @@ public struct Rink: Equatable, Sendable {
     /// Whether anything has found the machine's goal since this rack — the
     /// stage clears on it once the last puck is gone.
     var rackCleared = false
+    /// How many pucks the feeder has dealt — cycles the feed's shapes.
+    var fed = 0
     /// How many times the wall's own half has been scored into — the index
     /// into the table's stages, so each rack can come back harder.
     public internal(set) var wallLevel = 0
@@ -212,6 +214,7 @@ public struct Rink: Equatable, Sendable {
         wallLevel = 0
         pace = 1
         rackCleared = false
+        fed = 0
         bricks = table.stages.first?.bricks ?? []
         bumpers = table.stages.first?.bumpers ?? table.bumpers
         phase = .opening
@@ -326,8 +329,30 @@ public struct Rink: Equatable, Sendable {
         // A puck may already be touching a resting mallet — but that is not a
         // NEW hit, so it emits no event; only a closing contact during a move does.
         if playing {
+            if let feed = table.feed {
+                // Survival: the clock alone ramps the pace, and the feeder
+                // keeps pucks coming, one every few seconds up to its cap.
+                pace = 1 + Double(tick) / Double(Rink.tickRate) * feed.ramp
+                let everyTicks = Tick(feed.every * Double(Rink.tickRate))
+                if tick > 0, everyTicks > 0, tick % everyTicks == 0 { feedPuck() }
+            }
             stepPucks()
         }
+    }
+
+    /// One more puck from the feeder: it beams in at center and glides to the
+    /// served side, wearing the next shape in the cycle. Capped — the table
+    /// only holds so much chaos at once.
+    private mutating func feedPuck() {
+        guard let feed = table.feed, pucks.count < feed.cap else { return }
+        let shape = feed.shapes.isEmpty ? PuckShape.circle : feed.shapes[fed % feed.shapes.count]
+        fed += 1
+        let side = rules.serveTo ?? .bottom
+        events.append(.puckBeamed(from: table.center))
+        pucks.append(
+            Puck(
+                position: table.center,
+                velocity: -side.inward * (table.serveSpeed * pace), shape: shape))
     }
 
     /// A goal against `side` by the puck at `index`: that side concedes, the
@@ -339,6 +364,14 @@ public struct Rink: Equatable, Sendable {
         let scorer = side.opponent
         score[Rink.tallyIndex(scorer)] += 1
         events.append(.goal(scorer: scorer, conceder: conceder))
+        // A survival table: any scored puck just leaves — a drain is the
+        // cabinet's business (a life), and the feeder restocks in time —
+        // immediately, if the table would go empty.
+        if table.feed != nil {
+            pucks.remove(at: index)
+            if pucks.isEmpty { feedPuck() }
+            return true
+        }
         // Staged tables: a scored puck LEAVES the table — nothing respawns.
         // The stage resolves when the last one is gone: cleared and advanced
         // if anything found the machine's goal, failed (the run's life) if
