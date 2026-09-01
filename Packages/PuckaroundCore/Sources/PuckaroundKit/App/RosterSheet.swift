@@ -17,6 +17,11 @@ struct RosterSheet: View {
     @State private var roster: [String] = []
     /// The pool name whose kits are open in the editor, if any.
     @State private var editing: String?
+    /// The kit picked for the name being typed. Nil follows the auto
+    /// assignment as the text changes; opening the picker freezes it — that's
+    /// a pick, so the hash stops moving under the user.
+    @State private var draftKit: PlayerKit?
+    @State private var editingDraft = false
     @State private var newName = ""
     @State private var shape = Evening.Shape.winnerStays
     /// League only: everyone meets twice (return legs) instead of once.
@@ -38,7 +43,7 @@ struct RosterSheet: View {
                     if !benched.isEmpty {
                         section("Names") { poolChips }
                         if let editing, let i = pool.firstIndex(where: { $0.name == editing }) {
-                            KitEditor(kit: pool[i].kit) { picked in
+                            KitEditor(name: editing, kit: pool[i].kit) { picked in
                                 pool[i].kit = picked
                                 savePool()
                             }
@@ -115,27 +120,6 @@ struct RosterSheet: View {
         }
     }
 
-    /// The kit swatch on a pool chip — home over away — and the way into the
-    /// editor below the grid.
-    private func kitDot(_ player: NamedPlayer) -> some View {
-        Button {
-            editing = editing == player.name ? nil : player.name
-        } label: {
-            VStack(spacing: 2) {
-                Circle().fill(SeatPalette.neon(player.kit.home)).frame(width: 9, height: 9)
-                Circle().fill(SeatPalette.neon(player.kit.away)).frame(width: 9, height: 9)
-            }
-            .frame(width: 22, height: 40)
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(Text("Kit", bundle: .module))
-    }
-
-    /// The color a name's chip wears — its home kit.
-    private func kitColor(_ name: String) -> Color {
-        SeatPalette.neon(PlayerPool.kit(for: name, in: pool).home)
-    }
-
     /// One name, once — it joins tonight's lineup and the remembered pool. The
     /// field keeps focus after adding, so a whole lineup types without leaving
     /// the keyboard; the + is the same action made visible.
@@ -157,6 +141,9 @@ struct RosterSheet: View {
                         .strokeBorder(Neon.inkSoft.opacity(0.6), lineWidth: 1.5)
                 )
                 .onSubmit(add)
+                if !draftName.isEmpty {
+                    draftDot
+                }
                 addButton
             }
             // The field itself is never clamped — an IME composes a long
@@ -166,6 +153,9 @@ struct RosterSheet: View {
                 Text("At most \(RosterSheet.maxNameLength) characters", bundle: .module)
                     .font(.system(size: 12, weight: .medium))
                     .foregroundStyle(Neon.magenta.opacity(0.85))
+            }
+            if editingDraft, !draftName.isEmpty {
+                KitEditor(name: draftName, kit: currentDraftKit) { draftKit = $0 }
             }
         }
     }
@@ -306,13 +296,16 @@ struct RosterSheet: View {
         let name = newName.trimmingCharacters(in: .whitespaces)
         // An over-long name stays put to be edited down, never silently cut.
         guard name.count <= RosterSheet.maxNameLength else { return }
+        let kit = currentDraftKit
         newName = ""
+        draftKit = nil
+        editingDraft = false
         // Focus stays in the field, so the next name needs no extra touch.
         nameFocused = true
         guard !name.isEmpty, !roster.contains(name) else { return }
         roster.append(name)
         if !pool.contains(where: { $0.name == name }) {
-            pool.insert(NamedPlayer(name: name, kit: .assigned(to: name)), at: 0)
+            pool.insert(NamedPlayer(name: name, kit: kit), at: 0)
             savePool()
         }
     }
@@ -338,6 +331,58 @@ struct RosterSheet: View {
 
     private func savePool() {
         savedPool = PlayerPool.encode(pool)
+    }
+}
+
+// MARK: - Kits
+
+extension RosterSheet {
+    /// The kit swatch on a pool chip — home over away — and the way into the
+    /// editor below the grid.
+    fileprivate func kitDot(_ player: NamedPlayer) -> some View {
+        Button {
+            editing = editing == player.name ? nil : player.name
+            editingDraft = false
+        } label: {
+            VStack(spacing: 2) {
+                Circle().fill(SeatPalette.neon(player.kit.home)).frame(width: 9, height: 9)
+                Circle().fill(SeatPalette.neon(player.kit.away)).frame(width: 9, height: 9)
+            }
+            .frame(width: 22, height: 40)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(Text("Kit", bundle: .module))
+    }
+
+    /// The color a name's chip wears — its home kit.
+    fileprivate func kitColor(_ name: String) -> Color {
+        SeatPalette.neon(PlayerPool.kit(for: name, in: pool).home)
+    }
+
+    /// The name being typed, trimmed — what add() would seat.
+    fileprivate var draftName: String { newName.trimmingCharacters(in: .whitespaces) }
+
+    /// The kit the typed name would wear: the frozen pick, or the live auto
+    /// assignment following the text.
+    fileprivate var currentDraftKit: PlayerKit { draftKit ?? .assigned(to: draftName) }
+
+    /// The kit swatch beside the add field: it previews the auto kit as the
+    /// name is typed, and tapping it opens the picker — which freezes the kit,
+    /// since opening it means these colors are chosen.
+    fileprivate var draftDot: some View {
+        Button {
+            draftKit = currentDraftKit
+            editingDraft.toggle()
+            editing = nil
+        } label: {
+            VStack(spacing: 2) {
+                Circle().fill(SeatPalette.neon(currentDraftKit.home)).frame(width: 9, height: 9)
+                Circle().fill(SeatPalette.neon(currentDraftKit.away)).frame(width: 9, height: 9)
+            }
+            .frame(width: 22, height: 44)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(Text("Kit", bundle: .module))
     }
 }
 

@@ -31,13 +31,19 @@ enum PlayerPool {
 
 /// The two swatch rows for one player's kits, home and away — tap to pick.
 /// Picking the other row's color swaps the two, so the pair stays distinct
-/// and no pick is ever refused.
+/// and no pick is ever refused. Headed by the name it dresses, in its home
+/// color, so there's no guessing whose kits are open.
 struct KitEditor: View {
+    let name: String
     let kit: PlayerKit
     let onPick: (PlayerKit) -> Void
 
     var body: some View {
         VStack(spacing: 8) {
+            Text(verbatim: name)
+                .font(.system(size: 14, weight: .bold, design: .rounded))
+                .foregroundStyle(SeatPalette.neon(kit.home))
+                .lineLimit(1)
             row("Home", selected: kit.home) { pick in
                 var k = kit
                 if pick == k.away { k.away = k.home }
