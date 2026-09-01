@@ -115,12 +115,11 @@ struct ArcadeView: View {
     @State private var stage = Stage.index
     /// A finished run that made the board, waiting for its signature.
     @State private var pendingScore: Int?
-    /// The last run's score, shown on the cabinet between games.
+    /// The last run's score, shown on the next attract screen.
     @State private var lastScore: Int?
 
     private enum Stage: Equatable {
         case index
-        case cabinet(ArcadeMachine)
         case playing(ArcadeMachine, seed: UInt64)
     }
 
@@ -130,41 +129,38 @@ struct ArcadeView: View {
             switch stage {
             case .index:
                 index
-            case .cabinet(let machine):
-                ArcadeCabinet(
-                    machine: machine, board: board(for: machine),
-                    pool: PlayerPool.decode(savedPool),
-                    lastScore: lastScore, pendingScore: pendingScore,
-                    onPlay: {
-                        lastScore = nil
-                        pendingScore = nil
-                        stage = .playing(machine, seed: freshSeed())
-                    },
-                    onBack: { stage = .index },
-                    onSign: { name in sign(name, on: machine) },
-                    onSkip: { pendingScore = nil })
             case .playing(let machine, let seed):
                 game(machine, seed: seed).id(seed)
             }
         }
     }
 
+    /// The live table. Its attract screen is the faceoff itself: the board
+    /// (and the pen, after a boarding run) floats on the machine's empty half
+    /// until the player grabs their mallet — that grab is the start button.
     private func game(_ machine: ArcadeMachine, seed: UInt64) -> some View {
         GameView(
             setup: setup, seed: seed,
             mode: .arcade(
                 ArcadeTable(
                     table: machine.table, rules: ArcadeSpec.rules,
+                    attract: AnyView(
+                        ArcadeAttract(
+                            board: board(for: machine), pool: PlayerPool.decode(savedPool),
+                            lastScore: lastScore, pendingScore: pendingScore,
+                            onSign: { name in sign(name, on: machine) },
+                            onSkip: { pendingScore = nil })),
                     onGameOver: { score in gameOver(score, on: machine) })),
             onNewMatch: { _ in stage = .playing(machine, seed: freshSeed()) },
-            onExit: { stage = .cabinet(machine) })
+            onExit: { stage = .index })
     }
 
-    /// The run ended: back to the attract screen, pen out if it boarded.
+    /// The run ended: a fresh table racks at its faceoff — the attract screen
+    /// — showing the score, with the pen out if it boarded.
     private func gameOver(_ score: Int, on machine: ArcadeMachine) {
         lastScore = score
         pendingScore = board(for: machine).qualifies(score) ? score : nil
-        stage = .cabinet(machine)
+        stage = .playing(machine, seed: freshSeed())
     }
 
     /// Sign the waiting run — a brand-new name joins the pool like anywhere.
@@ -234,7 +230,7 @@ struct ArcadeView: View {
         Button {
             lastScore = nil
             pendingScore = nil
-            stage = .cabinet(machine)
+            stage = .playing(machine, seed: freshSeed())
         } label: {
             VStack(spacing: 8) {
                 // Just the top of the table — the far goal and its guardian

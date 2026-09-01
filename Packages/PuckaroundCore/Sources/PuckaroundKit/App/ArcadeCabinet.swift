@@ -1,102 +1,65 @@
 import PuckaroundCore
 import SwiftUI
 
-/// A cabinet's attract screen: the table itself as the marquee — drawn by the
-/// real renderer at tick zero — with the ten-line board floating over the
-/// playfield, the way cabinets always had it. Play drops the board and takes
-/// the table; a finished run lands back here, pen out if it boarded.
-struct ArcadeCabinet: View {
-    let machine: ArcadeMachine
+/// What floats over the LIVE table while the rink waits at faceoff — the
+/// cabinet's attract screen: the ten-line board on the machine's empty half,
+/// and after a run its score with the pen out if it boarded. There is no
+/// start button; grabbing the mallet is the start button, like every table.
+struct ArcadeAttract: View {
     let board: Hiscores
     let pool: [NamedPlayer]
     let lastScore: Int?
     let pendingScore: Int?
-    let onPlay: () -> Void
-    let onBack: () -> Void
     let onSign: (String) -> Void
     let onSkip: () -> Void
 
     @State private var newName = ""
 
     var body: some View {
-        VStack(spacing: 0) {
-            header
-                .padding(.horizontal, 24)
-                .padding(.top, 20)
-                .padding(.bottom, 8)
-            ScrollView {
-                VStack(spacing: 18) {
-                    // The pen comes FIRST — a boarding run's signature must
-                    // never hide below the fold under the attract screen.
-                    if let pendingScore {
-                        signSection(pendingScore)
-                    } else if let lastScore {
-                        lastRun(lastScore)
-                    }
-                    attract
+        VStack(spacing: 12) {
+            if let pendingScore {
+                card { signSection(pendingScore) }
+            } else if let lastScore {
+                card { lastRun(lastScore) }
+            }
+            card { boardRows }
+        }
+        .frame(maxWidth: 290)
+    }
+
+    /// A translucent pane, so the overlay reads on top of the glowing table.
+    private func card(@ViewBuilder body: () -> some View) -> some View {
+        VStack(spacing: 8, content: body)
+            .padding(14)
+            .frame(maxWidth: .infinity)
+            .background(RoundedRectangle(cornerRadius: 12).fill(Neon.ground.opacity(0.74)))
+    }
+
+    @ViewBuilder
+    private var boardRows: some View {
+        caption("Best runs")
+        if board.entries.isEmpty {
+            Text("No runs yet", bundle: .module)
+                .font(.system(size: 13, weight: .medium, design: .rounded))
+                .foregroundStyle(Neon.inkSoft)
+        } else {
+            ForEach(Array(board.entries.enumerated()), id: \.offset) { rank, entry in
+                HStack(spacing: 10) {
+                    Text(verbatim: "\(rank + 1).")
+                        .foregroundStyle(Neon.inkSoft)
+                        .monospacedDigit()
+                        .frame(width: 24, alignment: .trailing)
+                    Text(verbatim: entry.name)
+                        .foregroundStyle(kitColor(entry.name))
+                        .lineLimit(1)
+                    Spacer()
+                    Text(verbatim: "\(entry.score)")
+                        .foregroundStyle(Neon.ink)
+                        .monospacedDigit()
                 }
-                .padding(.horizontal, 24)
-                .padding(.vertical, 16)
-            }
-            NeonButton(title: "Play", tint: Neon.cyan, prominent: true, action: onPlay)
-                .padding(24)
-        }
-        .frame(maxWidth: 440)
-        .background(NeonCard())
-        .padding(16)
-    }
-
-    private var header: some View {
-        ZStack {
-            Text(machine.title, bundle: .module)
-                .font(.system(size: 22, weight: .black, design: .rounded))
-                .foregroundStyle(Neon.ink)
-            HStack {
-                NeonIconButton(systemName: "chevron.left", label: "Back", action: onBack)
-                Spacer()
+                .font(.system(size: 14, weight: .semibold, design: .rounded))
             }
         }
-    }
-
-    /// The playfield with the board on top — a game not ongoing wears its
-    /// scores right on the table.
-    private var attract: some View {
-        ZStack {
-            TablePreview(table: machine.table)
-            boardOverlay
-        }
-        .frame(maxHeight: 400)
-    }
-
-    private var boardOverlay: some View {
-        VStack(spacing: 6) {
-            caption("Best runs")
-            if board.entries.isEmpty {
-                Text("No runs yet", bundle: .module)
-                    .font(.system(size: 13, weight: .medium, design: .rounded))
-                    .foregroundStyle(Neon.inkSoft)
-            } else {
-                ForEach(Array(board.entries.enumerated()), id: \.offset) { rank, entry in
-                    HStack(spacing: 10) {
-                        Text(verbatim: "\(rank + 1).")
-                            .foregroundStyle(Neon.inkSoft)
-                            .monospacedDigit()
-                            .frame(width: 24, alignment: .trailing)
-                        Text(verbatim: entry.name)
-                            .foregroundStyle(kitColor(entry.name))
-                            .lineLimit(1)
-                        Spacer()
-                        Text(verbatim: "\(entry.score)")
-                            .foregroundStyle(Neon.ink)
-                            .monospacedDigit()
-                    }
-                    .font(.system(size: 14, weight: .semibold, design: .rounded))
-                }
-            }
-        }
-        .padding(14)
-        .frame(maxWidth: 250)
-        .background(RoundedRectangle(cornerRadius: 12).fill(Neon.ground.opacity(0.72)))
     }
 
     private func kitColor(_ name: String) -> Color {
@@ -104,54 +67,52 @@ struct ArcadeCabinet: View {
     }
 
     /// The last run's score when it didn't board — still worth showing.
+    @ViewBuilder
     private func lastRun(_ score: Int) -> some View {
-        VStack(spacing: 4) {
-            caption("Last run")
-            scoreText(score)
-        }
+        caption("Last run")
+        scoreText(score)
     }
 
     /// A boarded run waits for its name: one tap on a pool chip signs it, or
     /// a new name types in — joining the pool like anywhere else.
+    @ViewBuilder
     private func signSection(_ score: Int) -> some View {
-        VStack(spacing: 12) {
-            caption("Sign the board")
-            scoreText(score)
-            poolChips
-            signField
-            Button(action: onSkip) {
-                Text("Skip", bundle: .module)
-                    .font(.system(size: 13, weight: .semibold, design: .rounded))
-                    .foregroundStyle(Neon.inkSoft)
-                    .frame(height: 30)
-            }
-            .buttonStyle(.plain)
+        caption("Sign the board")
+        scoreText(score)
+        poolChips
+        signField
+        Button(action: onSkip) {
+            Text("Skip", bundle: .module)
+                .font(.system(size: 13, weight: .semibold, design: .rounded))
+                .foregroundStyle(Neon.inkSoft)
+                .frame(height: 28)
         }
+        .buttonStyle(.plain)
     }
 
     private func scoreText(_ score: Int) -> some View {
         Text(verbatim: "\(score)")
-            .font(.system(size: 34, weight: .black, design: .rounded))
+            .font(.system(size: 30, weight: .black, design: .rounded))
             .foregroundStyle(Neon.cyan)
             .monospacedDigit()
             .shadow(color: Neon.cyan.opacity(0.7), radius: 10)
     }
 
     private var poolChips: some View {
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 110), spacing: 8)], spacing: 8) {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 100), spacing: 8)], spacing: 8) {
             ForEach(pool, id: \.name) { player in
                 Button {
                     onSign(player.name)
                 } label: {
                     Text(verbatim: player.name)
-                        .font(.system(size: 15, weight: .bold, design: .rounded))
+                        .font(.system(size: 14, weight: .bold, design: .rounded))
                         .lineLimit(1)
                         .foregroundStyle(SeatPalette.neon(player.kit.home))
-                        .padding(.horizontal, 12)
-                        .frame(height: 40)
+                        .padding(.horizontal, 10)
+                        .frame(height: 36)
                         .frame(maxWidth: .infinity)
                         .background(
-                            RoundedRectangle(cornerRadius: 12)
+                            RoundedRectangle(cornerRadius: 10)
                                 .strokeBorder(
                                     SeatPalette.neon(player.kit.home).opacity(0.5),
                                     lineWidth: 1.5))
@@ -165,14 +126,14 @@ struct ArcadeCabinet: View {
         TextField(text: $newName, prompt: Text("Add name", bundle: .module)) {
             Text("Add name", bundle: .module)
         }
-        .font(.system(size: 16, weight: .semibold, design: .rounded))
+        .font(.system(size: 15, weight: .semibold, design: .rounded))
         .foregroundStyle(Neon.ink)
         .textFieldStyle(.plain)
         .submitLabel(.done)
-        .padding(.horizontal, 14)
-        .frame(height: 44)
+        .padding(.horizontal, 12)
+        .frame(height: 40)
         .background(
-            RoundedRectangle(cornerRadius: 12)
+            RoundedRectangle(cornerRadius: 10)
                 .strokeBorder(Neon.inkSoft.opacity(0.6), lineWidth: 1.5)
         )
         .onSubmit {
