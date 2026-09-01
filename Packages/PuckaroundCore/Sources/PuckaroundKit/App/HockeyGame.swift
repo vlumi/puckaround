@@ -110,7 +110,7 @@ final class HockeyGame: ObservableObject {
         let burst = faceoffBurstStart.map { min(1, (time - $0) / RinkScene.burstDuration) }
         return RinkScene(
             rink: session.rink, placement: placement, reducedMotion: reducedMotion, time: time,
-            faceoffBurst: (burst ?? 1) < 1 ? burst : nil, names: endNames)
+            faceoffBurst: (burst ?? 1) < 1 ? burst : nil, names: endNames, colors: endColors)
     }
 
     /// When the last faceoff cleared, so the burst ring can be animated from it.
@@ -124,6 +124,10 @@ final class HockeyGame: ObservableObject {
     /// The named ends during a tournament, or nil in a plain match. The view
     /// sets this; the renderer draws each name by its player's score.
     var endNames: EndNames?
+
+    /// The ends' kit colors during a tournament — the players' own neons on
+    /// mallet, goal, score and verdicts. Nil keeps the classic pair.
+    var endColors: EndColors?
 
     /// Fired when the sim decides the match, with the winning side and the two
     /// tallies that decided it (games in a best-of, points in a single game) —

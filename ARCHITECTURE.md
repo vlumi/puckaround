@@ -99,7 +99,7 @@ of the board.
 a turn from the *physical* device orientation (0 upright, ±90 landscape, 180
 upside down), and the world ↔ screen mapping — the renderer draws through it and
 the touch mapping inverts it, so a finger lands where it looks in any hold and
-the magenta goal stays at the button end. Labels counter-turn to face the
+the bottom goal stays at the button end. Labels counter-turn to face the
 players (side by side in landscape, head-to-head in either portrait — `Seat`);
 the menus are plain SwiftUI and rotate with the interface. The system's rotation
 animation briefly spins the board; suppressing it from the app was proven
@@ -129,9 +129,12 @@ small mark that turns with `angle`.
 ground, a glowing neutral rink (ice, grid, center line, puck) that belongs to
 no side, and each **side's** neon color on exactly the things that are theirs —
 its mallet(s), its goal, its score — so table furniture never competes with side
-identity. One color per side (both mallets of a doubles side share it): magenta
-for the bottom, cyan for the top — the max-contrast pair, and color-blind-safe
-(they separate on lightness and the red–green axis). Glow
+identity. One color per side (both mallets of a doubles side share it): the
+classic pair by default — magenta bottom, cyan top, max-contrast and
+color-blind-safe (they separate on lightness and the red–green axis) — or the
+players' own kits in named play (see the tournaments section; the pair is
+clash-resolved, and every wardrobe hue is curated against ground, grid and
+puck, since telling players apart is positional). Glow
 is drawn as a blurred pass under a solid core, so a hard puck and a readable
 score survive the bloom; decorative motion (the puck's speed-scaled trail, a CRT
 scanline breath) backs off under `accessibilityReduceMotion`. All procedural, no
@@ -185,7 +188,12 @@ power-of-two sheet, byes for uneven counts, up to 32), and a `League` season
 head-to-head then sudden-death deciders, up to 10). All are pure, tested
 scheduling that survives the app quitting. Names are labels the Kit pins on the
 ends for the evening (`EndNames`, and a remembered tap-to-pick pool — no
-profiles, no history); the sim still never learns who is playing.
+profiles, no history); the sim still never learns who is playing. Each name
+also wears a kit (`PlayerKit`, home + away slots into the Kit's eight-neon
+wardrobe): in named play the table's side furniture — mallet, goal, score,
+verdicts — takes the player's color (`EndColors`, clash-resolved so the home
+side keeps its hue and the other switches to its away), while nameless play
+keeps the classic magenta/cyan.
 
 `SeatZones` maps a world point to the slot that owns it (its side's half, then
 its lane). **A touch belongs to the slot it grabbed for its whole life** — one
@@ -204,8 +212,9 @@ Not built. Nothing below describes existing code.
 
 **The couch's tail.** The front door shipped (a bare title with three modes —
 the New match modal, tournaments in all three shapes, and practice against the
-machine; a rematch is the faceoff returning). Still planned: a per-person
-accent color — cosmetic identity only; the sim stays side-based.
+machine; a rematch is the faceoff returning), and so did per-person kit colors
+— cosmetic identity only; the sim stays side-based. What remains of the couch
+is in ROADMAP.md's arcade section.
 
 **A curved table (the ellipse).** Slice goals and curved walls, and the payoff
 the flat table can't express: a forward-spun puck that rolls the wall toward the

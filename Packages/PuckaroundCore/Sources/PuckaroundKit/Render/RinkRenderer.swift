@@ -128,7 +128,7 @@ enum RinkRenderer {
         let table = scene.rink.table
         let halfHeight = table.size.y / 2
         for side in Side.allCases {
-            let color = SeatPalette.color(for: side)
+            let color = scene.sideColor(for: side)
             // Portrait: head-to-head. Landscape: both labels counter-turn the
             // board so they read upright, side by side along the bottom bench.
             let seat = Seat(side: side, boardTurn: scene.placement.turn)

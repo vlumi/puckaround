@@ -98,11 +98,12 @@ puckaround/
     │   ├── Input/                  SeatInput + ControlSource, SeatZones, MalletControlSource,
     │   │                           PatternControlSource (the practice machine)
     │   └── Couch/                  The evening layer — Tournament (winner stays), Bracket, League,
-    │                               the Evening handle, MatchResult; names never reach the sim
+    │                               the Evening handle, MatchResult, PlayerKit (home/away colors);
+    │                               names never reach the sim
     ├── Sources/PuckaroundKit/      SwiftUI + UIKit, depends on Core; coverage-ignored
     │   ├── App/                    AppRoot, MenuView + NewMatchSheet/SetupControls/Setup (the front door),
-    │   │                           GameView + HockeyGame (one table), TournamentView + RosterSheet (winner
-    │   │                           stays), InterfaceTurn, NeonUI, Compat (iOS 16 wrappers)
+    │   │                           GameView + HockeyGame (one table), TournamentView + RosterSheet +
+    │   │                           PlayerPool (the couch), InterfaceTurn, NeonUI, Compat (iOS 16 wrappers)
     │   ├── Feedback/               Haptics + SoundEngine — procedural, off the sim's GameEvent stream
     │   ├── Input/                  MultiTouchSurface — every finger, id-tagged, to the control source
     │   ├── Render/                 RinkRenderer (+Puck/+Faceoff/+Score, Canvas), BoardPlacement, Seat, SeatPalette

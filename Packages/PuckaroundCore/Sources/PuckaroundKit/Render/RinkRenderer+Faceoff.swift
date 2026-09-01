@@ -88,7 +88,7 @@ extension RinkRenderer {
         for slot in scene.rink.slots {
             guard let mallet = scene.rink.mallet(at: slot) else { continue }
             drawMallet(
-                mallet, radius: table.malletRadius, color: SeatPalette.color(for: slot.side),
+                mallet, radius: table.malletRadius, color: scene.sideColor(for: slot.side),
                 ripple: Ripple(
                     active: scene.rink.isFaceoff && !faceoffReady.contains(slot),
                     time: scene.time, reducedMotion: scene.reducedMotion),
