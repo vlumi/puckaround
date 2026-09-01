@@ -46,9 +46,13 @@ final class HockeyGame: ObservableObject {
         let controls = MalletControlSource(
             zones: SeatZones(format: table.format, bounds: table.bounds))
         self.controls = controls
-        let machine = drive == .practice ? PatternControlSource(table: table) : nil
+        // The machine mans the far end in practice — and on survival tables,
+        // which declare themselves by carrying a feeder.
+        let machine =
+            drive == .practice || table.feed != nil
+            ? PatternControlSource(table: table) : nil
         self.machine = machine
-        self.arcade = drive == .arcade ? ScoreAttack() : nil
+        self.arcade = drive == .arcade ? ScoreAttack(survival: table.feed != nil) : nil
         self.session = GameSession(rink: rink) { slot, tick in
             if let machine, slot == machine.slot {
                 return machine.input(for: slot, at: tick)
@@ -106,6 +110,7 @@ final class HockeyGame: ObservableObject {
             sound.play(session.rink.events)
             lastFedTick = session.rink.tick
             arcade?.ingest(session.rink.events)
+            if session.rink.phase == .playing { arcade?.survive() }
             if let run = arcade, run.isOver, !arcadeOverReported {
                 // The run is over: freeze the table under the final position
                 // and tell the shelf once, off the view-evaluation stack.

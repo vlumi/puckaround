@@ -51,13 +51,18 @@ public struct Playfield: Equatable, Codable, Sendable {
     /// wrap past the end, the table playing faster each lap (`Rink.pace`).
     /// The live furniture is sim state on the `Rink`. Empty on couch tables.
     public var stages: [TableStage]
+    /// The survival feeder, when this is a survival table: pucks keep coming
+    /// and the pace keeps climbing (see `PuckFeed`). A feeder table also gets
+    /// the practice machine on its far end. Nil everywhere else.
+    public var feed: PuckFeed?
 
     public init(
         size: Vec2, puckRadius: Double, malletRadius: Double, goalWidth: Double,
         restitution: Double, drag: Double, maxSpeed: Double, restSpeed: Double,
         faceoffBubbleRadius: Double, serveSpeed: Double, puckShapes: [PuckShape] = [.circle],
         doublesGoalWidth: Double? = nil, format: Format = .oneVsOne,
-        sideWalls: SideWalls = .solid, bumpers: [Bumper] = [], stages: [TableStage] = []
+        sideWalls: SideWalls = .solid, bumpers: [Bumper] = [], stages: [TableStage] = [],
+        feed: PuckFeed? = nil
     ) {
         self.size = size
         self.puckRadius = puckRadius
@@ -75,6 +80,7 @@ public struct Playfield: Equatable, Codable, Sendable {
         self.sideWalls = sideWalls
         self.bumpers = bumpers
         self.stages = stages
+        self.feed = feed
     }
 
     /// The stage a level plays — wrapping past the end, so cleared stages
@@ -194,5 +200,23 @@ public struct TableStage: Equatable, Codable, Sendable {
         self.bricks = bricks
         self.bumpers = bumpers
         self.pucks = pucks
+    }
+}
+
+/// The survival feeder's dials: every `every` seconds one more puck (up to
+/// `cap` in play) beams in at center and glides to the served side, its shape
+/// the next in `shapes` — while the whole table's pace climbs by `ramp` per
+/// second, forever. Runs end because this never stops.
+public struct PuckFeed: Equatable, Codable, Sendable {
+    public var every: Double
+    public var cap: Int
+    public var shapes: [PuckShape]
+    public var ramp: Double
+
+    public init(every: Double, cap: Int, shapes: [PuckShape] = [.circle], ramp: Double = 0) {
+        self.every = every
+        self.cap = cap
+        self.shapes = shapes
+        self.ramp = ramp
     }
 }

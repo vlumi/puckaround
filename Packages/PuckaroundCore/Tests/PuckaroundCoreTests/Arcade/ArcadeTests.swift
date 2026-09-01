@@ -23,6 +23,21 @@ final class ArcadeTests: XCTestCase {
         XCTAssertEqual(run, final, "a finished run ignores everything after")
     }
 
+    /// Survival: the clock pays, drains charge directly, and the run's end
+    /// stops the clock.
+    func testSurvivalPaysTheClockAndChargesDrains() {
+        var run = ScoreAttack(lives: 2, survival: true)
+        for _ in 0..<60 { run.survive() }
+        XCTAssertEqual(run.score, 10, "ten points a second at 60 Hz")
+        run.ingest([.goal(scorer: .top, conceder: .bottom)])
+        XCTAssertEqual(run.lives, 1, "a survival drain is the life directly")
+        run.ingest([.goal(scorer: .top, conceder: .bottom)])
+        XCTAssertTrue(run.isOver)
+        let final = run
+        run.survive()
+        XCTAssertEqual(run, final, "the clock stops with the run")
+    }
+
     func testBricksPayLikeBumpers() {
         var run = ScoreAttack()
         run.ingest([.brickBroken(speed: 80), .brickBroken(speed: 200), .brickChipped(speed: 90)])

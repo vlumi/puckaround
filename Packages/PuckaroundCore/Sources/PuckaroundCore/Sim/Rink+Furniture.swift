@@ -67,9 +67,9 @@ extension Rink {
     /// ran out isn't a mistake worth a life. One-puck tables only — another
     /// puck could still knock a doomed one loose.
     mutating func rescueDeadPuck(at index: Int) {
-        guard phase == .playing, pucks.count == 1 else { return }
+        guard phase == .playing else { return }
         let puck = pucks[index]
-        for side in Side.allCases where table.format.hands(on: side) == Format.Hands.none {
+        for side in Side.allCases where rescues(into: side) {
             // The manned mallet, kissing the center line, reaches a puck-radius
             // over it; past that only the furniture and the goal can act.
             let beyond =
@@ -90,9 +90,19 @@ extension Rink {
         }
     }
 
-    /// How far the puck is from ANYTHING on `side`'s unmanned half that could
+    /// Which halves the rescue watches: an unmanned half when the puck flies
+    /// alone (another puck could still knock it loose), and the machine's
+    /// half on a feeder table always — the machine defends its mouth, it
+    /// never digs a dead puck out of a corner.
+    private func rescues(into side: Side) -> Bool {
+        if table.feed != nil { return side == (rules.serveTo ?? .bottom).opponent }
+        return table.format.hands(on: side) == Format.Hands.none && pucks.count == 1
+    }
+
+    /// How far the puck is from ANYTHING on `side`'s far half that could
     /// still change its fate: the manned side's reach line, the goal mouth, a
-    /// bumper, a standing brick. Walls aren't listed — they only bleed speed.
+    /// bumper, a standing brick, the machine's patrol strip. Walls aren't
+    /// listed — they only bleed speed.
     private func doomDistance(from p: Vec2, into side: Side) -> Double {
         let field = table.puckField
         var nearest =
@@ -103,6 +113,14 @@ extension Rink {
         let wallY = side == .top ? field.minY : field.maxY
         let onMouth = Vec2(min(max(p.x, goal.postLeft), goal.postRight), wallY)
         nearest = min(nearest, p.distance(to: onMouth))
+        if table.feed != nil {
+            // The machine's patrol strip (its figure-eight's reach, sized
+            // generously): inside it the sweep may yet strike, so a puck near
+            // it isn't doomed — a mercy beam must never steal a live puck.
+            let depth = table.malletRadius * 5.5 + table.puckRadius
+            let stripY = side == .top ? depth : field.maxY + table.puckRadius - depth
+            nearest = min(nearest, side == .top ? stripY - p.y : p.y - stripY)
+        }
         for bumper in bumpers {
             let surface = p.distance(to: bumper.position) - bumper.radius - table.puckRadius
             nearest = min(nearest, surface)

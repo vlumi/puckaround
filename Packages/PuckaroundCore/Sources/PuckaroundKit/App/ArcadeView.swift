@@ -16,7 +16,20 @@ struct ArcadeMachine: Identifiable, Equatable {
 enum ArcadeSpec {
     static let rules = Rules(pointsToWin: 1_000_000, gamesToWin: 1, serveTo: .bottom)
 
-    static let machines: [ArcadeMachine] = [bumperField, brickWall]
+    static let machines: [ArcadeMachine] = [bumperField, brickWall, survival]
+
+    /// Survival: the machine sweeps its goal while the feeder beams in one
+    /// more puck every few seconds — shapes cycling, the whole table
+    /// relentlessly accelerating. Living pays; every drain costs a life. How
+    /// long can you keep your goal clean?
+    static let survival = ArcadeMachine(
+        id: "survival", title: "Survival",
+        table: {
+            var table = Playfield.duel
+            table.feed = PuckFeed(
+                every: 7, cap: 3, shapes: [.circle, .square, .triangle], ramp: 0.015)
+            return table
+        }())
 
     /// Bumper field: your mallet is the flipper. Nobody home up top — each
     /// stage seats a different bumper pattern guarding the target goal
