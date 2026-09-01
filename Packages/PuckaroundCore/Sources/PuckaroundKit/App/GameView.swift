@@ -151,10 +151,12 @@ struct GameView: View {
                 }
                 NeonButton(title: mode.exitTitle, tint: Neon.magenta, action: onExit)
                 // Sound, as a quiet icon — rarely touched, but hushing a loud
-                // table mid-game must be one tap away. The slash is the state.
+                // table mid-game must be one tap away. Solid while sounding,
+                // a hollow slash when hushed: the contrast is the state.
                 NeonIconButton(
                     systemName: soundOn ? "speaker.wave.2" : "speaker.slash",
-                    label: soundOn ? "Sound off" : "Sound on"
+                    label: soundOn ? "Sound off" : "Sound on",
+                    tint: Neon.ink, solid: soundOn
                 ) {
                     soundOn.toggle()
                 }
