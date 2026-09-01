@@ -41,13 +41,16 @@ public struct Playfield: Equatable, Codable, Sendable {
     }
     /// How the long side walls behave — solid (bounce) by default, or wrap.
     public var sideWalls: SideWalls
+    /// Pinball furniture: fixed discs the puck bounces off with a kick. Empty
+    /// on the plain table; the arcade's tables seat a few.
+    public var bumpers: [Bumper]
 
     public init(
         size: Vec2, puckRadius: Double, malletRadius: Double, goalWidth: Double,
         restitution: Double, drag: Double, maxSpeed: Double, restSpeed: Double,
         faceoffBubbleRadius: Double, serveSpeed: Double, puckShapes: [PuckShape] = [.circle],
         doublesGoalWidth: Double? = nil, format: Format = .oneVsOne,
-        sideWalls: SideWalls = .solid
+        sideWalls: SideWalls = .solid, bumpers: [Bumper] = []
     ) {
         self.size = size
         self.puckRadius = puckRadius
@@ -63,6 +66,7 @@ public struct Playfield: Equatable, Codable, Sendable {
         self.doublesGoalWidth = doublesGoalWidth ?? goalWidth * 2.2
         self.format = format
         self.sideWalls = sideWalls
+        self.bumpers = bumpers
     }
 
     /// The one table there is: two players facing each other.
@@ -123,4 +127,20 @@ public struct Playfield: Equatable, Codable, Sendable {
     /// it is all the way in, not when its nose touches the line.
     public var topGoalLine: Double { -puckRadius }
     public var bottomGoalLine: Double { size.y + puckRadius }
+}
+
+/// A pinball bumper: a fixed disc the puck bounces off, taking a `kick` of
+/// extra speed along the bounce normal — a mallet that never moves and hits
+/// back. Table furniture, so any table (couch or arcade) can seat them.
+public struct Bumper: Equatable, Codable, Sendable {
+    public var position: Vec2
+    public var radius: Double
+    /// Speed added along the outgoing normal on a real hit, world units/s.
+    public var kick: Double
+
+    public init(position: Vec2, radius: Double, kick: Double) {
+        self.position = position
+        self.radius = radius
+        self.kick = kick
+    }
 }

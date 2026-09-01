@@ -137,6 +137,13 @@ final class SoundEngine {
             state.fire(
                 slot: 1,
                 Trigger(hz: 230 + hard * 80, gain: 0.2 + hard * 0.3, noise: 0.6, decay: 0.999))
+        case .bumperHit(let speed):
+            // A bumper's clang: brighter and rounder than the boards — pinball
+            // brass, so racking points sounds like racking points.
+            let hard = min(1, speed / 300)
+            state.fire(
+                slot: 1,
+                Trigger(hz: 500 + hard * 180, gain: 0.3 + hard * 0.35, noise: 0.15, decay: 0.9992))
         case .goal:
             state.fire(slot: 2, Trigger(hz: 523, gain: 0.7, noise: 0.05, decay: 0.99985))
         case .gameWon:

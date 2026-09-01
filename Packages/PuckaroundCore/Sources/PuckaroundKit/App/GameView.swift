@@ -24,19 +24,28 @@ struct GameView: View {
         setup: Setup, seed: UInt64, mode: TableMode = .free,
         onNewMatch: @escaping (Setup) -> Void, onExit: @escaping () -> Void
     ) {
-        // In practice every serve comes to the human — a puck served into the
-        // machine's end would just wait on the sweep to send it back.
-        var rules = setup.rules
-        if mode.isPractice { rules.serveTo = .bottom }
         _game = StateObject(
-            wrappedValue: HockeyGame(
-                rules: rules,
-                table: setup.resolvedTable(roll: seed, singles: mode.forcesSingles),
-                seed: seed, practice: mode.isPractice))
+            wrappedValue: GameView.makeGame(setup: setup, seed: seed, mode: mode))
         self.setup = setup
         self.mode = mode
         self.onNewMatch = onNewMatch
         self.onExit = onExit
+    }
+
+    /// The table a mode plays on: the arcade brings its own canonical spec
+    /// (scores must compare), everything else builds from the setup. In
+    /// practice every serve comes to the human — a puck served into the
+    /// machine's end would just wait on the sweep to send it back.
+    private static func makeGame(setup: Setup, seed: UInt64, mode: TableMode) -> HockeyGame {
+        if case .arcade(let spec) = mode {
+            return HockeyGame(rules: spec.rules, table: spec.table, seed: seed, drive: .arcade)
+        }
+        var rules = setup.rules
+        if mode.isPractice { rules.serveTo = .bottom }
+        return HockeyGame(
+            rules: rules,
+            table: setup.resolvedTable(roll: seed, singles: mode.forcesSingles),
+            seed: seed, drive: mode.isPractice ? .practice : .couch)
     }
 
     var body: some View {
@@ -68,6 +77,7 @@ struct GameView: View {
                 game.endNames = mode.tournament?.names
                 game.endColors = mode.tournament?.colors
                 game.onMatchOver = mode.tournament?.onMatchOver
+                game.onArcadeOver = mode.arcade?.onGameOver
             }
             .onChangeCompat(of: geo.size) { size in relayout(size) }
             // The flips that keep the same size (left↔right landscape, portrait↔
@@ -120,14 +130,12 @@ struct GameView: View {
                     showingPause = false
                     onNewMatch(setup)
                 }
-                if mode.tournament == nil {
+                if mode.allowsNewMatch {
                     NeonButton(title: mode.isPractice ? "New practice…" : "New match…") {
                         showingNewMatch = true
                     }
                 }
-                NeonButton(
-                    title: mode.tournament == nil ? "Quit to title" : "Back to tournament",
-                    tint: Neon.magenta, action: onExit)
+                NeonButton(title: mode.exitTitle, tint: Neon.magenta, action: onExit)
             }
             .frame(maxWidth: 260)
             .padding(24)
@@ -154,19 +162,35 @@ struct TournamentMatch {
     let onMatchOver: (Side, Int, Int) -> Void
 }
 
-/// What kind of table this is: a free match, one tournament pairing, or
-/// practice against the machine.
+/// What the arcade adds to one table: the minigame's canonical spec — its
+/// table and rules never come from the setup, or the board's scores wouldn't
+/// compare — and who to tell when the run ends (with the final score).
+struct ArcadeTable {
+    let table: Playfield
+    let rules: Rules
+    let onGameOver: (Int) -> Void
+}
+
+/// What kind of table this is: a free match, one tournament pairing, practice
+/// against the machine, or an arcade minigame.
 enum TableMode {
     case free
     case tournament(TournamentMatch)
     case practice
+    case arcade(ArcadeTable)
 
     var tournament: TournamentMatch? {
         if case .tournament(let match) = self { return match }
         return nil
     }
 
-    /// Tournament pairings and practice both field one mallet per end.
+    var arcade: ArcadeTable? {
+        if case .arcade(let spec) = self { return spec }
+        return nil
+    }
+
+    /// Tournament pairings and practice both field one mallet per end. (The
+    /// arcade never consults the setup at all.)
     var forcesSingles: Bool {
         if case .free = self { return false }
         return true
@@ -175,5 +199,16 @@ enum TableMode {
     var isPractice: Bool {
         if case .practice = self { return true }
         return false
+    }
+
+    /// Whether the pause menu offers the setup modal — only tables built from
+    /// the setup can be rebuilt from it.
+    var allowsNewMatch: Bool { tournament == nil && arcade == nil }
+
+    /// The pause menu's way out, named for who owns the table.
+    var exitTitle: LocalizedStringKey {
+        if tournament != nil { return "Back to tournament" }
+        if arcade != nil { return "Quit to arcade" }
+        return "Quit to title"
     }
 }

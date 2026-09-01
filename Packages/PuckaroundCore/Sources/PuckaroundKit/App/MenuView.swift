@@ -13,6 +13,8 @@ struct MenuView: View {
     let onTournament: () -> Void
     /// Start practice against the machine, with the current stored setup.
     let onPractice: () -> Void
+    /// Open the arcade shelf — solo minigames and their boards.
+    let onArcade: () -> Void
 
     @State private var showingNewMatch = false
     @State private var showingPractice = false
@@ -20,14 +22,21 @@ struct MenuView: View {
     var body: some View {
         ZStack {
             Neon.ground.ignoresSafeArea()
-            VStack(spacing: 40) {
+            VStack(spacing: 32) {
                 wordmark
-                VStack(spacing: 14) {
-                    NeonButton(title: "New match", tint: Neon.cyan, prominent: true) {
-                        showingNewMatch = true
+                // The modes read by who they're for: the couch, then one pair
+                // of hands — so the solo shelf is easy to spot.
+                VStack(spacing: 24) {
+                    group("Together") {
+                        NeonButton(title: "New match", tint: Neon.cyan, prominent: true) {
+                            showingNewMatch = true
+                        }
+                        NeonButton(title: "Tournament", action: onTournament)
                     }
-                    NeonButton(title: "Tournament", action: onTournament)
-                    NeonButton(title: "Practice") { showingPractice = true }
+                    group("Solo") {
+                        NeonButton(title: "Practice") { showingPractice = true }
+                        NeonButton(title: "Arcade", action: onArcade)
+                    }
                 }
                 .frame(maxWidth: 280)
                 .padding(.horizontal, 40)
@@ -53,6 +62,20 @@ struct MenuView: View {
                     },
                     onClose: { showingPractice = false })
             }
+        }
+    }
+
+    /// A captioned cluster of modes, in the sheets' small-caps caption style.
+    private func group(
+        _ key: LocalizedStringKey, @ViewBuilder body: () -> some View
+    ) -> some View {
+        VStack(spacing: 12) {
+            Text(key, bundle: .module)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(Neon.inkSoft)
+                .textCase(.uppercase)
+                .kerning(2)
+            body()
         }
     }
 

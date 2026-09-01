@@ -35,6 +35,8 @@ public struct AppRoot: View {
         case tournament
         /// Practice against the machine, keyed like a game.
         case practice(seed: UInt64)
+        /// The arcade shelf — solo minigames and their boards.
+        case arcade
     }
 
     public init() {}
@@ -45,7 +47,8 @@ public struct AppRoot: View {
             MenuView(
                 setup: setupBinding, onPlay: { phase = .playing(seed: freshSeed()) },
                 onTournament: { phase = .tournament },
-                onPractice: { phase = .practice(seed: freshSeed()) })
+                onPractice: { phase = .practice(seed: freshSeed()) },
+                onArcade: { phase = .arcade })
         case .playing(let seed):
             GameView(
                 setup: setup, seed: seed,
@@ -70,6 +73,8 @@ public struct AppRoot: View {
                 onExit: { phase = .menu }
             )
             .id(seed)
+        case .arcade:
+            ArcadeView(setup: setup, onExit: { phase = .menu })
         }
     }
 

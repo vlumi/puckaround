@@ -22,10 +22,23 @@ final class HockeyGame: ObservableObject {
 
     /// In practice the machine drives the top end; nil otherwise.
     private let machine: PatternControlSource?
+    /// The arcade's score-attack run riding this table; nil on a couch table.
+    private(set) var arcade: ScoreAttack?
+    /// Fired once when an arcade run ends, with the final score.
+    var onArcadeOver: ((Int) -> Void)?
+    private var arcadeOverReported = false
+
+    /// What drives the table besides fingers: nothing (the couch), the
+    /// practice machine on the top end, or the arcade's score-attack loop.
+    enum TableDrive {
+        case couch
+        case practice
+        case arcade
+    }
 
     init(
         rules: Rules = .standard, table: Playfield = .duel,
-        seed: UInt64 = UInt64.random(in: 0...UInt64.max), practice: Bool = false
+        seed: UInt64 = UInt64.random(in: 0...UInt64.max), drive: TableDrive = .couch
     ) {
         // The table's format sets each side's hand count; the zones follow it,
         // so they split into lanes wherever a side fields two.
@@ -33,8 +46,9 @@ final class HockeyGame: ObservableObject {
         let controls = MalletControlSource(
             zones: SeatZones(format: table.format, bounds: table.bounds))
         self.controls = controls
-        let machine = practice ? PatternControlSource(table: table) : nil
+        let machine = drive == .practice ? PatternControlSource(table: table) : nil
         self.machine = machine
+        self.arcade = drive == .arcade ? ScoreAttack() : nil
         self.session = GameSession(rink: rink) { slot, tick in
             if let machine, slot == machine.slot {
                 return machine.input(for: slot, at: tick)
@@ -91,6 +105,17 @@ final class HockeyGame: ObservableObject {
             haptics.play(session.rink.events)
             sound.play(session.rink.events)
             lastFedTick = session.rink.tick
+            arcade?.ingest(session.rink.events)
+            if let run = arcade, run.isOver, !arcadeOverReported {
+                // The run is over: freeze the table under the final position
+                // and tell the shelf once, off the view-evaluation stack.
+                arcadeOverReported = true
+                session.paused = true
+                controls.releaseAll()
+                let report = onArcadeOver
+                let score = run.score
+                DispatchQueue.main.async { report?(score) }
+            }
             if session.rink.events.contains(.faceoffCleared) {
                 faceoffBurstStart = time  // the field bursts — kick off the visual
             }
@@ -110,7 +135,8 @@ final class HockeyGame: ObservableObject {
         let burst = faceoffBurstStart.map { min(1, (time - $0) / RinkScene.burstDuration) }
         return RinkScene(
             rink: session.rink, placement: placement, reducedMotion: reducedMotion, time: time,
-            faceoffBurst: (burst ?? 1) < 1 ? burst : nil, names: endNames, colors: endColors)
+            faceoffBurst: (burst ?? 1) < 1 ? burst : nil, names: endNames, colors: endColors,
+            arcade: arcade)
     }
 
     /// When the last faceoff cleared, so the burst ring can be animated from it.
@@ -183,17 +209,18 @@ final class HockeyGame: ObservableObject {
     /// it is declaring ready (readying stays lenient; the grab itself doesn't).
     private func startPlay(id: TouchID, at p: CGPoint) {
         let world = world(fromScreen: p)
-        if session.rink.isFaceoff {
-            session.ready(controls.zones.owner(of: world))
+        if session.rink.isFaceoff, let slot = controls.zones.owner(of: world) {
+            session.ready(slot)
         }
         controls.touchBegan(id: id, at: world, malletAt: malletPosition(near: world))
     }
 
     /// Where the mallet a touch at `world` would drive currently sits — the
-    /// mallet owning that point's zone. The control source uses it to decide
-    /// whether the finger is close enough to grab.
+    /// mallet owning that point's zone (the finger's own position on an empty
+    /// half, so nothing grabs). The control source uses it to decide whether
+    /// the finger is close enough to grab.
     private func malletPosition(near world: Vec2) -> Vec2 {
-        let slot = controls.zones.owner(of: world)
+        guard let slot = controls.zones.owner(of: world) else { return world }
         return session.rink.mallet(at: slot)?.position ?? world
     }
 

@@ -40,9 +40,12 @@ public struct MalletSlot: Hashable, Codable, Sendable {
 /// number of hands defending it, so a lone defender keeps a narrow goal and a
 /// pair earns a wider one (see `Playfield.goalWidth(for:)`).
 public struct Format: Equatable, Codable, Sendable {
-    /// How many mallets a side fields: 1 (a whole-half mallet) or 2 (left+right
-    /// lanes). Not an open Int — only these two are meaningful on the oblong.
+    /// How many mallets a side fields: 1 (a whole-half mallet), 2 (left+right
+    /// lanes), or 0 — an empty end, for the arcade's solo tables where the far
+    /// goal is a target with nobody home. Not an open Int — only these are
+    /// meaningful on the oblong.
     public enum Hands: Int, Equatable, Codable, Sendable {
+        case none = 0
         case one = 1
         case two = 2
     }
@@ -58,16 +61,22 @@ public struct Format: Equatable, Codable, Sendable {
     public static let oneVsOne = Format(bottom: .one, top: .one)
     public static let oneVsTwo = Format(bottom: .one, top: .two)
     public static let twoVsTwo = Format(bottom: .two, top: .two)
+    /// One human at the bottom, nobody at the top — the arcade's table.
+    public static let solo = Format(bottom: .one, top: .none)
 
     /// How many mallets the given side fields.
     public func hands(on side: Side) -> Hands {
         side == .bottom ? bottom : top
     }
 
-    /// The lanes a side splits into for its hand count: one full lane, or a
-    /// left and a right.
+    /// The lanes a side splits into for its hand count: none at all, one full
+    /// lane, or a left and a right.
     static func lanes(for hands: Hands) -> [Lane] {
-        hands == .one ? [.full] : [.left, .right]
+        switch hands {
+        case .none: return []
+        case .one: return [.full]
+        case .two: return [.left, .right]
+        }
     }
 
     /// Every mallet slot on the table, in a fixed order (bottom's lanes, then

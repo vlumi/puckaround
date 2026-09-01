@@ -58,6 +58,9 @@ final class Haptics {
             if speed > 40 {
                 light.impactOccurred(intensity: intensity(forSpeed: speed, fast: 300) * 0.6)
             }
+        case .bumperHit(let speed):
+            // A bumper kick lands with a firm pop — it hit back, after all.
+            rigid.impactOccurred(intensity: intensity(forSpeed: speed, fast: 300) * 0.8)
         case .goal:
             soft.impactOccurred(intensity: 1)
         case .gameWon:

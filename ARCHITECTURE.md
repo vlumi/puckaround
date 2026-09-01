@@ -195,6 +195,17 @@ verdicts — takes the player's color (`EndColors`, clash-resolved so the home
 side keeps its hue and the other switches to its away), while nameless play
 keeps the classic magenta/cyan.
 
+**The arcade sits on top the same way.** Solo minigames reuse the sim, never a
+second engine: a solo table is just a `Format` with an empty end (`Hands.none`
+— one ready starts play, and touches on the machine's half drive nothing),
+bumpers are table furniture (`Bumper` on `Playfield`: a mallet that never
+moves and kicks back, resolved in fixed index order like everything), and a
+run is `ScoreAttack` folding the same `GameEvent` stream the feedback layers
+feed on — the sim's own points target sits out of reach, so the cabinet, not
+the rink, ends a run. `Hiscores` is the ten-line board, signed from the same
+remembered pool. Each minigame has one canonical table spec (`ArcadeSpec`, in
+the Kit), so its board's scores actually compare.
+
 `SeatZones` maps a world point to the slot that owns it (its side's half, then
 its lane). **A touch belongs to the slot it grabbed for its whole life** — one
 finger per mallet, decided on the grab, never revisited. `MalletControlSource`

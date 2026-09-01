@@ -88,10 +88,12 @@ enum RinkRenderer {
         drawRink(
             projection: projection, time: scene.time, reducedMotion: scene.reducedMotion,
             in: &context)
+        drawBumpers(scene, projection: projection, in: &context)
         drawLaneDividers(scene, projection: projection, in: &context)
         // Labels face the players: head-to-head in portrait, or turned to the
         // down long edge (the bench) when the device is held sideways.
         drawSides(scene, projection: projection, in: &context)
+        drawArcadeHUD(scene, projection: projection, in: &context)
         // The menu glyph is always there — the center ring is always the menu.
         // It sits UNDER the puck (drawn next), so during a faceoff the frozen
         // puck rests on it; that's fine, it's furniture, and an empty ring would
@@ -138,27 +140,32 @@ enum RinkRenderer {
                 Rect(
                     x: 0, y: side == .bottom ? halfHeight : 0, width: table.size.x,
                     height: halfHeight))
-            let score = scene.rink.score(of: side)
-            drawScore(score, seat: seat, color: color, projection: projection, in: &context)
-            if let names = scene.names {
-                drawEndName(
-                    names.name(for: side), seat: seat, color: color, projection: projection,
-                    in: &context)
+            // An arcade table swaps the per-side tallies for the cabinet HUD
+            // (see `drawArcadeHUD`); the goals and readiness stay.
+            if scene.arcade == nil {
+                let score = scene.rink.score(of: side)
+                drawScore(score, seat: seat, color: color, projection: projection, in: &context)
+                if let names = scene.names {
+                    drawEndName(
+                        names.name(for: side), seat: seat, color: color, projection: projection,
+                        in: &context)
+                }
+                // In a best-of match, the games tally sits under the score.
+                if scene.rink.rules.gamesToWin > 1 {
+                    drawGamesTally(
+                        (scene.rink.gamesWon(of: side), scene.rink.rules.gamesToWin), seat: seat,
+                        color: color, projection: projection, in: &context)
+                }
+                // The result stays up through the faceoff that follows it, so
+                // both players see who won while deciding to go again.
+                if let outcome = scene.rink.lastOutcome {
+                    let spot = VerdictSpot(
+                        seat: seat, half: half, color: color,
+                        inMatch: scene.rink.rules.gamesToWin > 1)
+                    drawVerdict(outcome, at: spot, in: &context)
+                }
             }
             drawGoal(at: side, color: color, projection: projection, in: &context)
-            // In a best-of match, the games tally sits under the score.
-            if scene.rink.rules.gamesToWin > 1 {
-                drawGamesTally(
-                    (scene.rink.gamesWon(of: side), scene.rink.rules.gamesToWin), seat: seat,
-                    color: color, projection: projection, in: &context)
-            }
-            // The result stays up through the faceoff that follows it, so both
-            // players see who won while deciding to go again.
-            if let outcome = scene.rink.lastOutcome {
-                let spot = VerdictSpot(
-                    seat: seat, half: half, color: color, inMatch: scene.rink.rules.gamesToWin > 1)
-                drawVerdict(outcome, at: spot, in: &context)
-            }
             if scene.rink.isFaceoff {
                 drawSideReadiness(scene, seat: seat, half: half, color: color, in: &context)
             }
