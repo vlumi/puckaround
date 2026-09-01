@@ -193,7 +193,9 @@ also wears a kit (`PlayerKit`, home + away slots into the Kit's eight-neon
 wardrobe): in named play the table's side furniture — mallet, goal, score,
 verdicts — takes the player's color (`EndColors`, clash-resolved so the home
 side keeps its hue and the other switches to its away), while nameless play
-keeps the classic magenta/cyan.
+keeps the classic magenta/cyan. One decided-but-dormant rule waits on team
+formats: the first-seated player of a pair is the captain, and the team wears
+their kit.
 
 **The arcade sits on top the same way.** Solo minigames reuse the sim, never a
 second engine: a solo table is just a `Format` with an empty end (`Hands.none`
@@ -223,11 +225,11 @@ offset.
 
 Not built. Nothing below describes existing code.
 
-**The couch's tail.** The front door shipped (a bare title with three modes —
-the New match modal, tournaments in all three shapes, and practice against the
-machine; a rematch is the faceoff returning), and so did per-person kit colors
-— cosmetic identity only; the sim stays side-based. What remains of the couch
-is in ROADMAP.md's arcade section.
+**The couch's tail.** The whole couch shipped: the front door with its four
+modes (New match, tournaments in three shapes, practice, the arcade's three
+cabinets), per-person kit colors — cosmetic identity only; the sim stays
+side-based — and the app chrome (Settings, About). What remains before 1.0 is
+tuning the feel on real hardware; see ROADMAP.md.
 
 **A curved table (the ellipse).** Slice goals and curved walls, and the payoff
 the flat table can't express: a forward-spun puck that rolls the wall toward the
