@@ -8,7 +8,7 @@ final class BrickTests: XCTestCase {
     /// score without touching it.
     private var table: Playfield {
         var t = Playfield.duel.with(format: .solo)
-        t.bricks = [Brick(rect: Rect(x: 4, y: 12, width: 12, height: 6))]
+        t.brickWalls = [[Brick(rect: Rect(x: 4, y: 12, width: 12, height: 6))]]
         return t
     }
 
@@ -79,12 +79,63 @@ final class BrickTests: XCTestCase {
         XCTAssertEqual(r.bricks.count, 1)
     }
 
+    /// Every clear racks the wall back harder; a drain racks the same level.
+    func testTheWallLevelsUpOnClears() {
+        var t = Playfield.duel.with(format: .solo)
+        let brick = Brick(rect: Rect(x: 4, y: 12, width: 12, height: 6))
+        let second = Brick(rect: Rect(x: 20, y: 12, width: 12, height: 6))
+        t.brickWalls = [[brick], [brick, second]]
+        var r = playingRink(on: t)
+        // Score into the wall's half: the next rack is level 1 — thicker.
+        r.setPuckForTesting(
+            Puck(position: Vec2(50, r.table.puckField.minY + 1), velocity: Vec2(0, -300)))
+        for _ in 0..<60 where r.bricks.count < 2 { r.advance(inputs: [:]) }
+        XCTAssertEqual(r.bricks.count, 2, "cleared once — the wall came back thicker")
+        // Drain the own goal: racks again, but failing isn't progress.
+        r.setPuckForTesting(
+            Puck(position: Vec2(50, r.table.puckField.maxY - 1), velocity: Vec2(0, 300)))
+        for _ in 0..<60 where r.wallLevel != 1 || r.score(of: .top) < 1 {
+            r.advance(inputs: [:])
+        }
+        XCTAssertEqual(r.score(of: .top), 1, "the drain scored against the player")
+        XCTAssertEqual(r.bricks.count, 2, "a drain racks the same level")
+    }
+
+    /// A sturdy brick chips before it breaks — each hit pays its event, and
+    /// only the last removes it.
+    func testASturdyBrickChipsThenBreaks() {
+        var t = Playfield.duel.with(format: .solo)
+        t.brickWalls = [[Brick(rect: Rect(x: 40, y: 20, width: 20, height: 6), hits: 2)]]
+        var r = playingRink(on: t)
+        r.setPuckForTesting(Puck(position: Vec2(50, 40), velocity: Vec2(0, -160)))
+        var chipped = false
+        for _ in 0..<120 where !chipped {
+            r.advance(inputs: [:])
+            chipped = r.events.contains {
+                if case .brickChipped = $0 { return true } else { return false }
+            }
+        }
+        XCTAssertTrue(chipped, "the first hit chips")
+        XCTAssertEqual(r.bricks.count, 1, "the wall held")
+        XCTAssertEqual(r.bricks[0].hits, 1)
+        r.setPuckForTesting(Puck(position: Vec2(50, 40), velocity: Vec2(0, -160)))
+        var broke = false
+        for _ in 0..<120 where !broke {
+            r.advance(inputs: [:])
+            broke = smashed(r)
+        }
+        XCTAssertTrue(broke, "the second hit breaks")
+        XCTAssertTrue(r.bricks.isEmpty)
+    }
+
     /// Same seed, same inputs, wall and all — bit-identical.
     func testABrickTableIsDeterministic() {
         var full = table
-        full.bricks = (0..<7).map {
-            Brick(rect: Rect(x: 8 + Double($0) * 12, y: 12, width: 12, height: 6))
-        }
+        full.brickWalls = [
+            (0..<7).map {
+                Brick(rect: Rect(x: 8 + Double($0) * 12, y: 12, width: 12, height: 6), hits: 2)
+            }
+        ]
         func run() -> Rink {
             var r = playingRink(on: full)
             r.setPuckForTesting(Puck(position: Vec2(47, 60), velocity: Vec2(12, -180)))

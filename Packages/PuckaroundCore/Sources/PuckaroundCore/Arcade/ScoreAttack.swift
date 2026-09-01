@@ -24,7 +24,7 @@ public struct ScoreAttack: Equatable, Sendable {
             switch event {
             case .bumperHit:
                 score += ScoreAttack.bumperPoints
-            case .brickBroken:
+            case .brickBroken, .brickChipped:
                 score += ScoreAttack.brickPoints
             case .goal(_, let conceder):
                 if conceder == .bottom {

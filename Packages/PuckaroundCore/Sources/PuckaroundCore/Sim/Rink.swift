@@ -17,6 +17,9 @@ public enum GameEvent: Equatable, Sendable {
     /// The puck smashed a brick out of the wall; `speed` is the closing speed.
     /// Score-attack fuel, like a bumper hit.
     case brickBroken(speed: Double)
+    /// A sturdy brick took a hit and held — chipped, not yet broken. Pays
+    /// like a break; sounds duller.
+    case brickChipped(speed: Double)
     /// A doomed puck was beamed from `from` back to the serve — the unmanned-
     /// half rescue. The renderer animates the beam; no points, no penalty.
     case puckBeamed(from: Vec2)
@@ -118,8 +121,11 @@ public struct Rink: Equatable, Sendable {
     /// index, so the mayhem stays deterministic.
     public internal(set) var pucks: [Puck]
     /// The brick wall still standing — sim state, since bricks break. Racks
-    /// fresh from the table's spec each game and after every goal.
+    /// fresh from the table's progression each game and after every goal.
     public internal(set) var bricks: [Brick]
+    /// How many times the wall's own half has been scored into — the index
+    /// into the table's wall progression, so each rack can come back harder.
+    public internal(set) var wallLevel = 0
     /// The first puck — the whole story on a one-puck table.
     public var puck: Puck { pucks[0] }
     /// One per slot, in `slots` order.
@@ -159,7 +165,7 @@ public struct Rink: Equatable, Sendable {
         self.slots = table.format.slots
         self.rng = SeededRNG(seed: seed)
         self.pucks = Rink.faceoffPucks(on: table)
-        self.bricks = table.bricks
+        self.bricks = table.wall(level: 0)
         self.mallets = slots.map { Mallet(position: table.malletZone(for: $0).center) }
         self.score = Rink.scoreOrder.map { _ in 0 }
         self.gamesWon = Rink.scoreOrder.map { _ in 0 }
@@ -186,7 +192,8 @@ public struct Rink: Equatable, Sendable {
         score = Rink.scoreOrder.map { _ in 0 }
         gamesWon = Rink.scoreOrder.map { _ in 0 }
         pucks = Rink.faceoffPucks(on: table)
-        bricks = table.bricks
+        wallLevel = 0
+        bricks = table.wall(level: 0)
         phase = .opening
     }
 
@@ -294,8 +301,11 @@ public struct Rink: Equatable, Sendable {
         let scorer = side.opponent
         score[Rink.tallyIndex(scorer)] += 1
         events.append(.goal(scorer: scorer, conceder: conceder))
-        // A goal racks the wall fresh — the next point defends like the first.
-        bricks = table.bricks
+        // A goal racks the wall fresh — and one through the wall's own half
+        // levels the rack up, so the next wall comes back harder. A drain
+        // racks the same level; failing isn't progress.
+        if side == table.wallSide { wallLevel += 1 }
+        bricks = table.wall(level: wallLevel)
         guard score(of: scorer) >= rules.pointsToWin else {
             serve(puckAt: index, to: rules.serveTo ?? conceder)
             return false

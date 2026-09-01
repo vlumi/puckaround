@@ -47,8 +47,14 @@ extension Rink {
             let closing = pucks[index].velocity.dot(normal)
             guard closing < 0 else { return }
             pucks[index].velocity -= normal * ((1 + table.restitution) * closing)
-            events.append(.brickBroken(speed: -closing))
-            bricks.remove(at: brickIndex)
+            // A sturdy brick chips and holds; the last hit removes it.
+            if bricks[brickIndex].hits > 1 {
+                bricks[brickIndex].hits -= 1
+                events.append(.brickChipped(speed: -closing))
+            } else {
+                bricks.remove(at: brickIndex)
+                events.append(.brickBroken(speed: -closing))
+            }
             return
         }
     }

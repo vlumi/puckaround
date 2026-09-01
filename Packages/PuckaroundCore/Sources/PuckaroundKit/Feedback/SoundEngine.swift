@@ -151,6 +151,12 @@ final class SoundEngine {
             state.fire(
                 slot: 1,
                 Trigger(hz: 360 + hard * 120, gain: 0.35 + hard * 0.3, noise: 0.75, decay: 0.9985))
+        case .brickChipped(let speed):
+            // A chip: the wall held — duller and lower than a break.
+            let hard = min(1, speed / 300)
+            state.fire(
+                slot: 1,
+                Trigger(hz: 230 + hard * 80, gain: 0.3 + hard * 0.25, noise: 0.8, decay: 0.9982))
         default:
             fireFanfare(event)
         }

@@ -32,9 +32,12 @@ extension RinkRenderer {
             let inset = 0.6 * projection.scale
             let rect = projection.rect(brick.rect).insetBy(dx: inset, dy: inset)
             let block = Path(roundedRect: rect, cornerRadius: 1.5 * projection.scale)
-            context.fill(block, with: .color(line.opacity(0.12)))
+            // Sturdier bricks read denser; a chipped one visibly thins out.
+            let extra = Double(brick.hits - 1)
+            context.fill(block, with: .color(line.opacity(min(0.32, 0.12 + 0.09 * extra))))
             glowStroke(
-                block, color: line.opacity(0.55), lineWidth: max(1, 0.7 * projection.scale),
+                block, color: line.opacity(min(0.9, 0.55 + 0.15 * extra)),
+                lineWidth: max(1, 0.7 * projection.scale),
                 blur: 3 * projection.scale, in: &context)
         }
     }

@@ -23,8 +23,8 @@ final class ArcadeTests: XCTestCase {
 
     func testBricksPayLikeBumpers() {
         var run = ScoreAttack()
-        run.ingest([.brickBroken(speed: 80), .brickBroken(speed: 200)])
-        XCTAssertEqual(run.score, 2 * ScoreAttack.brickPoints)
+        run.ingest([.brickBroken(speed: 80), .brickBroken(speed: 200), .brickChipped(speed: 90)])
+        XCTAssertEqual(run.score, 3 * ScoreAttack.brickPoints, "chips pay like breaks")
     }
 
     func testTheBoardHoldsTenBestFirst() {

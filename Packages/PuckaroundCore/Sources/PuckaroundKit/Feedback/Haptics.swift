@@ -64,6 +64,9 @@ final class Haptics {
         case .brickBroken(let speed):
             // Something gave way — a rigid crack.
             rigid.impactOccurred(intensity: intensity(forSpeed: speed, fast: 300) * 0.7)
+        case .brickChipped(let speed):
+            // The wall held — a lighter knock than a break.
+            light.impactOccurred(intensity: intensity(forSpeed: speed, fast: 300) * 0.6)
         default:
             fireFanfare(event)
         }

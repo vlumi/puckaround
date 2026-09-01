@@ -32,19 +32,31 @@ enum ArcadeSpec {
             return table
         }())
 
-    /// Brick Wall: a two-row wall defends the far goal — smash through (each
-    /// brick pays), score behind it, and the wall racks fresh on every goal.
+    /// Brick Wall: a wall defends the far goal — smash through (each hit
+    /// pays), score behind it, and every clear racks it back harder: two rows
+    /// grow to five, then the bricks turn sturdy. The last rack holds forever.
     static let brickWall = ArcadeMachine(
         id: "brickWall", title: "Brick Wall",
         table: {
             var table = Playfield.duel.with(format: .solo)
-            table.bricks = (0..<14).map { index in
-                let column = Double(index % 7)
-                let row = Double(index / 7)
-                return Brick(rect: Rect(x: 8 + column * 12, y: 12 + row * 6, width: 12, height: 6))
-            }
+            table.brickWalls = [
+                wall(rows: 2, hits: 1), wall(rows: 3, hits: 1), wall(rows: 4, hits: 1),
+                wall(rows: 5, hits: 1), wall(rows: 5, hits: 2), wall(rows: 5, hits: 3),
+            ]
             return table
         }())
+
+    /// One Brick Wall rack: full-width rows down from the goal, every brick
+    /// `hits` strong.
+    private static func wall(rows: Int, hits: Int) -> [Brick] {
+        (0..<(rows * 7)).map { index in
+            let column = Double(index % 7)
+            let row = Double(index / 7)
+            return Brick(
+                rect: Rect(x: 8 + column * 12, y: 12 + row * 6, width: 12, height: 6),
+                hits: hits)
+        }
+    }
 }
 
 /// **The arcade.** Solo minigames on the game's own physics, behind one shelf

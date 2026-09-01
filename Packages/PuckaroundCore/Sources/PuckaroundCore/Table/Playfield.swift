@@ -44,17 +44,19 @@ public struct Playfield: Equatable, Codable, Sendable {
     /// Pinball furniture: fixed discs the puck bounces off with a kick. Empty
     /// on the plain table; the arcade's tables seat a few.
     public var bumpers: [Bumper]
-    /// The STARTING brick wall — the live wall is sim state on the `Rink`,
-    /// since bricks break; it racks fresh from here each game and after every
-    /// goal. Empty everywhere but breakout tables.
-    public var bricks: [Brick]
+    /// The brick wall's PROGRESSION — one rack per level, each usually harder
+    /// (more rows, sturdier bricks); the live wall is sim state on the `Rink`,
+    /// since bricks break. Scoring into the wall's half levels the rack up,
+    /// holding at the last once the list runs out. Empty except on breakout
+    /// tables.
+    public var brickWalls: [[Brick]]
 
     public init(
         size: Vec2, puckRadius: Double, malletRadius: Double, goalWidth: Double,
         restitution: Double, drag: Double, maxSpeed: Double, restSpeed: Double,
         faceoffBubbleRadius: Double, serveSpeed: Double, puckShapes: [PuckShape] = [.circle],
         doublesGoalWidth: Double? = nil, format: Format = .oneVsOne,
-        sideWalls: SideWalls = .solid, bumpers: [Bumper] = [], bricks: [Brick] = []
+        sideWalls: SideWalls = .solid, bumpers: [Bumper] = [], brickWalls: [[Brick]] = []
     ) {
         self.size = size
         self.puckRadius = puckRadius
@@ -71,7 +73,19 @@ public struct Playfield: Equatable, Codable, Sendable {
         self.format = format
         self.sideWalls = sideWalls
         self.bumpers = bumpers
-        self.bricks = bricks
+        self.brickWalls = brickWalls
+    }
+
+    /// The wall for a level, holding at the hardest once the progression ends.
+    public func wall(level: Int) -> [Brick] {
+        guard !brickWalls.isEmpty else { return [] }
+        return brickWalls[min(level, brickWalls.count - 1)]
+    }
+
+    /// The half the brick wall guards, from its opening rack — nil brickless.
+    public var wallSide: Side? {
+        guard let first = brickWalls.first?.first else { return nil }
+        return first.rect.center.y < center.y ? .top : .bottom
     }
 
     /// The one table there is: two players facing each other.
@@ -151,12 +165,16 @@ public struct Bumper: Equatable, Codable, Sendable {
 }
 
 /// One brick of a breakout wall: an axis-aligned block the puck smashes — it
-/// bounces off the face it hit, and the brick is gone. The table carries the
-/// starting wall; the standing wall lives on the `Rink`, because state.
+/// bounces off the face it hit, and the brick chips (if sturdy) or goes. The
+/// table carries the wall progression; the standing wall lives on the `Rink`,
+/// because state.
 public struct Brick: Equatable, Codable, Sendable {
     public var rect: Rect
+    /// Hits left before it breaks — sturdy bricks (2, 3, …) chip first.
+    public var hits: Int
 
-    public init(rect: Rect) {
+    public init(rect: Rect, hits: Int = 1) {
         self.rect = rect
+        self.hits = hits
     }
 }
