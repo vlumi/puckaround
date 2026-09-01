@@ -185,8 +185,9 @@ struct ArcadeView: View {
             stage = .cabinet(machine)
         } label: {
             VStack(spacing: 8) {
-                TablePreview(table: machine.table)
-                    .frame(height: 170)
+                // Just the top of the table — the far goal and its guardian
+                // furniture are the game's signature, not the empty ice.
+                TablePreview(table: machine.table, crop: 0.42)
                 Text(machine.title, bundle: .module)
                     .font(.system(size: 15, weight: .bold, design: .rounded))
                     .foregroundStyle(Neon.cyan)

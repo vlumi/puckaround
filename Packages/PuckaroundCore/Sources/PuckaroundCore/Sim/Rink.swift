@@ -247,8 +247,9 @@ public struct Rink: Equatable, Sendable {
     /// After a goal: the scored puck is served from center, gliding slowly into
     /// the conceder's half — any other pucks play on undisturbed. It moves AWAY
     /// from the far side — a puck heading into the conceder's own end is
-    /// unreachable by the opponent until it settles.
-    private mutating func serve(puckAt index: Int, to side: Side) {
+    /// unreachable by the opponent until it settles. Internal, not private:
+    /// the physics half also serves (rescuing a puck dead in an unmanned half).
+    mutating func serve(puckAt index: Int, to side: Side) {
         let towardOwnGoal = -side.inward
         pucks[index] = Puck(
             position: table.center, velocity: towardOwnGoal * table.serveSpeed,

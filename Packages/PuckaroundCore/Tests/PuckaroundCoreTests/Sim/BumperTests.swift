@@ -55,16 +55,29 @@ final class BumperTests: XCTestCase {
     }
 
     /// A puck resting against a bumper is pushed clear but never kicked — no
-    /// closing speed, no clang, no free points.
+    /// closing speed means no clang and no free points; being dead in the
+    /// empty half, it then quietly re-serves (see the rescue test).
     func testARestingPuckIsNotMachineGunned() {
         var r = playingRink()
         r.setPuckForTesting(Puck(position: Vec2(50, 49.5), velocity: .zero))
         r.advance(inputs: [:])
         XCTAssertFalse(
             r.events.contains { if case .bumperHit = $0 { return true } else { return false } })
-        XCTAssertEqual(r.puck.velocity, .zero)
-        XCTAssertGreaterThanOrEqual(
-            r.puck.position.distance(to: Vec2(50, 40)), 10 - 1e-9, "pushed clear of the bumper")
+        XCTAssertEqual(r.puck.position, r.table.center, "dead in the empty half — re-served")
+    }
+
+    /// A puck that dies where nobody can reach it re-serves to the player —
+    /// no foul, no lost life; one dead in the player's own half stays put.
+    func testADeadPuckInTheEmptyHalfReServes() {
+        var r = playingRink()
+        r.setPuckForTesting(Puck(position: Vec2(20, 40), velocity: .zero))
+        r.advance(inputs: [:])
+        XCTAssertEqual(r.puck.position, r.table.center, "warped to center")
+        XCTAssertGreaterThan(r.puck.velocity.y, 0, "gliding back to the player")
+        // In reach it is the player's problem: a dead puck down low stays.
+        r.setPuckForTesting(Puck(position: Vec2(20, 120), velocity: .zero))
+        r.advance(inputs: [:])
+        XCTAssertEqual(r.puck.position, Vec2(20, 120), "the player's half is theirs to clear")
     }
 
     /// Same seed, same inputs, bumpers and all — bit-identical.

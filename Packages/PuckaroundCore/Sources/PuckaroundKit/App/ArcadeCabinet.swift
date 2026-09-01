@@ -191,20 +191,28 @@ struct ArcadeCabinet: View {
 }
 
 /// A table drawn as it will play — through the real renderer, at tick zero:
-/// the faceoff row, the furniture, a fresh run's HUD. The game is its own
-/// marquee art, and a spec change redraws itself for free.
+/// the furniture, a fresh run's HUD. The game is its own marquee art, and a
+/// spec change redraws itself for free. `crop` shows only that fraction of
+/// the table from the top — an index icon crops to the signature furniture
+/// (the far goal, the bumpers, the wall) instead of the whole field.
 struct TablePreview: View {
     let table: Playfield
+    var crop: Double = 1
 
     var body: some View {
         Canvas { context, size in
+            // Lay the FULL board out at the view's width; the view's aspect
+            // only admits the top `crop` of it, and the rest clips away.
+            let full = CGSize(
+                width: size.width, height: size.width * table.size.y / table.size.x)
             let rink = Rink(table: table, seed: 0)
             let scene = RinkScene(
                 rink: rink,
-                placement: BoardPlacement(board: table.size, screen: size),
+                placement: BoardPlacement(board: table.size, screen: full),
                 reducedMotion: true, arcade: ScoreAttack())
-            RinkRenderer.draw(scene, in: &context, size: size)
+            RinkRenderer.draw(scene, in: &context, size: full)
         }
-        .aspectRatio(table.size.x / table.size.y, contentMode: .fit)
+        .aspectRatio(table.size.x / (table.size.y * crop), contentMode: .fit)
+        .clipped()
     }
 }
