@@ -106,7 +106,7 @@ struct RosterSheet: View {
                 if let editing, row.contains(where: { $0.name == editing }),
                     let i = pool.firstIndex(where: { $0.name == editing })
                 {
-                    KitEditor(name: editing, kit: pool[i].kit) { picked in
+                    KitEditor(kit: pool[i].kit) { picked in
                         pool[i].kit = picked
                         savePool()
                     }
@@ -150,7 +150,7 @@ struct RosterSheet: View {
                     .foregroundStyle(Neon.magenta.opacity(0.85))
             }
             if editingDraft, !draftName.isEmpty {
-                KitEditor(name: draftName, kit: currentDraftKit) { draftKit = $0 }
+                KitEditor(kit: currentDraftKit) { draftKit = $0 }
             }
         }
         // An emptied field is the next person starting over: the pick clears
