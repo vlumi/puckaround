@@ -97,16 +97,18 @@ puckaround/
     │   ├── Table/                  Playfield + Goal geometry, Table (Side/Lane/MalletSlot/Format), PuckShape
     │   ├── Input/                  SeatInput + ControlSource, SeatZones, MalletControlSource,
     │   │                           PatternControlSource (the practice machine)
+    │   ├── Arcade/                 ScoreAttack (one run's score & lives), Hiscores (the ten-line board)
     │   └── Couch/                  The evening layer — Tournament (winner stays), Bracket, League,
     │                               the Evening handle, MatchResult, PlayerKit (home/away colors);
     │                               names never reach the sim
     ├── Sources/PuckaroundKit/      SwiftUI + UIKit, depends on Core; coverage-ignored
     │   ├── App/                    AppRoot, MenuView + NewMatchSheet/SetupControls/Setup (the front door),
     │   │                           GameView + HockeyGame (one table), TournamentView + RosterSheet +
-    │   │                           PlayerPool (the couch), InterfaceTurn, NeonUI, Compat (iOS 16 wrappers)
+    │   │                           PlayerPool (the couch), ArcadeView + ArcadeSpec (the arcade),
+    │   │                           InterfaceTurn, NeonUI, Compat (iOS 16 wrappers)
     │   ├── Feedback/               Haptics + SoundEngine — procedural, off the sim's GameEvent stream
     │   ├── Input/                  MultiTouchSurface — every finger, id-tagged, to the control source
-    │   ├── Render/                 RinkRenderer (+Puck/+Faceoff/+Score, Canvas), BoardPlacement, Seat, SeatPalette
+    │   ├── Render/                 RinkRenderer (+Puck/+Faceoff/+Score/+Arcade, Canvas), BoardPlacement, Seat, SeatPalette
     │   ├── Icon/                   AppIconScene — the icon is drawn by the game's own code
     │   └── Resources/              Localizable.xcstrings (the Kit's strings)
     ├── Sources/PuckaroundIcon/     Dev tool: `make icon` renders the icon PNG (macOS-only)

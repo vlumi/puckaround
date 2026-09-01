@@ -11,6 +11,9 @@ public enum GameEvent: Equatable, Sendable {
     case wallBounce(speed: Double)
     /// Two pucks clacked into each other; `speed` is their closing speed.
     case puckHit(speed: Double)
+    /// The puck hit a bumper, which kicked it; `speed` is the closing speed.
+    /// The arcade's score-attack loop feeds on these.
+    case bumperHit(speed: Double)
     /// A goal went in against `conceder`, scored by `scorer`. On an own goal the
     /// two are opposite sides all the same — the puck crossing a side's own line
     /// is the other side's point, whoever last touched it.

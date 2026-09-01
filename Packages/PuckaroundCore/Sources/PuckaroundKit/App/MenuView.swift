@@ -13,6 +13,8 @@ struct MenuView: View {
     let onTournament: () -> Void
     /// Start practice against the machine, with the current stored setup.
     let onPractice: () -> Void
+    /// Open the arcade shelf — solo minigames and their boards.
+    let onArcade: () -> Void
 
     @State private var showingNewMatch = false
     @State private var showingPractice = false
@@ -28,6 +30,7 @@ struct MenuView: View {
                     }
                     NeonButton(title: "Tournament", action: onTournament)
                     NeonButton(title: "Practice") { showingPractice = true }
+                    NeonButton(title: "Arcade", action: onArcade)
                 }
                 .frame(maxWidth: 280)
                 .padding(.horizontal, 40)

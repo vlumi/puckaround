@@ -42,9 +42,10 @@ public final class MalletControlSource: TouchDrivenControlSource {
     }
 
     /// Try to attach an unassigned finger to the mallet in its zone if it is
-    /// close enough — snapping the mallet under the finger.
+    /// close enough — snapping the mallet under the finger. A finger on an
+    /// empty half (a solo table's machine end) drives nothing.
     private func tryGrab(id: TouchID, at location: Vec2, malletAt: Vec2) {
-        let slot = zones.owner(of: location)
+        guard let slot = zones.owner(of: location) else { return }
         guard driver[slot] == nil, location.distance(to: malletAt) <= grabRadius else { return }
         driver[slot] = id
         grab[slot] = location

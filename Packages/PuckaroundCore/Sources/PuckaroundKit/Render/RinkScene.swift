@@ -20,6 +20,9 @@ struct RinkScene {
     var names: EndNames?
     /// The ends' kit colors during a tournament, or nil for the classic pair.
     var colors: EndColors?
+    /// The arcade run riding this table, or nil on a couch table. When set,
+    /// the renderer swaps the per-side scores for the cabinet HUD.
+    var arcade: ScoreAttack?
 
     /// What a side's furniture (mallet, goal, score, verdicts) wears: the
     /// player's kit when the ends are named, the classic pair otherwise.

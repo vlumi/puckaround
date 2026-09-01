@@ -194,8 +194,29 @@ extension Rink {
         for mallet in mallets {
             collide(puckAt: index, withMalletAt: mallet.position, velocity: mallet.velocity)
         }
+        collideBumpers(puckAt: index)
         freeStuckPuckFromWall(at: index)
         return false
+    }
+
+    /// Bumpers: fixed discs that bounce the puck and kick it faster — pinball
+    /// furniture riding the same circle math as a mallet that never moves.
+    /// Fixed index order, so the mayhem stays deterministic. Only a real hit
+    /// (closing speed) kicks and clangs; a puck resting against a bumper is
+    /// pushed clear without being machine-gunned to the moon.
+    private mutating func collideBumpers(puckAt index: Int) {
+        for bumper in table.bumpers {
+            let reach = table.puckRadius + bumper.radius
+            let offset = pucks[index].position - bumper.position
+            guard offset.length < reach else { continue }
+            let normal = offset.length > 0 ? offset.normalized : Vec2(0, -1)
+            pucks[index].position = bumper.position + normal * reach
+            let closing = pucks[index].velocity.dot(normal)
+            guard closing < 0 else { continue }
+            pucks[index].velocity -= normal * ((1 + table.restitution) * closing)
+            pucks[index].velocity += normal * bumper.kick
+            events.append(.bumperHit(speed: -closing))
+        }
     }
 
     /// Pucks bounce off each other as equal-mass discs — shaped pucks included,
