@@ -39,6 +39,27 @@ extension RinkRenderer {
         }
     }
 
+    /// A rescued puck's beam: a ghost ring expanding where it died, a flare
+    /// collapsing onto the serve — so the puck leaving mid-drift and arriving
+    /// at center reads as a beam, never a teleporting glitch. Skipped under
+    /// reduced motion (the shimmer sound still tells the story).
+    static func drawBeam(
+        _ scene: RinkScene, projection: Projection, in context: inout GraphicsContext
+    ) {
+        guard let beam = scene.beam, !scene.reducedMotion else { return }
+        let eased = 1 - (1 - beam.progress) * (1 - beam.progress)
+        let r = scene.rink.table.puckRadius * projection.scale
+        let out = projection.disc(at: projection.point(beam.from), radius: r * (1 + 1.8 * eased))
+        glowStroke(
+            out, color: line.opacity(0.7 * (1 - eased)), lineWidth: max(1, 1.2 * projection.scale),
+            blur: 4 * projection.scale, in: &context)
+        let arrive = projection.disc(
+            at: projection.point(scene.rink.table.center), radius: r * (3 - 2 * eased))
+        glowStroke(
+            arrive, color: puck.opacity(0.2 + 0.6 * eased),
+            lineWidth: max(1, 1 * projection.scale), blur: 4 * projection.scale, in: &context)
+    }
+
     /// The arcade HUD: the run's score across the machine's empty end and a
     /// row of life pucks under it, facing the player like everything theirs.
     /// Neutral ink — the score is the table's, not a side's.

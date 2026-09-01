@@ -170,6 +170,9 @@ final class SoundEngine {
         case .faceoffCleared:
             // The "GO": a bright, punchy whistle-crack as the field bursts.
             state.fire(slot: 3, Trigger(hz: 880, gain: 0.9, noise: 0.25, decay: 0.9994))
+        case .puckBeamed:
+            // The rescue beam: a soft high shimmer — out, and back in play.
+            state.fire(slot: 2, Trigger(hz: 980, gain: 0.3, noise: 0.1, decay: 0.9994))
         default:
             break
         }

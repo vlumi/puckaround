@@ -53,23 +53,57 @@ extension Rink {
         }
     }
 
-    /// A puck that dies in a half nobody mans — at rest, past the lone side's
-    /// reach — re-serves instead of stalling the game forever. No foul and no
-    /// cost: a soft shot that ran out isn't a mistake worth a life. Only solo
-    /// tables have an unmanned half, so the couch never sees this.
+    /// A puck doomed in a half nobody mans re-serves instead of stalling the
+    /// game — and it doesn't wait for the last pixel of drift: once it's past
+    /// the lone side's reach and too slow for its remaining travel to bring it
+    /// back, reach furniture, or find the goal, only walls remain and its fate
+    /// is sealed, so it beams out early. No foul and no cost: a soft shot that
+    /// ran out isn't a mistake worth a life. One-puck tables only — another
+    /// puck could still knock a doomed one loose.
     mutating func rescueDeadPuck(at index: Int) {
-        guard phase == .playing, pucks[index].velocity == .zero else { return }
-        let p = pucks[index].position
+        guard phase == .playing, pucks.count == 1 else { return }
+        let puck = pucks[index]
         for side in Side.allCases where table.format.hands(on: side) == Format.Hands.none {
             // The manned mallet, kissing the center line, reaches a puck-radius
-            // over it; anything at rest beyond that is out of every hand.
-            let beyondReach =
+            // over it; past that only the furniture and the goal can act.
+            let beyond =
                 side == .top
-                ? p.y < table.center.y - table.puckRadius
-                : p.y > table.center.y + table.puckRadius
-            if beyondReach {
+                ? puck.position.y < table.center.y - table.puckRadius
+                : puck.position.y > table.center.y + table.puckRadius
+            guard beyond else { continue }
+            // Total remaining travel under exponential drag is at most v/drag,
+            // and walls only bleed speed — the bound survives any bounce.
+            let speed = puck.velocity.length
+            if speed == 0 || speed / table.drag < doomDistance(from: puck.position, into: side) {
+                events.append(.puckBeamed(from: puck.position))
                 serve(puckAt: index, to: rules.serveTo ?? side.opponent)
             }
         }
+    }
+
+    /// How far the puck is from ANYTHING on `side`'s unmanned half that could
+    /// still change its fate: the manned side's reach line, the goal mouth, a
+    /// bumper, a standing brick. Walls aren't listed — they only bleed speed.
+    private func doomDistance(from p: Vec2, into side: Side) -> Double {
+        let field = table.puckField
+        var nearest =
+            side == .top
+            ? (table.center.y - table.puckRadius) - p.y
+            : p.y - (table.center.y + table.puckRadius)
+        let goal = table.goal(side)
+        let wallY = side == .top ? field.minY : field.maxY
+        let onMouth = Vec2(min(max(p.x, goal.postLeft), goal.postRight), wallY)
+        nearest = min(nearest, p.distance(to: onMouth))
+        for bumper in table.bumpers {
+            let surface = p.distance(to: bumper.position) - bumper.radius - table.puckRadius
+            nearest = min(nearest, surface)
+        }
+        for brick in bricks {
+            let rect = brick.rect
+            let closest = Vec2(
+                min(max(p.x, rect.minX), rect.maxX), min(max(p.y, rect.minY), rect.maxY))
+            nearest = min(nearest, p.distance(to: closest) - table.puckRadius)
+        }
+        return nearest
     }
 }

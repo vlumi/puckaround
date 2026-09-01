@@ -66,6 +66,27 @@ final class BumperTests: XCTestCase {
         XCTAssertEqual(r.puck.position, r.table.center, "dead in the empty half — re-served")
     }
 
+    /// A doomed puck doesn't wait to stop: past the reach line and too slow
+    /// for its remaining travel to reach the line, the goal or a bumper, it
+    /// beams out mid-drift.
+    func testADoomedPuckBeamsOutEarly() {
+        var r = playingRink()
+        r.setPuckForTesting(Puck(position: Vec2(20, 40), velocity: Vec2(0, -5)))
+        r.advance(inputs: [:])
+        XCTAssertTrue(
+            r.events.contains { if case .puckBeamed = $0 { return true } else { return false } })
+        XCTAssertEqual(r.puck.position, r.table.center)
+    }
+
+    /// Still fast enough that something could yet happen: left to play.
+    func testAFastPuckIsLeftToPlay() {
+        var r = playingRink()
+        r.setPuckForTesting(Puck(position: Vec2(20, 40), velocity: Vec2(0, -100)))
+        r.advance(inputs: [:])
+        XCTAssertFalse(
+            r.events.contains { if case .puckBeamed = $0 { return true } else { return false } })
+    }
+
     /// A puck that dies where nobody can reach it re-serves to the player —
     /// no foul, no lost life; one dead in the player's own half stays put.
     func testADeadPuckInTheEmptyHalfReServes() {

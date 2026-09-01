@@ -110,6 +110,7 @@ enum RinkRenderer {
         for puck in scene.rink.pucks {
             drawPuck(puck, radius: table.puckRadius, projection: projection, in: &context)
         }
+        drawBeam(scene, projection: projection, in: &context)
         // Mallets last — above the puck and the center glyph, since they're hands.
         drawMallets(scene, projection: projection, in: &context)
         if let burst = scene.faceoffBurst, !scene.reducedMotion {

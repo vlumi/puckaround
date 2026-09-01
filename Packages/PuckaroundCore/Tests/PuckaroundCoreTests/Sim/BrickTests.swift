@@ -68,6 +68,17 @@ final class BrickTests: XCTestCase {
         XCTAssertEqual(r.bricks.count, 1, "the wall racked fresh")
     }
 
+    /// A slow puck CLOSE to a brick isn't beamed — it might still smash it,
+    /// so its fate isn't sealed and the rescue must keep its hands off.
+    func testASlowPuckNearABrickIsNotBeamed() {
+        var r = playingRink(on: table)
+        r.setPuckForTesting(Puck(position: Vec2(10, 24), velocity: Vec2(0, -5)))
+        r.advance(inputs: [:])
+        XCTAssertFalse(
+            r.events.contains { if case .puckBeamed = $0 { return true } else { return false } })
+        XCTAssertEqual(r.bricks.count, 1)
+    }
+
     /// Same seed, same inputs, wall and all — bit-identical.
     func testABrickTableIsDeterministic() {
         var full = table

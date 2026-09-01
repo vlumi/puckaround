@@ -17,6 +17,9 @@ public enum GameEvent: Equatable, Sendable {
     /// The puck smashed a brick out of the wall; `speed` is the closing speed.
     /// Score-attack fuel, like a bumper hit.
     case brickBroken(speed: Double)
+    /// A doomed puck was beamed from `from` back to the serve — the unmanned-
+    /// half rescue. The renderer animates the beam; no points, no penalty.
+    case puckBeamed(from: Vec2)
     /// A goal went in against `conceder`, scored by `scorer`. On an own goal the
     /// two are opposite sides all the same — the puck crossing a side's own line
     /// is the other side's point, whoever last touched it.

@@ -82,6 +82,9 @@ final class Haptics {
         case .faceoffCleared:
             // The "GO": a firm pop as the force field bursts and play begins.
             rigid.impactOccurred(intensity: 1)
+        case .puckBeamed:
+            // The rescue beam — gentle; nothing was won or lost.
+            soft.impactOccurred(intensity: 0.6)
         default:
             break
         }
