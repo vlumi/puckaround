@@ -63,50 +63,54 @@ extension RinkRenderer {
             lineWidth: max(1, 1 * projection.scale), blur: 4 * projection.scale, in: &context)
     }
 
-    /// The arcade HUD: the run's score across the machine's empty end and a
-    /// row of life pucks under it, facing the player like everything theirs.
-    /// Neutral ink — the score is the table's, not a side's.
+    /// The arcade HUD, one row facing the player: stage · score · lives. It
+    /// sits in the letterbox band beyond the machine's wall whenever the
+    /// screen has one (portrait always does), off the ice entirely — so it
+    /// never fights the goal glow or the furniture. A board that fills the
+    /// screen (landscape) tucks the row just inside the wall instead. Only
+    /// during live play: at the faceoff the attract panes own that space.
     static func drawArcadeHUD(
-        _ scene: RinkScene, projection: Projection, in context: inout GraphicsContext
+        _ scene: RinkScene, projection: Projection, screen: CGSize,
+        in context: inout GraphicsContext
     ) {
-        // Only during live play: at the faceoff the attract panes sit exactly
-        // here, and a zero score under them is just bleed-through noise —
-        // this also keeps the index thumbnails clean.
         guard let run = scene.arcade, !scene.rink.isFaceoff else { return }
-        let table = scene.rink.table
+        let rect = projection.rect
+        let scale = projection.scale
+        // Board space has its origin at the screen center, so the room beyond
+        // the top wall is minY + half the screen (valid at turn 0/180 — the
+        // turns that letterbox).
+        let margin = rect.minY + screen.height / 2
+        let inBand = Int(abs(scene.placement.turn.degrees)) % 180 == 0 && margin > 7 * scale
+        let rowCenter = inBand ? rect.minY - margin / 2 : rect.minY + 8 * scale
         let seat = Seat(side: .bottom, boardTurn: scene.placement.turn)
         var ctx = context
-        let at = projection.point(Vec2(table.center.x, 10))
-        ctx.translateBy(x: at.x, y: at.y)
+        ctx.translateBy(x: rect.midX, y: rowCenter)
         ctx.rotate(by: seat.labelAngle)
+        let fontSize = inBand ? min(8 * scale, margin * 0.6) : 7 * scale
         let text = ctx.resolve(
             Text(verbatim: "\(run.score)")
-                .font(
-                    .system(size: 10 * projection.scale, weight: .black, design: .rounded)
-                        .monospacedDigit()))
+                .font(.system(size: fontSize, weight: .black, design: .rounded).monospacedDigit()))
         var haze = ctx
-        haze.addFilter(.blur(radius: 3 * projection.scale))
+        haze.addFilter(.blur(radius: 3 * scale))
         haze.draw(colored(text, line.opacity(0.9)), at: .zero, anchor: .center)
         ctx.draw(colored(text, line), at: .zero, anchor: .center)
-        // One small puck per life left, in a row under the score.
-        let r = 2.0 * projection.scale
-        let gap = 7.0 * projection.scale
-        let span = CGFloat(max(0, run.lives - 1)) * gap
-        for life in 0..<max(0, run.lives) {
-            let dot = CGPoint(x: -span / 2 + CGFloat(life) * gap, y: 8.5 * projection.scale)
-            ctx.fill(
-                Path(
-                    ellipseIn: CGRect(x: dot.x - r, y: dot.y - r, width: 2 * r, height: 2 * r)),
-                with: .color(puck))
-        }
-        // A staged table says where the run stands.
-        if !table.stages.isEmpty {
+        // The stage on one side of the score, the life pucks on the other.
+        if !scene.rink.table.stages.isEmpty {
             let stage = ctx.resolve(
                 Text("Stage \(scene.rink.wallLevel + 1)", bundle: .module)
-                    .font(.system(size: 4.5 * projection.scale, weight: .bold, design: .rounded)))
+                    .font(.system(size: 4.5 * scale, weight: .bold, design: .rounded)))
             ctx.draw(
-                colored(stage, line.opacity(0.6)),
-                at: CGPoint(x: 0, y: 15 * projection.scale), anchor: .center)
+                colored(stage, line.opacity(0.7)), at: CGPoint(x: -30 * scale, y: 0),
+                anchor: .center)
+        }
+        let r = 1.8 * scale
+        let gap = 5.5 * scale
+        let span = CGFloat(max(0, run.lives - 1)) * gap
+        for life in 0..<max(0, run.lives) {
+            let dot = CGPoint(x: 30 * scale - span / 2 + CGFloat(life) * gap, y: 0)
+            ctx.fill(
+                Path(ellipseIn: CGRect(x: dot.x - r, y: dot.y - r, width: 2 * r, height: 2 * r)),
+                with: .color(puck))
         }
     }
 }

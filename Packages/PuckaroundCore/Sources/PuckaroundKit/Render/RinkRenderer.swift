@@ -94,7 +94,7 @@ enum RinkRenderer {
         // Labels face the players: head-to-head in portrait, or turned to the
         // down long edge (the bench) when the device is held sideways.
         drawSides(scene, projection: projection, in: &context)
-        drawArcadeHUD(scene, projection: projection, in: &context)
+        drawArcadeHUD(scene, projection: projection, screen: size, in: &context)
         // The menu glyph is always there — the center ring is always the menu.
         // It sits UNDER the puck (drawn next), so during a faceoff the frozen
         // puck rests on it; that's fine, it's furniture, and an empty ring would
