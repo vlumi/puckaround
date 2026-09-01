@@ -12,7 +12,7 @@ extension Rink {
     /// (closing speed) kicks and clangs; a puck resting against a bumper is
     /// pushed clear without being machine-gunned to the moon.
     mutating func collideBumpers(puckAt index: Int) {
-        for bumper in table.bumpers {
+        for bumper in bumpers {
             let reach = table.puckRadius + bumper.radius
             let offset = pucks[index].position - bumper.position
             guard offset.length < reach else { continue }
@@ -77,10 +77,13 @@ extension Rink {
                 ? puck.position.y < table.center.y - table.puckRadius
                 : puck.position.y > table.center.y + table.puckRadius
             guard beyond else { continue }
-            // Total remaining travel under exponential drag is at most v/drag,
-            // and walls only bleed speed — the bound survives any bounce.
+            // Total remaining travel under exponential drag is at most v over
+            // the EFFECTIVE drag (pace thins it), and walls only bleed speed —
+            // the bound survives any bounce.
             let speed = puck.velocity.length
-            if speed == 0 || speed / table.drag < doomDistance(from: puck.position, into: side) {
+            if speed == 0
+                || speed * pace / table.drag < doomDistance(from: puck.position, into: side)
+            {
                 events.append(.puckBeamed(from: puck.position))
                 serve(puckAt: index, to: rules.serveTo ?? side.opponent)
             }
@@ -100,7 +103,7 @@ extension Rink {
         let wallY = side == .top ? field.minY : field.maxY
         let onMouth = Vec2(min(max(p.x, goal.postLeft), goal.postRight), wallY)
         nearest = min(nearest, p.distance(to: onMouth))
-        for bumper in table.bumpers {
+        for bumper in bumpers {
             let surface = p.distance(to: bumper.position) - bumper.radius - table.puckRadius
             nearest = min(nearest, surface)
         }

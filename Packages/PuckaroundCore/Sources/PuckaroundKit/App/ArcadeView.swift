@@ -18,32 +18,71 @@ enum ArcadeSpec {
 
     static let machines: [ArcadeMachine] = [bumperField, brickWall]
 
-    /// Bumper field: your mallet is the flipper. One disc, solid walls, nobody
-    /// home up top — three bumpers guard the target goal and pay per clang.
+    /// Bumper field: your mallet is the flipper. Nobody home up top — each
+    /// stage seats a different bumper pattern guarding the target goal
+    /// (triangle, diamond, a bumper wall, twin heavies, the X), some flying
+    /// shaped or doubled pucks. Clearing the last loops faster.
     static let bumperField = ArcadeMachine(
         id: "bumperField", title: "Bumper Field",
         table: {
             var table = Playfield.duel.with(format: .solo)
-            table.bumpers = [
-                Bumper(position: Vec2(30, 46), radius: 6, kick: 60),
-                Bumper(position: Vec2(70, 46), radius: 6, kick: 60),
-                Bumper(position: Vec2(50, 32), radius: 6, kick: 60),
+            table.stages = [
+                TableStage(bumpers: triangle),
+                TableStage(bumpers: diamond),
+                TableStage(bumpers: bumperWall, pucks: [.square]),
+                TableStage(bumpers: twins, pucks: [.circle, .circle]),
+                TableStage(bumpers: cross, pucks: [.circle, .square]),
             ]
             return table
         }())
 
-    /// Brick Wall: a wall defends the far goal — smash through (each hit
-    /// pays), score behind it, and every clear racks it back harder in a
-    /// sawtooth: one row grows to three, then five; then the wall thins back
-    /// to one row of sturdier bricks and climbs again. Nine racks to the max
-    /// — five rows of triple-hit bricks — which then holds forever.
+    private static let triangle = [
+        Bumper(position: Vec2(30, 46), radius: 6, kick: 60),
+        Bumper(position: Vec2(70, 46), radius: 6, kick: 60),
+        Bumper(position: Vec2(50, 32), radius: 6, kick: 60),
+    ]
+    private static let diamond = [
+        Bumper(position: Vec2(50, 24), radius: 6, kick: 60),
+        Bumper(position: Vec2(28, 40), radius: 6, kick: 60),
+        Bumper(position: Vec2(72, 40), radius: 6, kick: 60),
+        Bumper(position: Vec2(50, 56), radius: 6, kick: 60),
+    ]
+    /// A wall of small bumpers straight across the approach.
+    private static let bumperWall = [18.0, 34, 50, 66, 82].map {
+        Bumper(position: Vec2($0, 36), radius: 3.5, kick: 50)
+    }
+    private static let twins = [
+        Bumper(position: Vec2(38, 38), radius: 8, kick: 70),
+        Bumper(position: Vec2(62, 38), radius: 8, kick: 70),
+    ]
+    private static let cross = [
+        Bumper(position: Vec2(26, 28), radius: 5, kick: 60),
+        Bumper(position: Vec2(74, 28), radius: 5, kick: 60),
+        Bumper(position: Vec2(50, 40), radius: 6, kick: 70),
+        Bumper(position: Vec2(26, 52), radius: 5, kick: 60),
+        Bumper(position: Vec2(74, 52), radius: 5, kick: 60),
+    ]
+
+    /// Brick Wall's deliberate stages: walls grow and turn sturdy, tumbling
+    /// shapes replace the calm disc, later stages fly two and three pucks at
+    /// once — each new idea debuting somewhere it's legible. Clearing the
+    /// last loops back to the first with the pace turned up, lap after lap,
+    /// until the run finally ends.
     static let brickWall = ArcadeMachine(
         id: "brickWall", title: "Brick Wall",
         table: {
             var table = Playfield.duel.with(format: .solo)
-            table.brickWalls = (0..<9).map { level in
-                wall(rows: 1 + (level % 3) * 2, hits: 1 + level / 3)
-            }
+            table.stages = [
+                TableStage(bricks: wall(rows: 1, hits: 1)),
+                TableStage(bricks: wall(rows: 3, hits: 1)),
+                TableStage(bricks: wall(rows: 2, hits: 2), pucks: [.square]),
+                TableStage(bricks: wall(rows: 4, hits: 1), pucks: [.circle, .circle]),
+                TableStage(bricks: wall(rows: 3, hits: 2), pucks: [.triangle]),
+                TableStage(bricks: wall(rows: 5, hits: 1), pucks: [.circle, .square]),
+                TableStage(bricks: wall(rows: 4, hits: 2), pucks: [.circle, .circle, .circle]),
+                TableStage(bricks: wall(rows: 3, hits: 3), pucks: [.square, .triangle]),
+                TableStage(bricks: wall(rows: 5, hits: 3), pucks: [.circle, .square, .triangle]),
+            ]
             return table
         }())
 

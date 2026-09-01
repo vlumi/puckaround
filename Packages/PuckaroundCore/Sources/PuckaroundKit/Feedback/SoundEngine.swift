@@ -179,6 +179,10 @@ final class SoundEngine {
         case .puckBeamed:
             // The rescue beam: a soft high shimmer — out, and back in play.
             state.fire(slot: 2, Trigger(hz: 980, gain: 0.3, noise: 0.1, decay: 0.9994))
+        case .stageFailed:
+            // The stage lost: a low womp — heavier than any hit, sadder than
+            // the goal horn.
+            state.fire(slot: 3, Trigger(hz: 165, gain: 0.7, noise: 0.2, decay: 0.99988))
         default:
             break
         }

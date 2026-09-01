@@ -10,7 +10,7 @@ extension RinkRenderer {
     static func drawBumpers(
         _ scene: RinkScene, projection: Projection, in context: inout GraphicsContext
     ) {
-        for bumper in scene.rink.table.bumpers {
+        for bumper in scene.rink.bumpers {
             let p = projection.point(bumper.position)
             let r = bumper.radius * projection.scale
             let ring = projection.disc(at: p, radius: r)
@@ -95,6 +95,15 @@ extension RinkRenderer {
                 Path(
                     ellipseIn: CGRect(x: dot.x - r, y: dot.y - r, width: 2 * r, height: 2 * r)),
                 with: .color(puck))
+        }
+        // A staged table says where the run stands.
+        if !table.stages.isEmpty {
+            let stage = ctx.resolve(
+                Text("Stage \(scene.rink.wallLevel + 1)", bundle: .module)
+                    .font(.system(size: 4.5 * projection.scale, weight: .bold, design: .rounded)))
+            ctx.draw(
+                colored(stage, line.opacity(0.6)),
+                at: CGPoint(x: 0, y: 15 * projection.scale), anchor: .center)
         }
     }
 }

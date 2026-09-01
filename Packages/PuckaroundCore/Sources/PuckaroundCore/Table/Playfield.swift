@@ -44,19 +44,20 @@ public struct Playfield: Equatable, Codable, Sendable {
     /// Pinball furniture: fixed discs the puck bounces off with a kick. Empty
     /// on the plain table; the arcade's tables seat a few.
     public var bumpers: [Bumper]
-    /// The brick wall's PROGRESSION — one rack per level, each usually harder
-    /// (more rows, sturdier bricks); the live wall is sim state on the `Rink`,
-    /// since bricks break. Scoring into the wall's half levels the rack up,
-    /// holding at the last once the list runs out. Empty except on breakout
-    /// tables.
-    public var brickWalls: [[Brick]]
+    /// The arcade STAGES — each a deliberate rack: its wall, its bumper
+    /// pattern, and the pucks (shapes and count) that fly it. A stage resolves
+    /// when its last puck is gone (into either goal — nothing respawns):
+    /// cleared if anything found the machine's goal, failed otherwise. Stages
+    /// wrap past the end, the table playing faster each lap (`Rink.pace`).
+    /// The live furniture is sim state on the `Rink`. Empty on couch tables.
+    public var stages: [TableStage]
 
     public init(
         size: Vec2, puckRadius: Double, malletRadius: Double, goalWidth: Double,
         restitution: Double, drag: Double, maxSpeed: Double, restSpeed: Double,
         faceoffBubbleRadius: Double, serveSpeed: Double, puckShapes: [PuckShape] = [.circle],
         doublesGoalWidth: Double? = nil, format: Format = .oneVsOne,
-        sideWalls: SideWalls = .solid, bumpers: [Bumper] = [], brickWalls: [[Brick]] = []
+        sideWalls: SideWalls = .solid, bumpers: [Bumper] = [], stages: [TableStage] = []
     ) {
         self.size = size
         self.puckRadius = puckRadius
@@ -73,19 +74,20 @@ public struct Playfield: Equatable, Codable, Sendable {
         self.format = format
         self.sideWalls = sideWalls
         self.bumpers = bumpers
-        self.brickWalls = brickWalls
+        self.stages = stages
     }
 
-    /// The wall for a level, holding at the hardest once the progression ends.
-    public func wall(level: Int) -> [Brick] {
-        guard !brickWalls.isEmpty else { return [] }
-        return brickWalls[min(level, brickWalls.count - 1)]
+    /// The stage a level plays — wrapping past the end, so cleared stages
+    /// loop. Nil on a stageless table.
+    public func stage(at level: Int) -> TableStage? {
+        guard !stages.isEmpty else { return nil }
+        return stages[level % stages.count]
     }
 
-    /// The half the brick wall guards, from its opening rack — nil brickless.
-    public var wallSide: Side? {
-        guard let first = brickWalls.first?.first else { return nil }
-        return first.rect.center.y < center.y ? .top : .bottom
+    /// The side with nobody home — a solo table's target end. Nil on a fully
+    /// manned table.
+    public var machineSide: Side? {
+        Side.allCases.first { format.hands(on: $0) == Format.Hands.none }
     }
 
     /// The one table there is: two players facing each other.
@@ -176,5 +178,21 @@ public struct Brick: Equatable, Codable, Sendable {
     public init(rect: Rect, hits: Int = 1) {
         self.rect = rect
         self.hits = hits
+    }
+}
+
+/// One deliberate arcade stage: the wall it racks, the bumper pattern it
+/// seats, and the pucks it flies — shapes AND count, so one stage sends a
+/// calm disc at a thin sturdy line while another flies three tumbling shapes
+/// into a bumper diamond.
+public struct TableStage: Equatable, Codable, Sendable {
+    public var bricks: [Brick]
+    public var bumpers: [Bumper]
+    public var pucks: [PuckShape]
+
+    public init(bricks: [Brick] = [], bumpers: [Bumper] = [], pucks: [PuckShape] = [.circle]) {
+        self.bricks = bricks
+        self.bumpers = bumpers
+        self.pucks = pucks
     }
 }

@@ -8,8 +8,23 @@ final class BrickTests: XCTestCase {
     /// score without touching it.
     private var table: Playfield {
         var t = Playfield.duel.with(format: .solo)
-        t.brickWalls = [[Brick(rect: Rect(x: 4, y: 12, width: 12, height: 6))]]
+        t.stages = [TableStage(bricks: [Brick(rect: Rect(x: 4, y: 12, width: 12, height: 6))])]
         return t
+    }
+
+    /// Drive a fresh puck through the mouth until a goal lands.
+    private func scoreThroughTheMouth(_ r: inout Rink) {
+        r.setPuckForTesting(
+            Puck(position: Vec2(50, r.table.puckField.minY + 1), velocity: Vec2(0, -300)))
+        for _ in 0..<60 {
+            r.advance(inputs: [:])
+            if r.events.contains(where: {
+                if case .goal = $0 { return true } else { return false }
+            }) {
+                return
+            }
+        }
+        XCTFail("never scored")
     }
 
     private func playingRink(on table: Playfield) -> Rink {
@@ -79,33 +94,91 @@ final class BrickTests: XCTestCase {
         XCTAssertEqual(r.bricks.count, 1)
     }
 
-    /// Every clear racks the wall back harder; a drain racks the same level.
+    /// Every clear advances the stage; a drain replays it.
     func testTheWallLevelsUpOnClears() {
         var t = Playfield.duel.with(format: .solo)
         let brick = Brick(rect: Rect(x: 4, y: 12, width: 12, height: 6))
         let second = Brick(rect: Rect(x: 20, y: 12, width: 12, height: 6))
-        t.brickWalls = [[brick], [brick, second]]
+        t.stages = [TableStage(bricks: [brick]), TableStage(bricks: [brick, second])]
         var r = playingRink(on: t)
-        // Score into the wall's half: the next rack is level 1 — thicker.
-        r.setPuckForTesting(
-            Puck(position: Vec2(50, r.table.puckField.minY + 1), velocity: Vec2(0, -300)))
-        for _ in 0..<60 where r.bricks.count < 2 { r.advance(inputs: [:]) }
+        // Score into the wall's half: the next rack is stage two — thicker.
+        scoreThroughTheMouth(&r)
         XCTAssertEqual(r.bricks.count, 2, "cleared once — the wall came back thicker")
         // Drain the own goal: racks again, but failing isn't progress.
         r.setPuckForTesting(
             Puck(position: Vec2(50, r.table.puckField.maxY - 1), velocity: Vec2(0, 300)))
-        for _ in 0..<60 where r.wallLevel != 1 || r.score(of: .top) < 1 {
-            r.advance(inputs: [:])
-        }
+        for _ in 0..<60 where r.score(of: .top) < 1 { r.advance(inputs: [:]) }
         XCTAssertEqual(r.score(of: .top), 1, "the drain scored against the player")
-        XCTAssertEqual(r.bricks.count, 2, "a drain racks the same level")
+        XCTAssertEqual(r.wallLevel, 1)
+        XCTAssertEqual(r.bricks.count, 2, "a drain replays the stage")
+    }
+
+    /// Clearing the last stage loops to the first — with the pace turned up
+    /// and that stage's own pucks in the air.
+    func testTheStagesLoopFasterOnceCleared() {
+        var t = Playfield.duel.with(format: .solo)
+        let brick = Brick(rect: Rect(x: 4, y: 12, width: 12, height: 6))
+        t.stages = [
+            TableStage(bricks: [brick]),
+            TableStage(bricks: [brick], pucks: [.circle, .circle]),
+        ]
+        var r = playingRink(on: t)
+        XCTAssertEqual(r.pucks.count, 1, "the opening stage flies one puck")
+        scoreThroughTheMouth(&r)
+        XCTAssertEqual(r.pucks.count, 2, "the second stage flies two")
+        XCTAssertEqual(r.pace, 1, "still the first lap")
+        scoreThroughTheMouth(&r)
+        XCTAssertEqual(r.pucks.count, 1, "one of the pair gone — the stage plays on")
+        XCTAssertEqual(r.wallLevel, 1, "not resolved while a puck flies")
+        scoreThroughTheMouth(&r)
+        XCTAssertEqual(r.pucks.count, 1, "looped back to the first stage")
+        XCTAssertEqual(r.wallLevel, 2)
+        XCTAssertEqual(r.pace, 1.25, "the lap turned the pace up")
+    }
+
+    /// Multi-puck stages: a scored puck leaves and nothing respawns; the
+    /// stage advances only once the last puck is gone.
+    func testPucksDoNotRespawnMidStage() {
+        var t = Playfield.duel.with(format: .solo)
+        let brick = Brick(rect: Rect(x: 4, y: 12, width: 12, height: 6))
+        t.stages = [
+            TableStage(bricks: [brick], pucks: [.circle, .circle]),
+            TableStage(bricks: [brick]),
+        ]
+        var r = playingRink(on: t)
+        scoreThroughTheMouth(&r)
+        XCTAssertEqual(r.pucks.count, 1, "one gone, one still flying — no respawn")
+        XCTAssertEqual(r.wallLevel, 0, "the stage isn't over while a puck flies")
+        scoreThroughTheMouth(&r)
+        XCTAssertEqual(r.wallLevel, 1, "table empty and something scored: cleared")
+        XCTAssertEqual(r.pucks.count, 1, "the next stage flies its own pucks")
+    }
+
+    /// A stage whose every puck drains fails: the run's life, same stage again.
+    func testAFullyDrainedStageFailsAndReplays() {
+        var r = playingRink(on: table)
+        r.setPuckForTesting(
+            Puck(position: Vec2(50, r.table.puckField.maxY - 1), velocity: Vec2(0, 300)))
+        var failed = false
+        for _ in 0..<60 where !failed {
+            r.advance(inputs: [:])
+            failed = r.events.contains {
+                if case .stageFailed = $0 { return true } else { return false }
+            }
+        }
+        XCTAssertTrue(failed, "everything drained — the stage failed")
+        XCTAssertEqual(r.wallLevel, 0, "failing isn't progress")
+        XCTAssertEqual(r.pucks.count, 1, "the same stage racks again")
+        XCTAssertEqual(r.bricks.count, 1)
     }
 
     /// A sturdy brick chips before it breaks — each hit pays its event, and
     /// only the last removes it.
     func testASturdyBrickChipsThenBreaks() {
         var t = Playfield.duel.with(format: .solo)
-        t.brickWalls = [[Brick(rect: Rect(x: 40, y: 20, width: 20, height: 6), hits: 2)]]
+        t.stages = [
+            TableStage(bricks: [Brick(rect: Rect(x: 40, y: 20, width: 20, height: 6), hits: 2)])
+        ]
         var r = playingRink(on: t)
         r.setPuckForTesting(Puck(position: Vec2(50, 40), velocity: Vec2(0, -160)))
         var chipped = false
@@ -131,10 +204,12 @@ final class BrickTests: XCTestCase {
     /// Same seed, same inputs, wall and all — bit-identical.
     func testABrickTableIsDeterministic() {
         var full = table
-        full.brickWalls = [
-            (0..<7).map {
-                Brick(rect: Rect(x: 8 + Double($0) * 12, y: 12, width: 12, height: 6), hits: 2)
-            }
+        full.stages = [
+            TableStage(
+                bricks: (0..<7).map {
+                    Brick(rect: Rect(x: 8 + Double($0) * 12, y: 12, width: 12, height: 6), hits: 2)
+                },
+                pucks: [.circle, .square])
         ]
         func run() -> Rink {
             var r = playingRink(on: full)

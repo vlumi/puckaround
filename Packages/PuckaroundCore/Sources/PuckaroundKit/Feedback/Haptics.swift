@@ -88,6 +88,9 @@ final class Haptics {
         case .puckBeamed:
             // The rescue beam — gentle; nothing was won or lost.
             soft.impactOccurred(intensity: 0.6)
+        case .stageFailed:
+            // A life gone with the stage.
+            notice.notificationOccurred(.warning)
         default:
             break
         }
