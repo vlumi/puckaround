@@ -21,6 +21,12 @@ final class ArcadeTests: XCTestCase {
         XCTAssertEqual(run, final, "a finished run ignores everything after")
     }
 
+    func testBricksPayLikeBumpers() {
+        var run = ScoreAttack()
+        run.ingest([.brickBroken(speed: 80), .brickBroken(speed: 200)])
+        XCTAssertEqual(run.score, 2 * ScoreAttack.brickPoints)
+    }
+
     func testTheBoardHoldsTenBestFirst() {
         var board = Hiscores()
         for score in 1...12 {

@@ -8,6 +8,7 @@ public struct ScoreAttack: Equatable, Sendable {
     public private(set) var lives: Int
 
     public static let bumperPoints = 100
+    public static let brickPoints = 100
     public static let goalPoints = 1000
 
     public init(lives: Int = 3) {
@@ -23,6 +24,8 @@ public struct ScoreAttack: Equatable, Sendable {
             switch event {
             case .bumperHit:
                 score += ScoreAttack.bumperPoints
+            case .brickBroken:
+                score += ScoreAttack.brickPoints
             case .goal(_, let conceder):
                 if conceder == .bottom {
                     lives -= 1

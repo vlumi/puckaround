@@ -61,6 +61,18 @@ final class Haptics {
         case .bumperHit(let speed):
             // A bumper kick lands with a firm pop — it hit back, after all.
             rigid.impactOccurred(intensity: intensity(forSpeed: speed, fast: 300) * 0.8)
+        case .brickBroken(let speed):
+            // Something gave way — a rigid crack.
+            rigid.impactOccurred(intensity: intensity(forSpeed: speed, fast: 300) * 0.7)
+        default:
+            fireFanfare(event)
+        }
+    }
+
+    /// The ceremonial family — goals, wins, and the GO — split from the
+    /// per-hit impacts to keep each switch under the complexity limit.
+    private func fireFanfare(_ event: GameEvent) {
+        switch event {
         case .goal:
             soft.impactOccurred(intensity: 1)
         case .gameWon:
@@ -70,6 +82,8 @@ final class Haptics {
         case .faceoffCleared:
             // The "GO": a firm pop as the force field bursts and play begins.
             rigid.impactOccurred(intensity: 1)
+        default:
+            break
         }
     }
     #endif

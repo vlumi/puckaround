@@ -89,6 +89,7 @@ enum RinkRenderer {
             projection: projection, time: scene.time, reducedMotion: scene.reducedMotion,
             in: &context)
         drawBumpers(scene, projection: projection, in: &context)
+        drawBricks(scene, projection: projection, in: &context)
         drawLaneDividers(scene, projection: projection, in: &context)
         // Labels face the players: head-to-head in portrait, or turned to the
         // down long edge (the bench) when the device is held sideways.

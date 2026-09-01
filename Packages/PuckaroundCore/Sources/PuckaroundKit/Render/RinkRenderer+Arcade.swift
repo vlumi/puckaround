@@ -23,6 +23,22 @@ extension RinkRenderer {
         }
     }
 
+    /// The wall still standing: each brick a faint block with a glowing edge —
+    /// neutral furniture that reads as "boards you can break", not a seat's.
+    static func drawBricks(
+        _ scene: RinkScene, projection: Projection, in context: inout GraphicsContext
+    ) {
+        for brick in scene.rink.bricks {
+            let inset = 0.6 * projection.scale
+            let rect = projection.rect(brick.rect).insetBy(dx: inset, dy: inset)
+            let block = Path(roundedRect: rect, cornerRadius: 1.5 * projection.scale)
+            context.fill(block, with: .color(line.opacity(0.12)))
+            glowStroke(
+                block, color: line.opacity(0.55), lineWidth: max(1, 0.7 * projection.scale),
+                blur: 3 * projection.scale, in: &context)
+        }
+    }
+
     /// The arcade HUD: the run's score across the machine's empty end and a
     /// row of life pucks under it, facing the player like everything theirs.
     /// Neutral ink — the score is the table's, not a side's.

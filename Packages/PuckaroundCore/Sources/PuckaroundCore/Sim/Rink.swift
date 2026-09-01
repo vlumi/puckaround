@@ -14,6 +14,9 @@ public enum GameEvent: Equatable, Sendable {
     /// The puck hit a bumper, which kicked it; `speed` is the closing speed.
     /// The arcade's score-attack loop feeds on these.
     case bumperHit(speed: Double)
+    /// The puck smashed a brick out of the wall; `speed` is the closing speed.
+    /// Score-attack fuel, like a bumper hit.
+    case brickBroken(speed: Double)
     /// A goal went in against `conceder`, scored by `scorer`. On an own goal the
     /// two are opposite sides all the same — the puck crossing a side's own line
     /// is the other side's point, whoever last touched it.
@@ -111,6 +114,9 @@ public struct Rink: Equatable, Sendable {
     /// up to three. The order is part of the state: physics resolves them by
     /// index, so the mayhem stays deterministic.
     public internal(set) var pucks: [Puck]
+    /// The brick wall still standing — sim state, since bricks break. Racks
+    /// fresh from the table's spec each game and after every goal.
+    public internal(set) var bricks: [Brick]
     /// The first puck — the whole story on a one-puck table.
     public var puck: Puck { pucks[0] }
     /// One per slot, in `slots` order.
@@ -150,6 +156,7 @@ public struct Rink: Equatable, Sendable {
         self.slots = table.format.slots
         self.rng = SeededRNG(seed: seed)
         self.pucks = Rink.faceoffPucks(on: table)
+        self.bricks = table.bricks
         self.mallets = slots.map { Mallet(position: table.malletZone(for: $0).center) }
         self.score = Rink.scoreOrder.map { _ in 0 }
         self.gamesWon = Rink.scoreOrder.map { _ in 0 }
@@ -176,6 +183,7 @@ public struct Rink: Equatable, Sendable {
         score = Rink.scoreOrder.map { _ in 0 }
         gamesWon = Rink.scoreOrder.map { _ in 0 }
         pucks = Rink.faceoffPucks(on: table)
+        bricks = table.bricks
         phase = .opening
     }
 
@@ -282,6 +290,8 @@ public struct Rink: Equatable, Sendable {
         let scorer = side.opponent
         score[Rink.tallyIndex(scorer)] += 1
         events.append(.goal(scorer: scorer, conceder: conceder))
+        // A goal racks the wall fresh — the next point defends like the first.
+        bricks = table.bricks
         guard score(of: scorer) >= rules.pointsToWin else {
             serve(puckAt: index, to: rules.serveTo ?? conceder)
             return false

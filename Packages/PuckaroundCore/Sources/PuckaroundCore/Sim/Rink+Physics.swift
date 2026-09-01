@@ -195,8 +195,36 @@ extension Rink {
             collide(puckAt: index, withMalletAt: mallet.position, velocity: mallet.velocity)
         }
         collideBumpers(puckAt: index)
+        collideBricks(puckAt: index)
         freeStuckPuckFromWall(at: index)
         return false
+    }
+
+    /// Bricks: the puck smashes the first brick it overlaps (index order, so
+    /// deterministic), bouncing off it as it breaks — one brick per tick per
+    /// puck; a seam-mate waits for the next tick. A graze while moving away
+    /// pushes clear without breaking. Shaped pucks smash by their bounding
+    /// circle, like puck-puck.
+    private mutating func collideBricks(puckAt index: Int) {
+        let r = table.puckRadius
+        for brickIndex in bricks.indices {
+            let rect = bricks[brickIndex].rect
+            let p = pucks[index].position
+            let closest = Vec2(
+                min(max(p.x, rect.minX), rect.maxX), min(max(p.y, rect.minY), rect.maxY))
+            let offset = p - closest
+            guard offset.lengthSquared < r * r else { continue }
+            let normal =
+                offset.length > 0
+                ? offset.normalized : Vec2(0, pucks[index].velocity.y > 0 ? -1 : 1)
+            pucks[index].position = closest + normal * r
+            let closing = pucks[index].velocity.dot(normal)
+            guard closing < 0 else { return }
+            pucks[index].velocity -= normal * ((1 + table.restitution) * closing)
+            events.append(.brickBroken(speed: -closing))
+            bricks.remove(at: brickIndex)
+            return
+        }
     }
 
     /// Bumpers: fixed discs that bounce the puck and kick it faster — pinball

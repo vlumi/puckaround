@@ -1,98 +1,161 @@
 import PuckaroundCore
 import SwiftUI
 
-/// The arcade's canonical configs — one per minigame, never from the setup: a
-/// board means nothing if its runs played different tables.
+/// One cabinet in the arcade: its identity (also the board's storage key),
+/// its marquee title, and the canonical table it always plays — never from
+/// the setup, or the board's scores wouldn't compare.
+struct ArcadeMachine: Identifiable, Equatable {
+    let id: String
+    let title: LocalizedStringKey
+    let table: Playfield
+}
+
+/// The arcade's cabinets, in shelf order. The shared rules: the sim must
+/// never end an arcade game itself (the score-attack loop does), and every
+/// serve comes to the player.
 enum ArcadeSpec {
-    /// The sim must never end an arcade game itself; the score-attack loop
-    /// does. Every serve comes to the player, like practice.
     static let rules = Rules(pointsToWin: 1_000_000, gamesToWin: 1, serveTo: .bottom)
+
+    static let machines: [ArcadeMachine] = [bumperField, brickWall]
 
     /// Bumper field: your mallet is the flipper. One disc, solid walls, nobody
     /// home up top — three bumpers guard the target goal and pay per clang.
-    static var bumperField: Playfield {
-        var table = Playfield.duel.with(format: .solo)
-        table.bumpers = [
-            Bumper(position: Vec2(30, 46), radius: 6, kick: 60),
-            Bumper(position: Vec2(70, 46), radius: 6, kick: 60),
-            Bumper(position: Vec2(50, 32), radius: 6, kick: 60),
-        ]
-        return table
-    }
+    static let bumperField = ArcadeMachine(
+        id: "bumperField", title: "Bumper Field",
+        table: {
+            var table = Playfield.duel.with(format: .solo)
+            table.bumpers = [
+                Bumper(position: Vec2(30, 46), radius: 6, kick: 60),
+                Bumper(position: Vec2(70, 46), radius: 6, kick: 60),
+                Bumper(position: Vec2(50, 32), radius: 6, kick: 60),
+            ]
+            return table
+        }())
+
+    /// Brick Wall: a two-row wall defends the far goal — smash through (each
+    /// brick pays), score behind it, and the wall racks fresh on every goal.
+    static let brickWall = ArcadeMachine(
+        id: "brickWall", title: "Brick Wall",
+        table: {
+            var table = Playfield.duel.with(format: .solo)
+            table.bricks = (0..<14).map { index in
+                let column = Double(index % 7)
+                let row = Double(index / 7)
+                return Brick(rect: Rect(x: 8 + column * 12, y: 12 + row * 6, width: 12, height: 6))
+            }
+            return table
+        }())
 }
 
 /// **The arcade.** Solo minigames on the game's own physics, behind one shelf
-/// so the front door stays "people around one screen". Each minigame keeps a
-/// ten-line board, signed from the same remembered pool as tournaments.
+/// so the front door stays "people around one screen". The index shows each
+/// cabinet as its own table — the game is the marquee — and each cabinet's
+/// attract screen floats its ten-line board over the playfield until Play.
 struct ArcadeView: View {
     /// The stored setup — the arcade never reads it, but the table view needs
     /// one for its plumbing.
     let setup: Setup
     let onExit: () -> Void
 
-    /// The bumper-field board, JSON in storage.
-    @AppStorage("puckaround.hiscores.bumperField") private var savedBoard = Data()
+    @AppStorage("puckaround.hiscores.bumperField") private var bumperBoard = Data()
+    @AppStorage("puckaround.hiscores.brickWall") private var brickBoard = Data()
     @AppStorage("puckaround.playerNames") private var savedPool = Data()
-    @State private var stage = Stage.shelf
+    @State private var stage = Stage.index
     /// A finished run that made the board, waiting for its signature.
     @State private var pendingScore: Int?
-    /// The last run's score, shown on the shelf between games.
+    /// The last run's score, shown on the cabinet between games.
     @State private var lastScore: Int?
-    @State private var newName = ""
 
     private enum Stage: Equatable {
-        case shelf
-        case playing(seed: UInt64)
+        case index
+        case cabinet(ArcadeMachine)
+        case playing(ArcadeMachine, seed: UInt64)
     }
 
     var body: some View {
         ZStack {
             Neon.ground.ignoresSafeArea()
             switch stage {
-            case .shelf:
-                shelf
-            case .playing(let seed):
-                game(seed: seed).id(seed)
+            case .index:
+                index
+            case .cabinet(let machine):
+                ArcadeCabinet(
+                    machine: machine, board: board(for: machine),
+                    pool: PlayerPool.decode(savedPool),
+                    lastScore: lastScore, pendingScore: pendingScore,
+                    onPlay: {
+                        lastScore = nil
+                        pendingScore = nil
+                        stage = .playing(machine, seed: freshSeed())
+                    },
+                    onBack: { stage = .index },
+                    onSign: { name in sign(name, on: machine) },
+                    onSkip: { pendingScore = nil })
+            case .playing(let machine, let seed):
+                game(machine, seed: seed).id(seed)
             }
         }
     }
 
-    private var board: Hiscores {
-        (try? JSONDecoder().decode(Hiscores.self, from: savedBoard)) ?? Hiscores()
-    }
-
-    private func game(seed: UInt64) -> some View {
+    private func game(_ machine: ArcadeMachine, seed: UInt64) -> some View {
         GameView(
             setup: setup, seed: seed,
             mode: .arcade(
                 ArcadeTable(
-                    table: ArcadeSpec.bumperField, rules: ArcadeSpec.rules,
-                    onGameOver: gameOver)),
-            onNewMatch: { _ in stage = .playing(seed: freshSeed()) },
-            onExit: { stage = .shelf })
+                    table: machine.table, rules: ArcadeSpec.rules,
+                    onGameOver: { score in gameOver(score, on: machine) })),
+            onNewMatch: { _ in stage = .playing(machine, seed: freshSeed()) },
+            onExit: { stage = .cabinet(machine) })
     }
 
-    /// The run ended: back to the shelf, with the pen out if it boarded.
-    private func gameOver(_ score: Int) {
+    /// The run ended: back to the attract screen, pen out if it boarded.
+    private func gameOver(_ score: Int, on machine: ArcadeMachine) {
         lastScore = score
-        pendingScore = board.qualifies(score) ? score : nil
-        stage = .shelf
+        pendingScore = board(for: machine).qualifies(score) ? score : nil
+        stage = .cabinet(machine)
     }
 
-    private var shelf: some View {
+    /// Sign the waiting run — a brand-new name joins the pool like anywhere.
+    private func sign(_ name: String, on machine: ArcadeMachine) {
+        guard let score = pendingScore else { return }
+        var pool = PlayerPool.decode(savedPool)
+        if !pool.contains(where: { $0.name == name }) {
+            pool.insert(NamedPlayer(name: name, kit: .assigned(to: name)), at: 0)
+            savedPool = PlayerPool.encode(pool)
+        }
+        var signed = board(for: machine)
+        _ = signed.submit(name: name, score: score)
+        setBoard(signed, for: machine)
+        pendingScore = nil
+    }
+
+    private func board(for machine: ArcadeMachine) -> Hiscores {
+        let data = machine.id == ArcadeSpec.brickWall.id ? brickBoard : bumperBoard
+        return (try? JSONDecoder().decode(Hiscores.self, from: data)) ?? Hiscores()
+    }
+
+    private func setBoard(_ board: Hiscores, for machine: ArcadeMachine) {
+        let data = (try? JSONEncoder().encode(board)) ?? Data()
+        if machine.id == ArcadeSpec.brickWall.id {
+            brickBoard = data
+        } else {
+            bumperBoard = data
+        }
+    }
+
+    /// The shelf: every cabinet as a card — its table drawn small, its title,
+    /// and the line to beat.
+    private var index: some View {
         VStack(spacing: 0) {
             header
                 .padding(.horizontal, 24)
                 .padding(.top, 20)
                 .padding(.bottom, 8)
             ScrollView {
-                VStack(spacing: 24) {
-                    if let pendingScore {
-                        signSection(pendingScore)
-                    } else if let lastScore {
-                        lastRun(lastScore)
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 14)], spacing: 14) {
+                    ForEach(ArcadeSpec.machines) { machine in
+                        machineCard(machine)
                     }
-                    bumperCard
                 }
                 .padding(.horizontal, 24)
                 .padding(.vertical, 16)
@@ -115,161 +178,34 @@ struct ArcadeView: View {
         }
     }
 
-    private var bumperCard: some View {
-        VStack(spacing: 14) {
-            Text("Bumper Field", bundle: .module)
-                .font(.system(size: 18, weight: .black, design: .rounded))
-                .foregroundStyle(Neon.cyan)
-            boardRows
-            NeonButton(title: "Play", tint: Neon.cyan, prominent: true) {
-                lastScore = nil
-                pendingScore = nil
-                stage = .playing(seed: freshSeed())
-            }
-        }
-    }
-
-    /// The board: rank, name (in its home kit), score — a cabinet's lines.
-    @ViewBuilder
-    private var boardRows: some View {
-        let entries = board.entries
-        if entries.isEmpty {
-            Text("No runs yet", bundle: .module)
-                .font(.system(size: 13, weight: .medium, design: .rounded))
-                .foregroundStyle(Neon.inkSoft)
-        } else {
-            let pool = PlayerPool.decode(savedPool)
-            VStack(spacing: 5) {
-                ForEach(Array(entries.enumerated()), id: \.offset) { rank, entry in
-                    HStack(spacing: 10) {
-                        Text(verbatim: "\(rank + 1).")
-                            .foregroundStyle(Neon.inkSoft)
-                            .monospacedDigit()
-                            .frame(width: 26, alignment: .trailing)
-                        Text(verbatim: entry.name)
-                            .foregroundStyle(
-                                SeatPalette.neon(PlayerPool.kit(for: entry.name, in: pool).home)
-                            )
-                            .lineLimit(1)
-                        Spacer()
-                        Text(verbatim: "\(entry.score)")
-                            .foregroundStyle(Neon.ink)
-                            .monospacedDigit()
-                    }
-                    .font(.system(size: 15, weight: .semibold, design: .rounded))
+    private func machineCard(_ machine: ArcadeMachine) -> some View {
+        Button {
+            lastScore = nil
+            pendingScore = nil
+            stage = .cabinet(machine)
+        } label: {
+            VStack(spacing: 8) {
+                TablePreview(table: machine.table)
+                    .frame(height: 170)
+                Text(machine.title, bundle: .module)
+                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                    .foregroundStyle(Neon.cyan)
+                    .lineLimit(1)
+                if let top = board(for: machine).entries.first {
+                    Text(verbatim: "\(top.score) · \(top.name)")
+                        .font(.system(size: 12, weight: .semibold, design: .rounded))
+                        .foregroundStyle(Neon.inkSoft)
+                        .monospacedDigit()
+                        .lineLimit(1)
                 }
             }
-            .frame(maxWidth: 300)
+            .padding(10)
+            .background(
+                RoundedRectangle(cornerRadius: 14)
+                    .strokeBorder(Neon.inkSoft.opacity(0.4), lineWidth: 1.5))
         }
+        .buttonStyle(.plain)
     }
 
     private func freshSeed() -> UInt64 { UInt64.random(in: 0...UInt64.max) }
-}
-
-// MARK: - Signing a run
-
-extension ArcadeView {
-    /// The last run's score when it didn't board — still worth showing.
-    fileprivate func lastRun(_ score: Int) -> some View {
-        VStack(spacing: 4) {
-            caption("Last run")
-            scoreText(score)
-        }
-    }
-
-    /// A boarded run waits for its name: one tap on a pool chip signs it, or a
-    /// new name types in — joining the pool like anywhere else.
-    fileprivate func signSection(_ score: Int) -> some View {
-        VStack(spacing: 12) {
-            caption("Sign the board")
-            scoreText(score)
-            poolChips
-            signField
-            Button {
-                pendingScore = nil
-            } label: {
-                Text("Skip", bundle: .module)
-                    .font(.system(size: 13, weight: .semibold, design: .rounded))
-                    .foregroundStyle(Neon.inkSoft)
-                    .frame(height: 30)
-            }
-            .buttonStyle(.plain)
-        }
-    }
-
-    private func scoreText(_ score: Int) -> some View {
-        Text(verbatim: "\(score)")
-            .font(.system(size: 34, weight: .black, design: .rounded))
-            .foregroundStyle(Neon.cyan)
-            .monospacedDigit()
-            .shadow(color: Neon.cyan.opacity(0.7), radius: 10)
-    }
-
-    private var poolChips: some View {
-        let pool = PlayerPool.decode(savedPool)
-        return LazyVGrid(columns: [GridItem(.adaptive(minimum: 110), spacing: 8)], spacing: 8) {
-            ForEach(pool, id: \.name) { player in
-                Button {
-                    sign(player.name)
-                } label: {
-                    Text(verbatim: player.name)
-                        .font(.system(size: 15, weight: .bold, design: .rounded))
-                        .lineLimit(1)
-                        .foregroundStyle(SeatPalette.neon(player.kit.home))
-                        .padding(.horizontal, 12)
-                        .frame(height: 40)
-                        .frame(maxWidth: .infinity)
-                        .background(
-                            RoundedRectangle(cornerRadius: 12)
-                                .strokeBorder(
-                                    SeatPalette.neon(player.kit.home).opacity(0.5),
-                                    lineWidth: 1.5))
-                }
-                .buttonStyle(.plain)
-            }
-        }
-    }
-
-    private var signField: some View {
-        TextField(text: $newName, prompt: Text("Add name", bundle: .module)) {
-            Text("Add name", bundle: .module)
-        }
-        .font(.system(size: 16, weight: .semibold, design: .rounded))
-        .foregroundStyle(Neon.ink)
-        .textFieldStyle(.plain)
-        .submitLabel(.done)
-        .padding(.horizontal, 14)
-        .frame(height: 44)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .strokeBorder(Neon.inkSoft.opacity(0.6), lineWidth: 1.5)
-        )
-        .onSubmit {
-            let name = newName.trimmingCharacters(in: .whitespaces)
-            guard !name.isEmpty, name.count <= RosterSheet.maxNameLength else { return }
-            var pool = PlayerPool.decode(savedPool)
-            if !pool.contains(where: { $0.name == name }) {
-                pool.insert(NamedPlayer(name: name, kit: .assigned(to: name)), at: 0)
-                savedPool = PlayerPool.encode(pool)
-            }
-            newName = ""
-            sign(name)
-        }
-    }
-
-    private func sign(_ name: String) {
-        guard let score = pendingScore else { return }
-        var signed = board
-        _ = signed.submit(name: name, score: score)
-        savedBoard = (try? JSONEncoder().encode(signed)) ?? Data()
-        pendingScore = nil
-    }
-
-    private func caption(_ key: LocalizedStringKey) -> some View {
-        Text(key, bundle: .module)
-            .font(.system(size: 11, weight: .semibold))
-            .foregroundStyle(Neon.inkSoft)
-            .textCase(.uppercase)
-            .kerning(2)
-    }
 }

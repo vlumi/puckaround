@@ -44,13 +44,17 @@ public struct Playfield: Equatable, Codable, Sendable {
     /// Pinball furniture: fixed discs the puck bounces off with a kick. Empty
     /// on the plain table; the arcade's tables seat a few.
     public var bumpers: [Bumper]
+    /// The STARTING brick wall — the live wall is sim state on the `Rink`,
+    /// since bricks break; it racks fresh from here each game and after every
+    /// goal. Empty everywhere but breakout tables.
+    public var bricks: [Brick]
 
     public init(
         size: Vec2, puckRadius: Double, malletRadius: Double, goalWidth: Double,
         restitution: Double, drag: Double, maxSpeed: Double, restSpeed: Double,
         faceoffBubbleRadius: Double, serveSpeed: Double, puckShapes: [PuckShape] = [.circle],
         doublesGoalWidth: Double? = nil, format: Format = .oneVsOne,
-        sideWalls: SideWalls = .solid, bumpers: [Bumper] = []
+        sideWalls: SideWalls = .solid, bumpers: [Bumper] = [], bricks: [Brick] = []
     ) {
         self.size = size
         self.puckRadius = puckRadius
@@ -67,6 +71,7 @@ public struct Playfield: Equatable, Codable, Sendable {
         self.format = format
         self.sideWalls = sideWalls
         self.bumpers = bumpers
+        self.bricks = bricks
     }
 
     /// The one table there is: two players facing each other.
@@ -142,5 +147,16 @@ public struct Bumper: Equatable, Codable, Sendable {
         self.position = position
         self.radius = radius
         self.kick = kick
+    }
+}
+
+/// One brick of a breakout wall: an axis-aligned block the puck smashes — it
+/// bounces off the face it hit, and the brick is gone. The table carries the
+/// starting wall; the standing wall lives on the `Rink`, because state.
+public struct Brick: Equatable, Codable, Sendable {
+    public var rect: Rect
+
+    public init(rect: Rect) {
+        self.rect = rect
     }
 }
