@@ -149,9 +149,16 @@ struct GameView: View {
                         showingNewMatch = true
                     }
                 }
-                // A loud table can be hushed without leaving the game.
-                NeonButton(title: soundOn ? "Sound off" : "Sound on") { soundOn.toggle() }
                 NeonButton(title: mode.exitTitle, tint: Neon.magenta, action: onExit)
+                // Sound, as a quiet icon — rarely touched, but hushing a loud
+                // table mid-game must be one tap away. The slash is the state.
+                NeonIconButton(
+                    systemName: soundOn ? "speaker.wave.2" : "speaker.slash",
+                    label: soundOn ? "Sound off" : "Sound on"
+                ) {
+                    soundOn.toggle()
+                }
+                .padding(.top, 2)
             }
             .frame(maxWidth: 260)
             .padding(24)
