@@ -26,12 +26,14 @@ struct ArcadeCabinet: View {
                 .padding(.bottom, 8)
             ScrollView {
                 VStack(spacing: 18) {
-                    attract
+                    // The pen comes FIRST — a boarding run's signature must
+                    // never hide below the fold under the attract screen.
                     if let pendingScore {
                         signSection(pendingScore)
                     } else if let lastScore {
                         lastRun(lastScore)
                     }
+                    attract
                 }
                 .padding(.horizontal, 24)
                 .padding(.vertical, 16)
