@@ -48,16 +48,18 @@ struct NeonIconButton: View {
     let systemName: String
     let label: LocalizedStringKey
     var tint: Color = Neon.inkSoft
+    /// Filled with the tint instead of outlined — a toggle's ON state.
+    var solid = false
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
             Image(systemName: systemName)
                 .font(.system(size: 17, weight: .semibold))
-                .foregroundStyle(tint)
+                .foregroundStyle(solid ? Neon.ground : tint)
                 .frame(width: 44, height: 44)
                 .background(
-                    Circle().fill(Neon.ground.opacity(0.7))
+                    Circle().fill(solid ? tint : Neon.ground.opacity(0.7))
                         .overlay(Circle().strokeBorder(tint.opacity(0.5), lineWidth: 1.5)))
         }
         .buttonStyle(.plain)

@@ -79,6 +79,18 @@ final class HockeyGame: ObservableObject {
         haptics.prepare()
     }
 
+    /// Apply the user's feedback switches — sound can flip mid-game from the
+    /// pause menu, both from Settings.
+    func setFeedback(sound soundOn: Bool, haptics hapticsOn: Bool) {
+        haptics.enabled = hapticsOn
+        sound.enabled = soundOn
+        if soundOn {
+            sound.start()
+        } else {
+            sound.stop()
+        }
+    }
+
     // MARK: - Screen ↔ world
 
     func layout(screen: CGSize, turnDegrees: Double = 0) {

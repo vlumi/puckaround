@@ -18,6 +18,8 @@ struct MenuView: View {
 
     @State private var showingNewMatch = false
     @State private var showingPractice = false
+    @State private var showingSettings = false
+    @State private var showingAbout = false
 
     var body: some View {
         ZStack {
@@ -42,6 +44,19 @@ struct MenuView: View {
                 .padding(.horizontal, 40)
             }
             .padding(24)
+            // The app's own corners: About and Settings, the sibling apps'
+            // pattern — never match settings, which live in New match.
+            VStack {
+                HStack(spacing: 6) {
+                    Spacer()
+                    NeonIconButton(systemName: "info", label: "About") { showingAbout = true }
+                    NeonIconButton(systemName: "gearshape", label: "Settings") {
+                        showingSettings = true
+                    }
+                }
+                Spacer()
+            }
+            .padding(16)
             if showingNewMatch {
                 NewMatchSheet(
                     initial: setup,
@@ -61,6 +76,12 @@ struct MenuView: View {
                         onPractice()
                     },
                     onClose: { showingPractice = false })
+            }
+            if showingSettings {
+                SettingsSheet(onClose: { showingSettings = false })
+            }
+            if showingAbout {
+                AboutSheet(onClose: { showingAbout = false })
             }
         }
     }
