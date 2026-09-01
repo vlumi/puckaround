@@ -18,6 +18,14 @@ struct RinkScene {
 
     /// The named ends during a tournament, or nil in a plain match.
     var names: EndNames?
+    /// The ends' kit colors during a tournament, or nil for the classic pair.
+    var colors: EndColors?
+
+    /// What a side's furniture (mallet, goal, score, verdicts) wears: the
+    /// player's kit when the ends are named, the classic pair otherwise.
+    func sideColor(for side: Side) -> Color {
+        colors?.color(for: side) ?? SeatPalette.color(for: side)
+    }
 
     /// How long the burst ring animates, in seconds.
     static let burstDuration = 0.45
@@ -30,4 +38,13 @@ struct EndNames {
     var top: String
 
     func name(for side: Side) -> String { side == .bottom ? bottom : top }
+}
+
+/// The kit colors on the two ends — already clash-resolved (see
+/// `PlayerKit.resolve`), so the pair is always distinct. Kit-only, like names.
+struct EndColors {
+    var bottom: Color
+    var top: Color
+
+    func color(for side: Side) -> Color { side == .bottom ? bottom : top }
 }

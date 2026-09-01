@@ -13,8 +13,10 @@ struct RosterSheet: View {
 
     /// The remembered pool, most recently used first, JSON in storage.
     @AppStorage("puckaround.playerNames") private var savedPool = Data()
-    @State private var pool: [String] = []
+    @State private var pool: [NamedPlayer] = []
     @State private var roster: [String] = []
+    /// The pool name whose kits are open in the editor, if any.
+    @State private var editing: String?
     @State private var newName = ""
     @State private var shape = Evening.Shape.winnerStays
     /// League only: everyone meets twice (return legs) instead of once.
@@ -35,6 +37,12 @@ struct RosterSheet: View {
                     section("Lineup") { lineup }
                     if !benched.isEmpty {
                         section("Names") { poolChips }
+                        if let editing, let i = pool.firstIndex(where: { $0.name == editing }) {
+                            KitEditor(kit: pool[i].kit) { picked in
+                                pool[i].kit = picked
+                                savePool()
+                            }
+                        }
                     }
                     addField
                     // The match rules, right here — no separate step. No players
@@ -74,33 +82,58 @@ struct RosterSheet: View {
     private var lineup: some View {
         LazyVGrid(columns: columns, spacing: 8) {
             ForEach(roster, id: \.self) { name in
-                chip(name, selected: true) {
+                chip(name, tint: kitColor(name), selected: true) {
                     roster.removeAll { $0 == name }
                 }
             }
         }
     }
 
-    /// Remembered names not yet in the lineup: tap to seat, × to forget.
+    /// Remembered names not yet in the lineup: tap to seat, the kit swatch to
+    /// dress them, × to forget.
     private var poolChips: some View {
         LazyVGrid(columns: columns, spacing: 8) {
-            ForEach(benched, id: \.self) { name in
+            ForEach(benched, id: \.name) { player in
                 HStack(spacing: 0) {
-                    chip(name, selected: false) { roster.append(name) }
+                    chip(player.name, tint: SeatPalette.neon(player.kit.home), selected: false) {
+                        roster.append(player.name)
+                    }
+                    kitDot(player)
                     Button {
-                        pool.removeAll { $0 == name }
+                        pool.removeAll { $0.name == player.name }
                         savePool()
                     } label: {
                         Image(systemName: "xmark")
                             .font(.system(size: 11, weight: .bold))
                             .foregroundStyle(Neon.inkSoft)
-                            .frame(width: 28, height: 40)
+                            .frame(width: 24, height: 40)
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel(Text("Forget name", bundle: .module))
                 }
             }
         }
+    }
+
+    /// The kit swatch on a pool chip — home over away — and the way into the
+    /// editor below the grid.
+    private func kitDot(_ player: NamedPlayer) -> some View {
+        Button {
+            editing = editing == player.name ? nil : player.name
+        } label: {
+            VStack(spacing: 2) {
+                Circle().fill(SeatPalette.neon(player.kit.home)).frame(width: 9, height: 9)
+                Circle().fill(SeatPalette.neon(player.kit.away)).frame(width: 9, height: 9)
+            }
+            .frame(width: 22, height: 40)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(Text("Kit", bundle: .module))
+    }
+
+    /// The color a name's chip wears — its home kit.
+    private func kitColor(_ name: String) -> Color {
+        SeatPalette.neon(PlayerPool.kit(for: name, in: pool).home)
     }
 
     /// One name, once — it joins tonight's lineup and the remembered pool. The
@@ -168,22 +201,24 @@ struct RosterSheet: View {
         newName.trimmingCharacters(in: .whitespaces).count > RosterSheet.maxNameLength
     }
 
-    private func chip(_ name: String, selected: Bool, act: @escaping () -> Void) -> some View {
+    private func chip(
+        _ name: String, tint: Color, selected: Bool, act: @escaping () -> Void
+    ) -> some View {
         Button(action: act) {
             Text(verbatim: name)
                 .font(.system(size: 15, weight: .bold, design: .rounded))
                 .lineLimit(1)
-                .foregroundStyle(selected ? Neon.ground : Neon.ink)
+                .foregroundStyle(selected ? Neon.ground : tint)
                 .padding(.horizontal, 12)
                 .frame(height: 40)
                 .frame(maxWidth: .infinity)
                 .background(
                     RoundedRectangle(cornerRadius: 12)
-                        .fill(selected ? Neon.ink : Color.clear)
+                        .fill(selected ? tint : Color.clear)
                         .overlay(
                             RoundedRectangle(cornerRadius: 12)
                                 .strokeBorder(
-                                    Neon.ink.opacity(selected ? 1 : 0.4), lineWidth: 1.5)))
+                                    tint.opacity(selected ? 1 : 0.5), lineWidth: 1.5)))
         }
         .buttonStyle(.plain)
     }
@@ -261,8 +296,8 @@ struct RosterSheet: View {
         .buttonStyle(.plain)
     }
 
-    /// Pool names not seated tonight.
-    private var benched: [String] { pool.filter { !roster.contains($0) } }
+    /// Pool players not seated tonight.
+    private var benched: [NamedPlayer] { pool.filter { !roster.contains($0.name) } }
 
     /// Room enough for a real first name, short enough to fit by a score.
     static let maxNameLength = 12
@@ -276,8 +311,8 @@ struct RosterSheet: View {
         nameFocused = true
         guard !name.isEmpty, !roster.contains(name) else { return }
         roster.append(name)
-        if !pool.contains(name) {
-            pool.insert(name, at: 0)
+        if !pool.contains(where: { $0.name == name }) {
+            pool.insert(NamedPlayer(name: name, kit: .assigned(to: name)), at: 0)
             savePool()
         }
     }
@@ -285,7 +320,10 @@ struct RosterSheet: View {
     /// Tonight's names float to the front of the pool, so next time they're the
     /// first chips under the thumb.
     private func start() {
-        pool = roster + pool.filter { !roster.contains($0) }
+        let seated = roster.map { name in
+            pool.first { $0.name == name } ?? NamedPlayer(name: name, kit: .assigned(to: name))
+        }
+        pool = seated + pool.filter { !roster.contains($0.name) }
         savePool()
         switch shape {
         case .winnerStays: onStart(roster, .winnerStays)
@@ -295,11 +333,11 @@ struct RosterSheet: View {
     }
 
     private func load() {
-        pool = (try? JSONDecoder().decode([String].self, from: savedPool)) ?? []
+        pool = PlayerPool.decode(savedPool)
     }
 
     private func savePool() {
-        savedPool = (try? JSONEncoder().encode(pool)) ?? Data()
+        savedPool = PlayerPool.encode(pool)
     }
 }
 

@@ -66,6 +66,7 @@ struct GameView: View {
                 game.begin()
                 game.onMenuTap = { showingPause = true }
                 game.endNames = mode.tournament?.names
+                game.endColors = mode.tournament?.colors
                 game.onMatchOver = mode.tournament?.onMatchOver
             }
             .onChangeCompat(of: geo.size) { size in relayout(size) }
@@ -148,6 +149,8 @@ struct GameView: View {
 /// that decided it).
 struct TournamentMatch {
     let names: EndNames
+    /// The ends' clash-resolved kit colors — the table wears the players.
+    let colors: EndColors
     let onMatchOver: (Side, Int, Int) -> Void
 }
 

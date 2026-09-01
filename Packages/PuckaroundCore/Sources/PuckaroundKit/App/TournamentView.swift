@@ -15,6 +15,8 @@ struct TournamentView: View {
 
     /// The active evening, JSON-mirrored to storage on every change.
     @AppStorage("puckaround.tournament") private var saved = Data()
+    /// The remembered pool — read here for the players' kits.
+    @AppStorage("puckaround.playerNames") private var savedPool = Data()
     @State private var evening: Evening?
     @State private var stage = Stage.lobby
 
@@ -47,14 +49,40 @@ struct TournamentView: View {
     /// One pairing on the table. The pause menu's exit leads back to the
     /// interstitial, not the title — the tournament owns the table now.
     private func match(_ pairing: Pairing, seed: UInt64) -> some View {
-        GameView(
+        let colors =
+            evening.map { resolvedColors($0, pairing) }
+            ?? EndColors(bottom: Neon.magenta, top: Neon.cyan)
+        return GameView(
             setup: setup, seed: seed,
             mode: .tournament(
                 TournamentMatch(
                     names: EndNames(bottom: pairing.bottom, top: pairing.top),
-                    onMatchOver: recordWin)),
+                    colors: colors, onMatchOver: recordWin)),
             onNewMatch: { _ in stage = .playing(seed: freshSeed()) },
             onExit: { stage = .interstitial })
+    }
+
+    /// The pairing's clash-resolved kit colors, from the remembered pool.
+    private func resolvedColors(_ e: Evening, _ pairing: Pairing) -> EndColors {
+        let pool = PlayerPool.decode(savedPool)
+        let resolved = PlayerKit.resolve(
+            bottom: PlayerPool.kit(for: pairing.bottom, in: pool),
+            top: PlayerPool.kit(for: pairing.top, in: pool),
+            homeSide: homeSide(e, pairing))
+        return EndColors(
+            bottom: SeatPalette.neon(resolved.bottom), top: SeatPalette.neon(resolved.top))
+    }
+
+    /// Who's home in a kit clash: the winner-stays incumbent defends their
+    /// turf; in the other shapes the bottom end is home.
+    private func homeSide(_ e: Evening, _ pairing: Pairing) -> Side {
+        if case .winnerStays = e, e.lastMatch?.winner == pairing.top { return .top }
+        return .bottom
+    }
+
+    /// A name's home color, for the neutral lists between matches.
+    private func kitColor(_ name: String) -> Color {
+        SeatPalette.neon(PlayerPool.kit(for: name, in: PlayerPool.decode(savedPool)).home)
     }
 
     /// Between matches: the last result, then the pairing (or the champion),
@@ -68,7 +96,7 @@ struct TournamentView: View {
             if let champion = e.champion {
                 championBanner(champion)
             } else if let pairing = e.pairing {
-                pairingView(pairing)
+                pairingView(pairing, colors: resolvedColors(e, pairing))
             }
             details(e)
             if e.champion == nil {
@@ -183,16 +211,16 @@ extension TournamentView {
         }
     }
 
-    /// Who takes the table, each name in their end's color.
-    private func pairingView(_ pairing: Pairing) -> some View {
+    /// Who takes the table, each name in the kit their end will wear.
+    private func pairingView(_ pairing: Pairing, colors: EndColors) -> some View {
         HStack(spacing: 10) {
             Text(verbatim: pairing.bottom)
-                .foregroundStyle(Neon.magenta)
+                .foregroundStyle(colors.bottom)
             Text("VS.", bundle: .module)
                 .font(.system(size: 15, weight: .heavy, design: .rounded))
                 .foregroundStyle(Neon.inkSoft)
             Text(verbatim: pairing.top)
-                .foregroundStyle(Neon.cyan)
+                .foregroundStyle(colors.top)
         }
         .font(.system(size: 26, weight: .black, design: .rounded))
         // Entry caps names, but a long one from an older save shrinks to fit
@@ -201,14 +229,15 @@ extension TournamentView {
         .minimumScaleFactor(0.5)
     }
 
-    /// The last name standing, once the knockout is decided.
+    /// The last name standing, once the knockout is decided — in their own kit.
     private func championBanner(_ name: String) -> some View {
-        VStack(spacing: 4) {
+        let color = kitColor(name)
+        return VStack(spacing: 4) {
             caption("Champion")
             Text(verbatim: name)
                 .font(.system(size: 30, weight: .black, design: .rounded))
-                .foregroundStyle(Neon.cyan)
-                .shadow(color: Neon.cyan.opacity(0.7), radius: 10)
+                .foregroundStyle(color)
+                .shadow(color: color.opacity(0.7), radius: 10)
                 .lineLimit(1)
                 .minimumScaleFactor(0.5)
         }
@@ -241,13 +270,13 @@ extension TournamentView {
         }
     }
 
-    /// Tonight's tally, most wins first.
+    /// Tonight's tally, most wins first, each name in its home kit.
     private func standings(_ t: Tournament) -> some View {
         VStack(spacing: 6) {
             ForEach(t.standings, id: \.name) { row in
                 HStack {
                     Text(verbatim: row.name)
-                        .foregroundStyle(Neon.ink)
+                        .foregroundStyle(kitColor(row.name))
                     Spacer()
                     Text(verbatim: "\(row.wins)")
                         .foregroundStyle(Neon.inkSoft)
@@ -274,13 +303,13 @@ extension TournamentView {
         }
     }
 
-    /// The league table, best first: wins–losses per name.
+    /// The league table, best first: wins–losses per name, in home kits.
     private func leagueStandings(_ l: League) -> some View {
         VStack(spacing: 6) {
             ForEach(l.standings, id: \.name) { row in
                 HStack {
                     Text(verbatim: row.name)
-                        .foregroundStyle(Neon.ink)
+                        .foregroundStyle(kitColor(row.name))
                         .lineLimit(1)
                     Spacer()
                     Text(verbatim: "\(row.wins)–\(row.losses)")

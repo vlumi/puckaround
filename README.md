@@ -32,8 +32,8 @@ Planned arc:
 - **Find the fun first** — done: the core plays well on a device (the mallet,
   the drag, the bounce), so building on it is fair game now.
 - **The couch** — singles/doubles, shaped and spinning pucks, wrap-wall tables,
-  and a front door have shipped; still to come is who's playing beyond a bare
-  per-side count (names, remembered colors).
+  tournaments on remembered names in their own colors, practice against the
+  machine, and a front door have shipped; still to come is the solo arcade.
 - **A curved table** — an ellipse with slice goals, where a spun puck can ride
   the wall toward the goal. A later spike.
 
