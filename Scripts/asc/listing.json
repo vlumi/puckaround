@@ -1,0 +1,23 @@
+{
+  "_comment": "Canonical App Store listing text — single source for the listing sync (Scripts/asc/listing.py). Edit HERE, never in the ASC UI. `appInfo` fields (name/subtitle/privacyPolicyUrl) are app-level; `version` fields are per-version. Limits: subtitle 30, keywords 100 (comma-sep, no spaces), promotionalText 170, description/whatsNew 4000. en-US only until localization lands.",
+  "bundleId": "fi.misaki.puckaround",
+  "expectedLocales": [
+    "en-US"
+  ],
+  "appInfo": {
+    "en-US": {
+      "name": "Puck Around",
+      "subtitle": "Neon air hockey on one screen",
+      "privacyPolicyUrl": "https://puck.misaki.fi/privacy/"
+    }
+  },
+  "version": {
+    "en-US": {
+      "description": "Puck Around is air hockey with no table to find — the device is the table. Lay a phone or an iPad flat, grab an end each, and play: mallets under your thumbs, a white-hot puck between you, first to seven. No accounts, no matchmaking, no second screen — the people in the room are the whole game.\n\nFORMATS FOR WHOEVER'S AROUND\nSingles head-to-head, doubles with a lane each, or an uneven one against two — the goal widens for the better-staffed side. Grab your mallet to ready up; the force field bursts and the puck is live.\n\nPUCKS WITH CHARACTER\nRound, square, or triangular — shaped pucks tumble, catch the boards, and spin off at angles the round one never would. Fly up to three at once, make the side walls wrap like portals, or leave it to the \"?\" and find out at the faceoff.\n\nTOURNAMENT NIGHT\nWinner stays, knockout brackets for up to 32, or a league season with real tie-breakers. Names are remembered as one-tap chips — no profiles, no stats — and every player wears their own neon: mallet, goal, and score in their color.\n\nPRACTICE, AND AN ARCADE IN THE CORNER\nA machine mallet on a fixed sweep defends the far goal — a drill target that never aims, but its deflections count. Then three solo cabinets on the same physics: a bumper field, a brick wall that racks back harder every time you break through, and a survival table that never stops feeding pucks. Ten-line hiscore boards, signed with one tap.\n\nNOTHING LEAVES THE DEVICE\nNo server, no accounts, no analytics, no ads — the app makes no network connections at all. Scores and remembered names live on the device and nowhere else.\n\nSound and haptics come off the game's own physics, the look is a neon cabinet, and the table fills the screen whichever way you hold it.\n\nBuilt openly with AI assistance — much of the code. The design, decisions, and care are human. Open source under the MIT licence.\n\nFree. No ads, no in-app purchases, no accounts, no tracking. Just air hockey.",
+      "keywords": "air hockey,arcade,party,two player,couch,multiplayer,neon,tournament,family,offline,local,sports",
+      "promotionalText": "The device is the table: lay it flat, grab an end each, and play. Tournaments for game night, three arcade cabinets for the quiet moments.",
+      "supportUrl": "https://puck.misaki.fi/support/",
+      "marketingUrl": "https://puck.misaki.fi/"
+    }
+  }
+}

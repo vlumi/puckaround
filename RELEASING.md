@@ -153,6 +153,25 @@ no progress file to go stale. Re-enter the chain at the right point:
 | **upload only** (export ok, ASC upload flaked) | the `.ipa` is already in `dist/` | `make release-upload` — uploads the existing package, no rebuild |
 | **archive/export** | release is tagged; the build failed | `make release-distribute-retry` — verifies the tag exists, then re-archives/exports/uploads **without** touching git/PR/tags |
 
+## App Store listing & screenshots
+
+The listing lives in the repo, not the ASC UI — same tooling as the siblings
+([Scripts/asc/](Scripts/asc/); both syncs dry-run by default):
+
+- **Text** — [Scripts/asc/listing.json](Scripts/asc/listing.json) is the single
+  source for name / subtitle / description / keywords / URLs. `make asc-listing`
+  diffs it against ASC; `make asc-listing-apply` writes. `whatsNew` is omitted
+  automatically until a released version exists (Apple locks release notes on a
+  first release).
+- **Screenshots** — `make shots PLATFORM=iphone|ipad` walks the capture list in
+  [Scripts/asc/SCREENSHOTS.md](Scripts/asc/SCREENSHOTS.md), capturing into
+  `shots/<platform>/<lang>/`. The tree is **committed** — the store set is
+  versioned with the app. `make asc-screenshots` previews the upload;
+  `make asc-screenshots-apply` replaces the sets in store order.
+
+Both reuse the release lane's ASC key (`Scripts/.asc-config`); the runner
+self-manages its Python venv, so there's nothing to install.
+
 ## One-time setup
 
 - **App Store Connect app record** for `fi.misaki.puckaround`.
