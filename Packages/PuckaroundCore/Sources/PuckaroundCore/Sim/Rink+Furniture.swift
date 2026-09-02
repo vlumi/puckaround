@@ -77,17 +77,26 @@ extension Rink {
                 ? puck.position.y < table.center.y - table.puckRadius
                 : puck.position.y > table.center.y + table.puckRadius
             guard beyond else { continue }
-            // Total remaining travel under exponential drag is at most v over
-            // the EFFECTIVE drag (pace thins it), and walls only bleed speed —
-            // the bound survives any bounce.
             let speed = puck.velocity.length
             if speed == 0
-                || speed * pace / table.drag < doomDistance(from: puck.position, into: side)
+                || remainingGlide(from: speed) < doomDistance(from: puck.position, into: side)
             {
                 events.append(.puckBeamed(from: puck.position))
                 serve(puckAt: index, to: rules.serveTo ?? side.opponent)
             }
         }
+    }
+
+    /// How far a puck can still glide, exactly: under drag d and the flat
+    /// friction floor (k = friction/d, as a speed), the remaining distance is
+    /// v/d − (k/d)·ln(1 + v/k) — and walls only bleed speed, so the bound
+    /// survives any bounce. Pace thins both, like the step does.
+    private func remainingGlide(from speed: Double) -> Double {
+        let d = table.drag / pace
+        let friction = table.friction / pace
+        guard friction > 0 else { return speed / d }
+        let k = friction / d
+        return speed / d - (k / d) * log(1 + speed / k)
     }
 
     /// Which halves the rescue watches: an unmanned half when the puck flies

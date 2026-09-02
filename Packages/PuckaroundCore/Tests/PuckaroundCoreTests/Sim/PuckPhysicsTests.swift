@@ -16,7 +16,9 @@ final class PuckPhysicsTests: XCTestCase {
     }
 
     func testDragBringsThePuckToRest() {
-        var r = rink(puckAt: Playfield.duel.center, velocity: Vec2(0, 30))
+        // Pushed at the SIDE wall — a lengthwise push now carries far enough
+        // to find a goal mouth, and this test's contract is walls only.
+        var r = rink(puckAt: Playfield.duel.center, velocity: Vec2(30, 0))
         XCTAssertTrue(r.puck.isMoving)
         for _ in 0..<(Rink.tickRate * 30) {
             r.advance(inputs: [:])
@@ -24,11 +26,20 @@ final class PuckPhysicsTests: XCTestCase {
         XCTAssertFalse(r.puck.isMoving, "thirty seconds of drag must stop a gentle push")
     }
 
-    func testDragIsExponentialPerTick() {
+    func testDragDecaysExponentiallyWithAFrictionFloor() {
         var r = rink(puckAt: Playfield.duel.center, velocity: Vec2(100, 0))
         r.advance(inputs: [:])
-        XCTAssertEqual(r.puck.velocity.length, 100 * exp(-r.table.drag * Rink.dt), accuracy: 1e-9)
+        let expected = 100 * exp(-r.table.drag * Rink.dt) - r.table.friction * Rink.dt
+        XCTAssertEqual(r.puck.velocity.length, expected, accuracy: 1e-9)
         XCTAssertEqual(r.puck.velocity.normalized, Vec2(1, 0))
+    }
+
+    /// The floor is what kills the crawl: a slow drift settles in a couple of
+    /// seconds instead of creeping forever on a fading exponential.
+    func testTheFrictionFloorSettlesTheSlowTailFast() {
+        var r = rink(puckAt: Playfield.duel.center, velocity: Vec2(20, 0))
+        for _ in 0..<(Rink.tickRate * 2) { r.advance(inputs: [:]) }
+        XCTAssertFalse(r.puck.isMoving, "a crawl dies in a beat, not an age")
     }
 
     func testSideWallBounceMirrorsAndLoses() {
@@ -45,7 +56,8 @@ final class PuckPhysicsTests: XCTestCase {
         }
         XCTAssertTrue(bounced)
         XCTAssertEqual(r.puck.velocity.y, 0, "a head-on bounce keeps the tangent")
-        let expected = speedBefore * exp(-r.table.drag * Rink.dt) * r.table.restitution
+        let decayed = speedBefore * exp(-r.table.drag * Rink.dt) - r.table.friction * Rink.dt
+        let expected = decayed * r.table.restitution
         XCTAssertEqual(r.puck.velocity.length, expected, accuracy: 1e-9)
     }
 
