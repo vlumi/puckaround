@@ -10,11 +10,15 @@ The `## vX.Y.Z` heading is written by the release lane too, whenever a release c
 
 **One bullet, one line — no hard wrapping.** Editors soft-wrap and rendered Markdown ignores the line breaks, while hard wraps make an edited entry re-flow into a diff nobody can read. **Order the unreleased list by what a player notices**, not by merge order, and fold entries that tell one story into one bullet.
 
-## v0.1.0
+## v1.0.0
 
 ### Unreleased (next build)
 
+### build 10 — 2026-09-02
+
 - **No changes — the version becomes 1.0.0.** The same game as build 9; the marketing version steps up to match the App Store record ahead of submission, and any pre-submission fixes will follow as further 1.0.0 builds.
+
+## v0.1.0
 
 ### build 9 — 2026-09-02
 
