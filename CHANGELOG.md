@@ -14,6 +14,8 @@ The `## vX.Y.Z` heading is written by the release lane too, whenever a release c
 
 ### Unreleased (next build)
 
+- **No changes — the version becomes 1.0.0.** The same game as build 9; the marketing version steps up to match the App Store record ahead of submission, and any pre-submission fixes will follow as further 1.0.0 builds.
+
 ### build 9 — 2026-09-02
 
 - **A truer app icon.** The tile now holds the game the way you do — magenta at your end, cyan defending the top (the old icon had the ends flipped) — and catches a rally mid-flight: the puck streaking off your mallet, across the ring, at the far goal's guard. Picked from six candidates for how it balances at small sizes.
