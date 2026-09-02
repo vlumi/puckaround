@@ -46,8 +46,13 @@ func flattened(_ image: CGImage) -> CGImage {
 @MainActor
 func renderIcon() {
     let side: CGFloat = 1024
+    // Optional second argument picks a candidate composition (see
+    // `IconVariant`); the default stays the shipped icon.
+    let variant =
+        CommandLine.arguments.count > 2
+        ? IconVariant(rawValue: CommandLine.arguments[2]) ?? .classic : .classic
     let renderer = ImageRenderer(
-        content: AppIconScene().frame(width: side, height: side))
+        content: AppIconScene(variant: variant).frame(width: side, height: side))
     renderer.proposedSize = ProposedViewSize(width: side, height: side)
     renderer.scale = 1
     guard let image = renderer.cgImage else {
