@@ -209,7 +209,7 @@ extension Rink {
             collide(puckAt: index, withMalletAt: mallet.position, velocity: mallet.velocity)
         }
         collideBumpers(puckAt: index)
-        collideBricks(puckAt: index)
+        collideBricks(puckAt: index, from: puck.position)
         freeStuckPuckFromWall(at: index)
         rescueDeadPuck(at: index)
         return false

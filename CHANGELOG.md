@@ -14,6 +14,9 @@ The `## vX.Y.Z` heading is written by the release lane too, whenever a release c
 
 ### Unreleased (next build)
 
+- **Two stranded pucks beam back.** On multi-puck stages the rescue used to stand down whenever another puck was on the table — but two pucks dead beyond your reach blocked each other forever, freezing the run. Stranded together they now beam home, one at a time (the first serve hands you a live puck again); while any puck still flies or rests within your mallet's reach, the rescue keeps waiting — dislodging a stuck puck with another one is gameplay.
+- **Fast hits break the right brick.** A hard shot moves farther in one tick than a brick is deep, so it could land within reach of two rows at once — and the hit went to the wrong one, punching a hole in the back row while the brick it actually struck survived. The shot's path is now swept, and the first brick on it takes the hit, at any speed on any lap.
+
 - **The puck carries — and settles.** Drag was one exponential curve: fine at speed, but the reason a dying puck crept forever (deceleration fades with speed). It splits in two — lighter exponential drag, so shots hold their pace across the ice, plus a flat friction floor that kills the slow tail in a beat — so solo-mode stalls mostly stop happening, and the rescue beam calls what's left much sooner. Serves come faster yet still die short of their own goal, and a puck squirted along the boards no longer picks up speed on the way out.
 
 ### build 8 — 2026-09-01

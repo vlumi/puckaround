@@ -201,6 +201,59 @@ final class BrickTests: XCTestCase {
         XCTAssertTrue(r.bricks.isEmpty)
     }
 
+    /// A fast puck crosses into two rows' reach in one tick; the brick it
+    /// actually met FIRST along its path takes the hit — never one a row
+    /// beyond it (index order used to win, and rows index top-down).
+    func testAFastPuckSmashesTheNearestBrickNotTheFarthest() {
+        var t = Playfield.duel.with(format: .solo)
+        let far = Brick(rect: Rect(x: 40, y: 12, width: 20, height: 6))
+        let near = Brick(rect: Rect(x: 40, y: 18, width: 20, height: 6))
+        t.stages = [TableStage(bricks: [far, near])]  // the FAR brick indexes first
+        var r = playingRink(on: t)
+        r.setPuckForTesting(Puck(position: Vec2(50, 28.1), velocity: Vec2(0, -400)))
+        r.advance(inputs: [:])
+        XCTAssertEqual(r.bricks.count, 1, "one brick broke")
+        XCTAssertEqual(r.bricks[0].rect.minY, 12, "the near brick broke; the far one stands")
+    }
+
+    /// Two pucks BOTH dead beyond reach used to block each other's rescue
+    /// forever — a frozen table. Stranded together they beam home, one at a
+    /// time: the first serve hands the player a live puck again.
+    func testTwoStuckPucksStillBeamBack() {
+        var t = Playfield.duel.with(format: .solo)
+        t.stages = [
+            TableStage(
+                bricks: [Brick(rect: Rect(x: 4, y: 12, width: 12, height: 6))],
+                pucks: [.circle, .circle])
+        ]
+        var r = playingRink(on: t)
+        r.setPuckForTesting(Puck(position: Vec2(8, 60), velocity: .zero), at: 0)
+        r.setPuckForTesting(Puck(position: Vec2(92, 60), velocity: .zero), at: 1)
+        r.advance(inputs: [:])
+        XCTAssertTrue(
+            r.events.contains { if case .puckBeamed = $0 { return true } else { return false } })
+        XCTAssertEqual(r.pucks[0].position, r.table.center, "the first stranded puck beams home")
+        XCTAssertTrue(r.pucks[0].isMoving, "and serves live — unblocking the second in time")
+    }
+
+    /// One dead up top while another still flies (or rests within the
+    /// mallet's reach): gameplay, not a stall — the rescue waits.
+    func testALivePuckBlocksTheRescue() {
+        var t = Playfield.duel.with(format: .solo)
+        t.stages = [
+            TableStage(
+                bricks: [Brick(rect: Rect(x: 4, y: 12, width: 12, height: 6))],
+                pucks: [.circle, .circle])
+        ]
+        var r = playingRink(on: t)
+        r.setPuckForTesting(Puck(position: Vec2(8, 60), velocity: .zero), at: 0)
+        r.setPuckForTesting(Puck(position: Vec2(50, 120), velocity: .zero), at: 1)
+        r.advance(inputs: [:])
+        XCTAssertFalse(
+            r.events.contains { if case .puckBeamed = $0 { return true } else { return false } },
+            "a puck at the player's mallet can dislodge the stuck one — no beam")
+    }
+
     /// Same seed, same inputs, wall and all — bit-identical.
     func testABrickTableIsDeterministic() {
         var full = table

@@ -26,16 +26,30 @@ extension Rink {
         }
     }
 
-    /// Bricks: the puck smashes the first brick it overlaps (index order, so
-    /// deterministic), bouncing off it as it breaks — one brick per tick per
-    /// puck; a seam-mate waits for the next tick. A graze while moving away
-    /// pushes clear without breaking. Shaped pucks smash by their bounding
-    /// circle, like puck-puck.
-    mutating func collideBricks(puckAt index: Int) {
+    /// Bricks: the tick's path is swept in puck-radius steps and the FIRST
+    /// brick on it takes the hit — a fast puck moves farther per tick than a
+    /// brick is deep, so checking only the landing point could smash a brick
+    /// a row BEYOND the one actually struck (index order won ties, and rows
+    /// index top-down: a hard shot punched holes in the back row). One brick
+    /// per tick per puck; a graze while moving away pushes clear without
+    /// breaking. Shaped pucks smash by their bounding circle, like puck-puck.
+    mutating func collideBricks(puckAt index: Int, from start: Vec2) {
+        guard !bricks.isEmpty else { return }
+        let end = pucks[index].position
+        let travel = start.distance(to: end)
+        let steps = max(1, Int((travel / table.puckRadius).rounded(.up)))
+        for step in 1...steps {
+            let at = start + (end - start) * (Double(step) / Double(steps))
+            if collideBrick(at: at, puckAt: index) { return }
+        }
+    }
+
+    /// One sample of the swept path against the wall: resolves and reports
+    /// the first brick within reach of `at`, moving the puck to that contact.
+    private mutating func collideBrick(at p: Vec2, puckAt index: Int) -> Bool {
         let r = table.puckRadius
         for brickIndex in bricks.indices {
             let rect = bricks[brickIndex].rect
-            let p = pucks[index].position
             let closest = Vec2(
                 min(max(p.x, rect.minX), rect.maxX), min(max(p.y, rect.minY), rect.maxY))
             let offset = p - closest
@@ -45,7 +59,7 @@ extension Rink {
                 ? offset.normalized : Vec2(0, pucks[index].velocity.y > 0 ? -1 : 1)
             pucks[index].position = closest + normal * r
             let closing = pucks[index].velocity.dot(normal)
-            guard closing < 0 else { return }
+            guard closing < 0 else { return true }
             pucks[index].velocity -= normal * ((1 + table.restitution) * closing)
             // A sturdy brick chips and holds; the last hit removes it.
             if bricks[brickIndex].hits > 1 {
@@ -55,8 +69,9 @@ extension Rink {
                 bricks.remove(at: brickIndex)
                 events.append(.brickBroken(speed: -closing))
             }
-            return
+            return true
         }
+        return false
     }
 
     /// A puck doomed in a half nobody mans re-serves instead of stalling the
@@ -64,8 +79,7 @@ extension Rink {
     /// the lone side's reach and too slow for its remaining travel to bring it
     /// back, reach furniture, or find the goal, only walls remain and its fate
     /// is sealed, so it beams out early. No foul and no cost: a soft shot that
-    /// ran out isn't a mistake worth a life. One-puck tables only — another
-    /// puck could still knock a doomed one loose.
+    /// ran out isn't a mistake worth a life.
     mutating func rescueDeadPuck(at index: Int) {
         guard phase == .playing else { return }
         let puck = pucks[index]
@@ -77,6 +91,12 @@ extension Rink {
                 ? puck.position.y < table.center.y - table.puckRadius
                 : puck.position.y > table.center.y + table.puckRadius
             guard beyond else { continue }
+            // On a multi-puck stage the rescue waits while any OTHER puck
+            // could still knock this one loose — that's gameplay. But pucks
+            // stranded dead beyond reach TOGETHER are a frozen table, and
+            // they beam home (one at a time: the first serve hands the player
+            // a live puck, which blocks the rest until it too dies).
+            if table.feed == nil, !strandedAlone(index, side: side) { continue }
             let speed = puck.velocity.length
             if speed == 0
                 || remainingGlide(from: speed) < doomDistance(from: puck.position, into: side)
@@ -85,6 +105,23 @@ extension Rink {
                 serve(puckAt: index, to: rules.serveTo ?? side.opponent)
             }
         }
+    }
+
+    /// Whether every OTHER puck is itself dead beyond the player's reach —
+    /// only then is this one truly stranded. A moving puck anywhere, or a
+    /// resting one in the manned half (where the mallet can fire it), could
+    /// still knock it loose.
+    private func strandedAlone(_ index: Int, side: Side) -> Bool {
+        for other in pucks.indices where other != index {
+            let puck = pucks[other]
+            if puck.isMoving { return false }
+            let beyond =
+                side == .top
+                ? puck.position.y < table.center.y - table.puckRadius
+                : puck.position.y > table.center.y + table.puckRadius
+            if !beyond { return false }
+        }
+        return true
     }
 
     /// How far a puck can still glide, exactly: under drag d and the flat
@@ -99,13 +136,12 @@ extension Rink {
         return speed / d - (k / d) * log(1 + speed / k)
     }
 
-    /// Which halves the rescue watches: an unmanned half when the puck flies
-    /// alone (another puck could still knock it loose), and the machine's
-    /// half on a feeder table always — the machine defends its mouth, it
-    /// never digs a dead puck out of a corner.
+    /// Which halves the rescue watches: any unmanned half, and the machine's
+    /// half on a feeder table — the machine defends its mouth, it never digs
+    /// a dead puck out of a corner.
     private func rescues(into side: Side) -> Bool {
         if table.feed != nil { return side == (rules.serveTo ?? .bottom).opponent }
-        return table.format.hands(on: side) == Format.Hands.none && pucks.count == 1
+        return table.format.hands(on: side) == Format.Hands.none
     }
 
     /// How far the puck is from ANYTHING on `side`'s far half that could

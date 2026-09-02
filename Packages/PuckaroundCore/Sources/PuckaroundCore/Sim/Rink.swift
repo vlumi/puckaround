@@ -410,12 +410,14 @@ public struct Rink: Equatable, Sendable {
 extension Rink {
     /// Test seams: stage a puck or a mallet by hand. `internal`, reached via
     /// `@testable import`; nothing shipped calls them.
-    /// Stages motion, not silhouette: the slot keeps the table's shape, so a
-    /// test that set `puckShape` and then stages a position isn't silently
-    /// handed a disc.
+    /// Stages motion, not silhouette: the slot keeps the shape it already
+    /// wears (the table's, or its stage's — staged tables fly more pucks than
+    /// `puckShapes` lists), so a test that set a shape and then stages a
+    /// position isn't silently handed a disc.
     mutating func setPuckForTesting(_ puck: Puck, at index: Int = 0) {
+        let shape = pucks[index].shape
         pucks[index] = puck
-        pucks[index].shape = table.puckShapes[index]
+        pucks[index].shape = shape
     }
 
     mutating func setMalletForTesting(_ mallet: Mallet, at slot: MalletSlot) {
