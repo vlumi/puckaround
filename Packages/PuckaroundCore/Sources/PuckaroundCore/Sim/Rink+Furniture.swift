@@ -26,16 +26,30 @@ extension Rink {
         }
     }
 
-    /// Bricks: the puck smashes the first brick it overlaps (index order, so
-    /// deterministic), bouncing off it as it breaks — one brick per tick per
-    /// puck; a seam-mate waits for the next tick. A graze while moving away
-    /// pushes clear without breaking. Shaped pucks smash by their bounding
-    /// circle, like puck-puck.
-    mutating func collideBricks(puckAt index: Int) {
+    /// Bricks: the tick's path is swept in puck-radius steps and the FIRST
+    /// brick on it takes the hit — a fast puck moves farther per tick than a
+    /// brick is deep, so checking only the landing point could smash a brick
+    /// a row BEYOND the one actually struck (index order won ties, and rows
+    /// index top-down: a hard shot punched holes in the back row). One brick
+    /// per tick per puck; a graze while moving away pushes clear without
+    /// breaking. Shaped pucks smash by their bounding circle, like puck-puck.
+    mutating func collideBricks(puckAt index: Int, from start: Vec2) {
+        guard !bricks.isEmpty else { return }
+        let end = pucks[index].position
+        let travel = start.distance(to: end)
+        let steps = max(1, Int((travel / table.puckRadius).rounded(.up)))
+        for step in 1...steps {
+            let at = start + (end - start) * (Double(step) / Double(steps))
+            if collideBrick(at: at, puckAt: index) { return }
+        }
+    }
+
+    /// One sample of the swept path against the wall: resolves and reports
+    /// the first brick within reach of `at`, moving the puck to that contact.
+    private mutating func collideBrick(at p: Vec2, puckAt index: Int) -> Bool {
         let r = table.puckRadius
         for brickIndex in bricks.indices {
             let rect = bricks[brickIndex].rect
-            let p = pucks[index].position
             let closest = Vec2(
                 min(max(p.x, rect.minX), rect.maxX), min(max(p.y, rect.minY), rect.maxY))
             let offset = p - closest
@@ -45,7 +59,7 @@ extension Rink {
                 ? offset.normalized : Vec2(0, pucks[index].velocity.y > 0 ? -1 : 1)
             pucks[index].position = closest + normal * r
             let closing = pucks[index].velocity.dot(normal)
-            guard closing < 0 else { return }
+            guard closing < 0 else { return true }
             pucks[index].velocity -= normal * ((1 + table.restitution) * closing)
             // A sturdy brick chips and holds; the last hit removes it.
             if bricks[brickIndex].hits > 1 {
@@ -55,8 +69,9 @@ extension Rink {
                 bricks.remove(at: brickIndex)
                 events.append(.brickBroken(speed: -closing))
             }
-            return
+            return true
         }
+        return false
     }
 
     /// A puck doomed in a half nobody mans re-serves instead of stalling the
