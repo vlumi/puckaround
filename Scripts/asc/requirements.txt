@@ -1,0 +1,5 @@
+# App Store Connect tooling (listing.py, screenshots.py).
+# Install into a venv — Homebrew's Python is externally-managed, so a bare
+# `pip install` is refused. run.sh manages the venv itself; see README.md.
+pyjwt>=2.8
+cryptography>=42

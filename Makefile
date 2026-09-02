@@ -69,6 +69,39 @@ clean:  ## Remove the generated project + local build output
 	@rm -rf Puckaround.xcodeproj .build-xcode Packages/PuckaroundCore/.build dist
 	@echo "removed Puckaround.xcodeproj, .build-xcode, package .build, dist"
 
+##@ App Store — screenshots & listing (asc-* talk to ASC; dry-run by default, -apply writes)
+##~ Screenshots: make shots PLATFORM=iphone|ipad → stage + capture → commit shots/ → make asc-screenshots-apply
+##~ Listing text: edit Scripts/asc/listing.json → make asc-listing → make asc-listing-apply
+
+# See Scripts/asc/SCREENSHOTS.md. `make shots` is the whole capture flow: it
+# launches the app on the right-sized simulator, prompts what to stage, and
+# captures each shot itself, canonically named under shots/<platform>/<lang>/.
+.PHONY: shots
+shots:  ## Guided screenshot capture: PLATFORM=iphone|ipad [LANGS=en] [OUT=shots]
+	@Scripts/shoot.sh
+
+.PHONY: shots-organize
+shots-organize:  ## Rename raw freehand screenshots by capture order: DIR=<folder> PLATFORM=iphone|ipad [LANGS=en]
+	@Scripts/asc/run.sh organize $${PLATFORM:-iphone} $(DIR) $(if $(LANGS),--langs=$(LANGS),)
+
+# The runner self-manages a venv (deps in Scripts/asc/requirements.txt);
+# listing.json is the source of truth for the listing text.
+.PHONY: asc-listing
+asc-listing:  ## Show what differs between listing.json and the ASC listing (dry run)
+	@Scripts/asc/run.sh listing $(ARGS)
+
+.PHONY: asc-listing-apply
+asc-listing-apply:  ## Push listing.json (description/keywords/etc.) to the ASC listing
+	@Scripts/asc/run.sh listing --apply $(ARGS)
+
+.PHONY: asc-screenshots
+asc-screenshots:  ## Show what the shots/ tree would upload to the ASC listing (dry run)
+	@Scripts/asc/run.sh screens $(ARGS)
+
+.PHONY: asc-screenshots-apply
+asc-screenshots-apply:  ## Replace + upload the shots/ tree to the ASC listing
+	@Scripts/asc/run.sh screens --apply $(ARGS)
+
 ##@ Release lane
 ##~ Cut a build: make release — runs preflight → publish → tag → distribute
 

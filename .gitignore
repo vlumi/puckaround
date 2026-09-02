@@ -33,5 +33,5 @@ coverage.lcov
 *.pkg
 Scripts/.asc-config
 
-# App Store screenshot captures — staged locally, never committed
-/shots/
+# Python bytecode cache (Scripts/asc tooling)
+__pycache__/
