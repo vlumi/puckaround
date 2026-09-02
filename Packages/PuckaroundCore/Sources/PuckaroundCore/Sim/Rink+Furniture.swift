@@ -79,8 +79,7 @@ extension Rink {
     /// the lone side's reach and too slow for its remaining travel to bring it
     /// back, reach furniture, or find the goal, only walls remain and its fate
     /// is sealed, so it beams out early. No foul and no cost: a soft shot that
-    /// ran out isn't a mistake worth a life. One-puck tables only — another
-    /// puck could still knock a doomed one loose.
+    /// ran out isn't a mistake worth a life.
     mutating func rescueDeadPuck(at index: Int) {
         guard phase == .playing else { return }
         let puck = pucks[index]
@@ -92,6 +91,12 @@ extension Rink {
                 ? puck.position.y < table.center.y - table.puckRadius
                 : puck.position.y > table.center.y + table.puckRadius
             guard beyond else { continue }
+            // On a multi-puck stage the rescue waits while any OTHER puck
+            // could still knock this one loose — that's gameplay. But pucks
+            // stranded dead beyond reach TOGETHER are a frozen table, and
+            // they beam home (one at a time: the first serve hands the player
+            // a live puck, which blocks the rest until it too dies).
+            if table.feed == nil, !strandedAlone(index, side: side) { continue }
             let speed = puck.velocity.length
             if speed == 0
                 || remainingGlide(from: speed) < doomDistance(from: puck.position, into: side)
@@ -100,6 +105,23 @@ extension Rink {
                 serve(puckAt: index, to: rules.serveTo ?? side.opponent)
             }
         }
+    }
+
+    /// Whether every OTHER puck is itself dead beyond the player's reach —
+    /// only then is this one truly stranded. A moving puck anywhere, or a
+    /// resting one in the manned half (where the mallet can fire it), could
+    /// still knock it loose.
+    private func strandedAlone(_ index: Int, side: Side) -> Bool {
+        for other in pucks.indices where other != index {
+            let puck = pucks[other]
+            if puck.isMoving { return false }
+            let beyond =
+                side == .top
+                ? puck.position.y < table.center.y - table.puckRadius
+                : puck.position.y > table.center.y + table.puckRadius
+            if !beyond { return false }
+        }
+        return true
     }
 
     /// How far a puck can still glide, exactly: under drag d and the flat
@@ -114,13 +136,12 @@ extension Rink {
         return speed / d - (k / d) * log(1 + speed / k)
     }
 
-    /// Which halves the rescue watches: an unmanned half when the puck flies
-    /// alone (another puck could still knock it loose), and the machine's
-    /// half on a feeder table always — the machine defends its mouth, it
-    /// never digs a dead puck out of a corner.
+    /// Which halves the rescue watches: any unmanned half, and the machine's
+    /// half on a feeder table — the machine defends its mouth, it never digs
+    /// a dead puck out of a corner.
     private func rescues(into side: Side) -> Bool {
         if table.feed != nil { return side == (rules.serveTo ?? .bottom).opponent }
-        return table.format.hands(on: side) == Format.Hands.none && pucks.count == 1
+        return table.format.hands(on: side) == Format.Hands.none
     }
 
     /// How far the puck is from ANYTHING on `side`'s far half that could
