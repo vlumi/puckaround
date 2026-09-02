@@ -1,10 +1,13 @@
 import PuckaroundCore
 import SwiftUI
 
-/// The app icon, drawn by the game's own recipe — the neon cabinet shrunk to a
-/// tile: the glowing rink, its two goal mouths in the seat colors, the two
-/// mallets facing off across the center line, and a white-hot puck in the
-/// slot. No image assets: `make icon` renders this at 1024×1024 into the asset
+/// The app icon, drawn by the game's own recipe — the neon cabinet shrunk to
+/// a tile, holding the game's true orientation: magenta at your end, cyan
+/// defending the top. The moment is a rally — the puck fired from deep in
+/// the magenta corner, streaking across the ring while cyan falls back to
+/// its mouth. Chosen from six candidates for how it balances at small sizes
+/// (the off-center diagonal reads better tiny than the centered marks). No
+/// image assets: `make icon` renders this at 1024×1024 into the asset
 /// catalog. It must keep matching how `RinkRenderer` draws the real table.
 public struct AppIconScene: View {
     public init() {}
@@ -55,7 +58,8 @@ public struct AppIconScene: View {
                 ring, color: RinkRenderer.line.opacity(0.5), width: 6 * s, blur: 14 * s,
                 in: &context)
 
-            // Goal mouths, each in its seat color.
+            // Goal mouths, the game's own way up: cyan defends the top,
+            // magenta — you — the bottom.
             let goalW = 300.0 * s
             func goal(y: CGFloat, color: Color) {
                 var bar = Path()
@@ -63,32 +67,31 @@ public struct AppIconScene: View {
                 bar.addLine(to: CGPoint(x: size.width / 2 + goalW / 2, y: y))
                 glowStroke(bar, color: color, width: 18 * s, blur: 22 * s, in: &context)
             }
-            goal(y: rink.minY, color: SeatPalette.magenta)
-            goal(y: rink.maxY, color: SeatPalette.cyan)
+            goal(y: rink.minY, color: SeatPalette.cyan)
+            goal(y: rink.maxY, color: SeatPalette.magenta)
 
-            // Two mallets, facing off — magenta top, cyan bottom, matching the
-            // goals. Set off-center and NOT mirrored: the top one drawn back and
-            // to one side, the bottom one nearer the center on the other, so the
-            // icon reads as a moment of play rather than a symmetric diagram.
+            // The rally: the magenta mallet deep in its corner has just
+            // fired; cyan falls back toward its mouth.
             mallet(
-                CGPoint(x: size.width * 0.37, y: rink.minY + rink.height * 0.23), 96 * s,
+                CGPoint(x: size.width * 0.30, y: rink.minY + rink.height * 0.80), 100 * s,
                 SeatPalette.magenta, s: s, in: &context)
             mallet(
-                CGPoint(x: size.width * 0.61, y: rink.minY + rink.height * 0.63), 96 * s,
+                CGPoint(x: size.width * 0.68, y: rink.minY + rink.height * 0.15), 88 * s,
                 SeatPalette.cyan, s: s, in: &context)
 
-            // The white-hot puck, off center toward the cyan mallet, trailing
-            // back toward the magenta one.
-            let puckAt = CGPoint(x: size.width * 0.53, y: mid - 26 * s)
+            // The white-hot puck mid-flight, its streak trailing back to the
+            // striker.
+            let puckAt = CGPoint(x: size.width * 0.56, y: size.height * 0.42)
             var streak = Path()
             streak.move(to: puckAt)
-            streak.addLine(to: CGPoint(x: puckAt.x - 150 * s, y: puckAt.y - 120 * s))
+            streak.addLine(to: CGPoint(x: puckAt.x - 190 * s, y: puckAt.y + 260 * s))
             var haze = context
             haze.addFilter(.blur(radius: 40 * s))
             haze.stroke(
                 streak, with: .color(RinkRenderer.puck.opacity(0.4)),
-                style: StrokeStyle(lineWidth: 70 * s, lineCap: .round))
-            glowDisc(puckAt, 60 * s, RinkRenderer.puck, blur: 28 * s, in: &context)
+                style: StrokeStyle(lineWidth: 74 * s, lineCap: .round))
+            glowDisc(puckAt, 62 * s, RinkRenderer.puck, blur: 28 * s, in: &context)
+            // The specular glint, up-left like every light in the cabinet.
             context.fill(
                 disc(CGPoint(x: puckAt.x - 22 * s, y: puckAt.y - 22 * s), 16 * s),
                 with: .color(.white))
