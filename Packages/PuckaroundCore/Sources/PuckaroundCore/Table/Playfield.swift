@@ -18,6 +18,11 @@ public struct Playfield: Equatable, Codable, Sendable {
     public var restitution: Double
     /// Per-second exponential speed decay on the surface (0 = ice that never stops).
     public var drag: Double
+    /// A flat friction floor, world units/s² — subtracted from the speed every
+    /// second regardless of how fast the puck is. Exponential drag alone lets a
+    /// slow puck creep forever (deceleration fades with speed); the floor kills
+    /// the crawl in a beat while a fast shot barely notices it.
+    public var friction: Double
     /// Speed cap, world units per second — so no hit can carry the puck
     /// through a wall in a single tick.
     public var maxSpeed: Double
@@ -58,8 +63,9 @@ public struct Playfield: Equatable, Codable, Sendable {
 
     public init(
         size: Vec2, puckRadius: Double, malletRadius: Double, goalWidth: Double,
-        restitution: Double, drag: Double, maxSpeed: Double, restSpeed: Double,
-        faceoffBubbleRadius: Double, serveSpeed: Double, puckShapes: [PuckShape] = [.circle],
+        restitution: Double, drag: Double, friction: Double = 0, maxSpeed: Double,
+        restSpeed: Double, faceoffBubbleRadius: Double, serveSpeed: Double,
+        puckShapes: [PuckShape] = [.circle],
         doublesGoalWidth: Double? = nil, format: Format = .oneVsOne,
         sideWalls: SideWalls = .solid, bumpers: [Bumper] = [], stages: [TableStage] = [],
         feed: PuckFeed? = nil
@@ -70,6 +76,7 @@ public struct Playfield: Equatable, Codable, Sendable {
         self.goalWidth = goalWidth
         self.restitution = restitution
         self.drag = drag
+        self.friction = friction
         self.maxSpeed = maxSpeed
         self.restSpeed = restSpeed
         self.faceoffBubbleRadius = faceoffBubbleRadius
@@ -96,11 +103,18 @@ public struct Playfield: Equatable, Codable, Sendable {
         Side.allCases.first { format.hands(on: $0) == Format.Hands.none }
     }
 
-    /// The one table there is: two players facing each other.
+    /// The one table there is: two players facing each other. Retuned after
+    /// device play: exponential drag alone made shots die mid-ice AND let a
+    /// slow puck creep forever, so the drag eased and a flat friction floor
+    /// joined it — fast pucks fly, crawls settle in a beat. INVARIANT: a
+    /// serve must die short of its own goal (else an untouched serve is an
+    /// own goal on the couch, a watched drain in the arcade). Total glide
+    /// from speed v is v/d − (k/d)·ln(1+v/k), k = friction/drag: 46 → ~70
+    /// units, and the goal line is 84 from center.
     public static let duel = Playfield(
         size: Vec2(100, 160), puckRadius: 4, malletRadius: 7, goalWidth: 36,
-        restitution: 0.85, drag: 0.4, maxSpeed: 400, restSpeed: 0.5, faceoffBubbleRadius: 22,
-        serveSpeed: 26, doublesGoalWidth: 78)
+        restitution: 0.85, drag: 0.25, friction: 8, maxSpeed: 400, restSpeed: 1,
+        faceoffBubbleRadius: 22, serveSpeed: 46, doublesGoalWidth: 78)
 
     /// This table set to a given format (which sides field two hands, and so
     /// which goals widen).

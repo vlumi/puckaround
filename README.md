@@ -34,7 +34,7 @@ Planned arc:
 - **The couch** — singles/doubles, shaped and spinning pucks, wrap-wall tables,
   tournaments on remembered names in their own colors, practice against the
   machine, a three-cabinet solo arcade, and a front door have all shipped;
-  what's left is tuning the feel on real hardware.
+  what's left is polish on the way to 1.0.
 - **A curved table** — an ellipse with slice goals, where a spun puck can ride
   the wall toward the goal. A later spike.
 

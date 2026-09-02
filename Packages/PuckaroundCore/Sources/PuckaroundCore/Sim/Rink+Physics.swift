@@ -75,9 +75,16 @@ extension Rink {
     private mutating func slideAlongWall(puckAt index: Int, wall: Vec2, from center: Vec2) {
         let into = pucks[index].velocity.dot(wall)
         guard into > 0 else { return }
+        let speed = pucks[index].velocity.length
         let offset = pucks[index].position - center
         let along = (offset - wall * offset.dot(wall)).normalized
         pucks[index].velocity += along * into - wall * into
+        // A redirection, never a boost: a diagonal pin used to leave the puck
+        // up to √2× faster than it arrived, punching past the speed cap.
+        let after = pucks[index].velocity.length
+        if after > speed, after > 0 {
+            pucks[index].velocity *= speed / after
+        }
     }
 
     /// The mallet as a puck sees it: its own place, or — on a wrap table — its
@@ -172,13 +179,16 @@ extension Rink {
     private mutating func step(puckAt index: Int) -> Bool {
         let puck = pucks[index]
         var v = puck.velocity
-        // Pace lifts the cap and thins the drag — a later lap plays faster
+        // Pace lifts the cap and thins the surface — a later lap plays faster
         // and the ice stays slick longer. 1 everywhere but staged tables.
         let cap = table.maxSpeed * pace
         let drag = table.drag / pace
+        let friction = table.friction / pace
         if v.length > cap { v *= cap / v.length }
-        v *= exp(-drag * Rink.dt)
-        if v.length < table.restSpeed { v = .zero }
+        // Exponential drag carries the shot; the flat friction floor kills
+        // the slow tail — fast pucks fly, crawls settle in a beat.
+        let slowed = max(0, v.length * exp(-drag * Rink.dt) - friction * Rink.dt)
+        v = slowed >= table.restSpeed && v.length > 0 ? v.normalized * slowed : .zero
         var omega = puck.angularVelocity * exp(-drag * Rink.dt)
         if abs(omega) < Rink.restAngularVelocity { omega = 0 }
         let p = puck.position + v * Rink.dt

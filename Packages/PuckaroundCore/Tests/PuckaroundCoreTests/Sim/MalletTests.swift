@@ -90,7 +90,8 @@ final class MalletTests: XCTestCase {
         r.placeMallet(at: bottom, position: r.table.center + Vec2(0, reach))
         r.advance(inputs: [bottom: SeatInput(malletDrag: Vec2(0, -1))])
         let malletSpeed = Double(Rink.tickRate)
-        let expected = (1 + r.table.restitution) * malletSpeed * exp(-r.table.drag * Rink.dt)
+        let struck = (1 + r.table.restitution) * malletSpeed
+        let expected = struck * exp(-r.table.drag * Rink.dt) - r.table.friction * Rink.dt
         XCTAssertEqual(-r.puck.velocity.y, expected, accuracy: 1e-6)
     }
 
