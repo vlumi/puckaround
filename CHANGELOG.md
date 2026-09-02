@@ -14,6 +14,7 @@ The `## vX.Y.Z` heading is written by the release lane too, whenever a release c
 
 ### Unreleased (next build)
 
+- **A truer app icon.** The tile now holds the game the way you do — magenta at your end, cyan defending the top (the old icon had the ends flipped) — and catches a rally mid-flight: the puck streaking off your mallet, across the ring, at the far goal's guard. Picked from six candidates for how it balances at small sizes.
 - **Two stranded pucks beam back.** On multi-puck stages the rescue used to stand down whenever another puck was on the table — but two pucks dead beyond your reach blocked each other forever, freezing the run. Stranded together they now beam home, one at a time (the first serve hands you a live puck again); while any puck still flies or rests within your mallet's reach, the rescue keeps waiting — dislodging a stuck puck with another one is gameplay.
 - **Fast hits break the right brick.** A hard shot moves farther in one tick than a brick is deep, so it could land within reach of two rows at once — and the hit went to the wrong one, punching a hole in the back row while the brick it actually struck survived. The shot's path is now swept, and the first brick on it takes the hit, at any speed on any lap.
 
