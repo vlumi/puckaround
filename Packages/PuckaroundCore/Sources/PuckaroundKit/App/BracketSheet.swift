@@ -7,12 +7,18 @@ import SwiftUI
 /// bright where the player advanced, faint where they fell, neutral while the
 /// match is to come. An undecided slot shows a dim blank where the winner will
 /// land; a round-one bye pair isn't drawn at all — its player simply enters at
-/// the next round. Losers dim out, the live pairing wears the end colors, and
-/// a decided champion glows. Wide fields scroll sideways; the tallest column
-/// always fits the card without vertical scrolling, even at the 32-player cap.
+/// the next round. Every name wears its player's own kit — the eliminated
+/// dimmed in theirs, the champion glowing in theirs — and the live pairing
+/// wears the resolved end colors its table wears, matching the VS. banner.
+/// Wide fields scroll sideways; the tallest column always fits the card
+/// without vertical scrolling, even at the 32-player cap.
 struct BracketSheet: View {
     let rounds: [[String?]]
     let current: Pairing?
+    /// The live pairing's clash-resolved end colors, when a match is up.
+    let liveColors: EndColors?
+    /// A name's home kit color — the same lookup the standings lists use.
+    let kitColor: (String) -> Color
 
     private var entrants: Int { rounds[0].count }
     private var rowHeight: CGFloat { entrants > 16 ? 13 : entrants > 8 ? 17 : 24 }
@@ -110,16 +116,17 @@ struct BracketSheet: View {
         return advanced == name ? Neon.ink.opacity(0.8) : Neon.inkSoft.opacity(0.3)
     }
 
-    /// A name's state on the sheet: live (the current pairing, in end colors),
-    /// out (its match is decided and it didn't advance), or simply standing.
+    /// A name's state on the sheet: live (the current pairing, in the resolved
+    /// end colors), out (its match is decided and it didn't advance, dimmed in
+    /// its own kit), or standing — everyone in their own neon.
     private func color(of name: String, round: Int, slot: Int) -> Color {
-        guard round + 1 < rounds.count else { return Neon.cyan }
+        guard round + 1 < rounds.count else { return kitColor(name) }
         let advanced = rounds[round + 1][slot / 2]
         if advanced == nil {
-            if name == current?.bottom { return Neon.magenta }
-            if name == current?.top { return Neon.cyan }
-            return Neon.ink
+            if name == current?.bottom { return liveColors?.bottom ?? kitColor(name) }
+            if name == current?.top { return liveColors?.top ?? kitColor(name) }
+            return kitColor(name)
         }
-        return advanced == name ? Neon.ink : Neon.inkSoft.opacity(0.55)
+        return advanced == name ? kitColor(name) : kitColor(name).opacity(0.5)
     }
 }

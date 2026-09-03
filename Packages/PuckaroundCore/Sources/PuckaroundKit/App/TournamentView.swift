@@ -122,7 +122,9 @@ struct TournamentView: View {
         case .winnerStays(let t):
             lineDetails(t)
         case .bracket(let b):
-            BracketSheet(rounds: b.rounds, current: b.current)
+            BracketSheet(
+                rounds: b.rounds, current: b.current,
+                liveColors: b.current.map { resolvedColors(e, $0) }, kitColor: kitColor)
         case .league(let l):
             leagueDetails(l)
         }
