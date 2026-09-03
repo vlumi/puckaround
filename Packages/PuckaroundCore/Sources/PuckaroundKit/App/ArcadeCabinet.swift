@@ -52,21 +52,22 @@ struct ArcadeAttract: View {
         case 90, -90:
             // Landscape: the machine's end is a side half — board-top lands
             // where the clockwise quarter turn sends it (−90 left, +90 right).
-            HStack(spacing: 16) {
-                if turn < 0 {
-                    machineStack.frame(maxWidth: .infinity)
-                    Color.clear.frame(maxWidth: .infinity)
-                } else {
-                    Color.clear.frame(maxWidth: .infinity)
-                    machineStack.frame(maxWidth: .infinity)
-                }
-            }
-            .allowsHitTesting(false)
+            // The panes anchor just INSIDE the machine's wall (the rink is
+            // centered at BoardPlacement's 12-point margin) and grow only
+            // toward the middle, capped short of the center line — never off
+            // the rink, never over the player's mallet.
+            let scale = min((size.width - 24) / 160, (size.height - 24) / 100)
+            let wallInset = max(0, (size.width - 160 * scale) / 2 + 14 - 24)
+            let trailing = turn > 0
+            machineStack(cap: min(260, 80 * scale - 28), trailing: trailing)
+                .frame(maxWidth: .infinity, alignment: trailing ? .trailing : .leading)
+                .padding(trailing ? .trailing : .leading, wallInset)
+                .allowsHitTesting(false)
         case 180, -180:
             // Upside down: the machine defends the screen-bottom end.
             VStack(spacing: 16) {
                 Color.clear.frame(maxHeight: .infinity)
-                machineStack.frame(maxHeight: .infinity)
+                machineStack(cap: 280, trailing: false).frame(maxHeight: .infinity)
             }
             .allowsHitTesting(false)
         default:
@@ -75,18 +76,19 @@ struct ArcadeAttract: View {
     }
 
     /// Sideways or flipped, there is no letterbox band: the last run and the
-    /// board stack together, centered on the machine's half.
-    private var machineStack: some View {
-        VStack(spacing: 10) {
+    /// board stack together, both flush against the wall-side edge. `cap` is
+    /// how far the board may grow toward the middle of the table.
+    private func machineStack(cap: CGFloat, trailing: Bool) -> some View {
+        VStack(alignment: trailing ? .trailing : .leading, spacing: 10) {
             if let lastScore {
                 card(opacity: 0.7, pad: 8) { lastRun(lastScore) }
-                    .frame(maxWidth: 220)
+                    .frame(maxWidth: min(cap, 220))
             }
             card(opacity: 0.55) {
                 boardRows
                     .shadow(color: Neon.ground.opacity(0.9), radius: 2)
             }
-            .frame(maxWidth: 280)
+            .frame(maxWidth: cap)
         }
     }
 
