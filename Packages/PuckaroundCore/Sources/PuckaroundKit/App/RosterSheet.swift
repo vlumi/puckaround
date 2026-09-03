@@ -220,7 +220,11 @@ struct RosterSheet: View {
                         .overlay(
                             RoundedRectangle(cornerRadius: 12)
                                 .strokeBorder(
-                                    tint.opacity(selected ? 1 : 0.5), lineWidth: 1.5)))
+                                    tint.opacity(selected ? 1 : 0.5), lineWidth: 1.5))
+                )
+                // An outlined chip's clear middle takes no hits on its own —
+                // this makes the whole face the target (NeonButton's fix).
+                .contentShape(RoundedRectangle(cornerRadius: 12))
         }
         .buttonStyle(.plain)
     }
@@ -293,7 +297,9 @@ struct RosterSheet: View {
                         .overlay(
                             RoundedRectangle(cornerRadius: 12)
                                 .strokeBorder(
-                                    Neon.ink.opacity(selected ? 1 : 0.4), lineWidth: 1.5)))
+                                    Neon.ink.opacity(selected ? 1 : 0.4), lineWidth: 1.5))
+                )
+                .contentShape(RoundedRectangle(cornerRadius: 12))
         }
         .buttonStyle(.plain)
     }
@@ -383,7 +389,9 @@ extension RosterSheet {
             .background(
                 RoundedRectangle(cornerRadius: 7)
                     .strokeBorder(
-                        Neon.ink.opacity(editing == player.name ? 0.9 : 0), lineWidth: 1.5))
+                        Neon.ink.opacity(editing == player.name ? 0.9 : 0), lineWidth: 1.5)
+            )
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityLabel(Text("Kit", bundle: .module))
@@ -417,7 +425,9 @@ extension RosterSheet {
             .frame(width: 22, height: 44)
             .background(
                 RoundedRectangle(cornerRadius: 7)
-                    .strokeBorder(Neon.ink.opacity(editingDraft ? 0.9 : 0), lineWidth: 1.5))
+                    .strokeBorder(Neon.ink.opacity(editingDraft ? 0.9 : 0), lineWidth: 1.5)
+            )
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityLabel(Text("Kit", bundle: .module))

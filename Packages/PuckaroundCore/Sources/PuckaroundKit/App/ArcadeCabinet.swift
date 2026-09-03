@@ -182,7 +182,9 @@ struct ArcadeAttract: View {
                             RoundedRectangle(cornerRadius: 10)
                                 .strokeBorder(
                                     SeatPalette.neon(player.kit.home).opacity(0.5),
-                                    lineWidth: 1.5))
+                                    lineWidth: 1.5)
+                        )
+                        .contentShape(RoundedRectangle(cornerRadius: 10))
                 }
                 .buttonStyle(.plain)
             }

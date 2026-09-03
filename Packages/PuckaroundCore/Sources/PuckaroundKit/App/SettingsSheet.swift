@@ -101,7 +101,9 @@ struct SettingsSheet: View {
                         .overlay(
                             RoundedRectangle(cornerRadius: 10)
                                 .strokeBorder(
-                                    Neon.ink.opacity(selected ? 1 : 0.4), lineWidth: 1.5)))
+                                    Neon.ink.opacity(selected ? 1 : 0.4), lineWidth: 1.5))
+                )
+                .contentShape(RoundedRectangle(cornerRadius: 10))
         }
         .buttonStyle(.plain)
     }

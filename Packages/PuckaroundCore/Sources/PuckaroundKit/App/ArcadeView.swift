@@ -295,7 +295,9 @@ struct ArcadeView: View {
             .padding(12)
             .background(
                 RoundedRectangle(cornerRadius: 14)
-                    .strokeBorder(Neon.inkSoft.opacity(0.4), lineWidth: 1.5))
+                    .strokeBorder(Neon.inkSoft.opacity(0.4), lineWidth: 1.5)
+            )
+            .contentShape(RoundedRectangle(cornerRadius: 14))
         }
         .buttonStyle(.plain)
     }
