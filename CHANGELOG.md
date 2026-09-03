@@ -14,6 +14,8 @@ The `## vX.Y.Z` heading is written by the release lane too, whenever a release c
 
 ### Unreleased (next build)
 
+- **Sheets hug their content.** On a roomy screen (the iPad) the New match, Tournament, Arcade, Names, Settings, and About cards now wrap snugly around what's in them instead of stretching floor to ceiling with the buttons pinned far apart; where the screen is shorter than the card, they scroll exactly as before.
+
 ### build 11 — 2026-09-03
 
 - **A cleaner-running table.** A fresh-eyes audit swept the whole app: an ended match no longer leaks its table (a retain cycle held every finished game's engine alive), the sound engine no longer stacks a live render node on every mute/unmute, the display loop rests at 60 Hz and sleeps entirely behind menus, a call or app-switch with a finger on the center ring no longer pops the menu, tournament lists stop re-reading the name pool per row, the Names card gained the dimmed backdrop every other sheet has (it left the shelf tappable beside it), and the sim shed its last per-tick allocations.

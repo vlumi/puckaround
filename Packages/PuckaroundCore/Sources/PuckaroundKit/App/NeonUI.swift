@@ -9,6 +9,9 @@ enum Neon {
     static let inkSoft = RinkRenderer.line.opacity(0.6)
     static let cyan = SeatPalette.cyan
     static let magenta = SeatPalette.magenta
+    /// Every sheet card's width cap — one dial, should the iPad ever want a
+    /// broader column.
+    static let sheetWidth: CGFloat = 440
 }
 
 /// A glowing outline button — the primary way to act on a menu.
@@ -132,6 +135,38 @@ struct NeonPillBackground: View {
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
                     .strokeBorder(tint.opacity(selected ? 1 : 0.4), lineWidth: 1.5))
+    }
+}
+
+/// A ScrollView that hugs its content's height: the card wraps snugly where
+/// the screen has room to spare (the iPad), and scrolls only where the screen
+/// is shorter — the parent clamps the frame. One view identity either way, so
+/// focus and typing survive content growing past the fold.
+struct HuggingScrollView<Content: View>: View {
+    @ViewBuilder let content: () -> Content
+
+    @State private var contentHeight: CGFloat?
+
+    var body: some View {
+        ScrollView {
+            content()
+                .background(
+                    GeometryReader { geo in
+                        Color.clear.preference(
+                            key: ContentHeightKey.self, value: geo.size.height)
+                    })
+        }
+        .onPreferenceChange(ContentHeightKey.self) { contentHeight = $0 }
+        .frame(maxHeight: contentHeight)
+    }
+}
+
+/// `HuggingScrollView`'s measured content height. Top-level because a type
+/// nested in a generic can't hold the static default.
+private struct ContentHeightKey: PreferenceKey {
+    static let defaultValue: CGFloat? = nil
+    static func reduce(value: inout CGFloat?, nextValue: () -> CGFloat?) {
+        value = nextValue() ?? value
     }
 }
 

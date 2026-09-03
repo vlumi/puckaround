@@ -36,16 +36,12 @@ struct AboutSheet: View {
                     .padding(.bottom, 8)
                 // A sideways phone is shorter than the card — scroll there,
                 // hug the content wherever it fits.
-                ViewThatFits(in: .vertical) {
+                HuggingScrollView {
                     content
                         .padding(24)
-                    ScrollView(showsIndicators: false) {
-                        content
-                            .padding(24)
-                    }
                 }
             }
-            .frame(maxWidth: 440)
+            .frame(maxWidth: Neon.sheetWidth)
             .background(NeonCard())
             .padding(16)
         }

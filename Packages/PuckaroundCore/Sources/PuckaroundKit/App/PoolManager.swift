@@ -106,13 +106,13 @@ struct NamesSheet: View {
                     .padding(.horizontal, 24)
                     .padding(.top, 20)
                     .padding(.bottom, 8)
-                ScrollView {
+                HuggingScrollView {
                     PoolManager()
                         .padding(.horizontal, 24)
                         .padding(.vertical, 16)
                 }
             }
-            .frame(maxWidth: 440)
+            .frame(maxWidth: Neon.sheetWidth)
             .background(NeonCard())
             .padding(16)
         }
