@@ -34,13 +34,13 @@ struct NewMatchSheet: View {
             Color.black.opacity(0.85).ignoresSafeArea().onTapGesture(perform: onClose)
             // Header and Start are pinned; only the pickers scroll between them,
             // so Start is always in reach — a short screen (SE) never has to
-            // scroll to it, and a tall one shows everything at once.
+            // scroll to it, and a roomy one (the iPad) hugs the card to them.
             VStack(spacing: 0) {
                 header
                     .padding(.horizontal, 24)
                     .padding(.top, 20)
                     .padding(.bottom, 8)
-                ScrollView {
+                HuggingScrollView {
                     SetupControls(setup: $draft, showsFormat: !practice)
                         .padding(.horizontal, 24)
                         .padding(.vertical, 16)
@@ -48,7 +48,7 @@ struct NewMatchSheet: View {
                 start
                     .padding(24)
             }
-            .frame(maxWidth: 440)
+            .frame(maxWidth: Neon.sheetWidth)
             .background(NeonCard())
             .padding(16)
         }

@@ -25,8 +25,9 @@ struct SettingsSheet: View {
                     .padding(.horizontal, 24)
                     .padding(.top, 20)
                     .padding(.bottom, 8)
-                // Names can outgrow a screen; the sections scroll as one.
-                ScrollView {
+                // Names can outgrow a screen; the sections scroll as one —
+                // and the card hugs them where the screen has room.
+                HuggingScrollView {
                     VStack(spacing: 24) {
                         section("Feedback") {
                             toggleRow("Sounds", isOn: $soundOn)
@@ -58,7 +59,7 @@ struct SettingsSheet: View {
                     .padding(24)
                 }
             }
-            .frame(maxWidth: 440)
+            .frame(maxWidth: Neon.sheetWidth)
             .background(NeonCard())
             .padding(16)
         }

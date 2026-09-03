@@ -234,7 +234,7 @@ struct ArcadeView: View {
                 .padding(.horizontal, 24)
                 .padding(.top, 20)
                 .padding(.bottom, 8)
-            ScrollView {
+            HuggingScrollView {
                 VStack(spacing: 10) {
                     ForEach(ArcadeSpec.machines) { machine in
                         machineCard(machine)
@@ -244,7 +244,7 @@ struct ArcadeView: View {
                 .padding(.vertical, 12)
             }
         }
-        .frame(maxWidth: 440)
+        .frame(maxWidth: Neon.sheetWidth)
         .background(NeonCard())
         .padding(16)
     }

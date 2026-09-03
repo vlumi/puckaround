@@ -110,7 +110,7 @@ struct TournamentView: View {
             NeonButton(title: "End tournament", tint: Neon.magenta, action: end)
         }
         .padding(24)
-        .frame(maxWidth: 440)
+        .frame(maxWidth: Neon.sheetWidth)
         .background(NeonCard())
         .padding(16)
     }

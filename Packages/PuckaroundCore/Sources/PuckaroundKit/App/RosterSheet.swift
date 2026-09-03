@@ -29,7 +29,7 @@ struct RosterSheet: View {
                 .padding(.horizontal, 24)
                 .padding(.top, 20)
                 .padding(.bottom, 8)
-            ScrollView {
+            HuggingScrollView {
                 VStack(spacing: 24) {
                     section("Format") { shapePicker }
                     section("Lineup") { lineup }
@@ -51,7 +51,7 @@ struct RosterSheet: View {
             .disabled(!canStart)
             .padding(24)
         }
-        .frame(maxWidth: 440)
+        .frame(maxWidth: Neon.sheetWidth)
         .background(NeonCard())
         .padding(16)
         .onAppear { pool = PlayerPool.decode(savedPool) }
