@@ -64,13 +64,10 @@ public struct Format: Equatable, Codable, Sendable {
     /// One human at the bottom, nobody at the top — the arcade's table.
     public static let solo = Format(bottom: .one, top: .none)
 
-    /// How many mallets the given side fields.
     public func hands(on side: Side) -> Hands {
         side == .bottom ? bottom : top
     }
 
-    /// The lanes a side splits into for its hand count: none at all, one full
-    /// lane, or a left and a right.
     static func lanes(for hands: Hands) -> [Lane] {
         switch hands {
         case .none: return []

@@ -76,3 +76,87 @@ struct NeonCard: View {
                 RoundedRectangle(cornerRadius: 18).strokeBorder(Neon.inkSoft, lineWidth: 1))
     }
 }
+
+/// Every sheet's title row — the centered name, the X out, and whatever extra
+/// corner button a sheet adds (the arcade shelf's Names). One header for all
+/// seven sheets, so the chrome can't drift.
+struct NeonSheetHeader<Extra: View>: View {
+    let title: LocalizedStringKey
+    let onClose: () -> Void
+    @ViewBuilder var extra: () -> Extra
+
+    var body: some View {
+        ZStack {
+            Text(title, bundle: .module)
+                .font(.system(size: 22, weight: .black, design: .rounded))
+                .foregroundStyle(Neon.ink)
+            HStack(spacing: 6) {
+                Spacer()
+                extra()
+                NeonIconButton(systemName: "xmark", label: "Close", action: onClose)
+            }
+        }
+    }
+}
+
+extension NeonSheetHeader where Extra == EmptyView {
+    init(title: LocalizedStringKey, onClose: @escaping () -> Void) {
+        self.init(title: title, onClose: onClose, extra: { EmptyView() })
+    }
+}
+
+/// The small-caps caption over a section or banner block — one label style
+/// across every sheet (11pt banners, 15pt section heads).
+struct NeonCaption: View {
+    let title: LocalizedStringKey
+    var size: CGFloat = 11
+
+    var body: some View {
+        Text(title, bundle: .module)
+            .font(.system(size: size, weight: .semibold))
+            .foregroundStyle(Neon.inkSoft)
+            .textCase(.uppercase)
+            .kerning(2)
+    }
+}
+
+/// The pill behind a picker option: filled when selected, outlined when not.
+/// `tint` colors it (defaulting to neutral ink for the mono pickers).
+struct NeonPillBackground: View {
+    var selected: Bool
+    var tint: Color = Neon.ink
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: 12)
+            .fill(selected ? tint : Color.clear)
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .strokeBorder(tint.opacity(selected ? 1 : 0.4), lineWidth: 1.5))
+    }
+}
+
+/// A labeled choice pill — the On/Off toggles and format options across the
+/// sheets. Flexible width by default; pass `width` to fix it.
+struct NeonChoicePill: View {
+    let title: LocalizedStringKey
+    var selected: Bool
+    var width: CGFloat?
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Text(title, bundle: .module)
+                .font(.system(size: 15, weight: .bold, design: .rounded))
+                .foregroundStyle(selected ? Neon.ground : Neon.ink)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+                .padding(.horizontal, 10)
+                .frame(height: 44)
+                .frame(maxWidth: width == nil ? .infinity : nil)
+                .frame(width: width)
+                .background(NeonPillBackground(selected: selected))
+                .contentShape(RoundedRectangle(cornerRadius: 12))
+        }
+        .buttonStyle(.plain)
+    }
+}

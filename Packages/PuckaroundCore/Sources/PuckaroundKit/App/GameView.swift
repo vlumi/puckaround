@@ -56,7 +56,16 @@ struct GameView: View {
                 // Everything that reacts to the sim lives inside the timeline
                 // closure, so it re-evaluates with the frame without publishing
                 // anything. Layered, not stacked: the ZStack matters.
-                TimelineView(.animation) { timeline in
+                // Idle at 60 Hz — the sim ticks no faster, so ProMotion frames
+                // above it would redraw identical states — and sleep entirely
+                // while an overlay freezes the sim (the session re-anchors its
+                // clock on resume). The attract faceoff stays live: its ripple
+                // and scanline breathe on wall-clock time.
+                TimelineView(
+                    .animation(
+                        minimumInterval: 1.0 / 60,
+                        paused: showingPause || showingNewMatch)
+                ) { timeline in
                     let scene = game.frame(
                         at: timeline.date.timeIntervalSinceReferenceDate,
                         reducedMotion: reduceMotion)
@@ -74,9 +83,14 @@ struct GameView: View {
             }
             .onAppear {
                 relayout(geo.size)
-                game.begin()
+                // Switches first, so a sound-off table never spins the audio
+                // engine (and its session) up just to stop it.
                 game.setFeedback(sound: soundOn, haptics: hapticsOn)
-                game.onMenuTap = { showingPause = true }
+                game.begin()
+                // Capture the binding, never the view: this closure lives on
+                // the game object the view's StateObject holds, so capturing
+                // self would close the cycle that leaked a table per match.
+                game.onMenuTap = { [pause = $showingPause] in pause.wrappedValue = true }
                 game.endNames = mode.tournament?.names
                 game.endColors = mode.tournament?.colors
                 game.onMatchOver = mode.tournament?.onMatchOver

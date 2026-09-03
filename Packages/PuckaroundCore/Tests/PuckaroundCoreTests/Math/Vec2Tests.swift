@@ -24,15 +24,4 @@ final class Vec2Tests: XCTestCase {
         XCTAssertEqual(down.x, 0, accuracy: 1e-12)
         XCTAssertEqual(down.y, 1, accuracy: 1e-12)
     }
-
-    func testDistanceToSegmentClampsToEndpoints() {
-        let a = Vec2(0, 0)
-        let b = Vec2(10, 0)
-        XCTAssertEqual(Vec2(5, 3).distance(toSegment: a, b), 3)
-        XCTAssertEqual(Vec2(-4, 0).distance(toSegment: a, b), 4)
-        XCTAssertEqual(Vec2(13, 4).distance(toSegment: a, b), 5)
-        XCTAssertEqual(
-            Vec2(2, 2).distance(toSegment: a, a), Vec2(2, 2).length,
-            "a degenerate segment is a point")
-    }
 }

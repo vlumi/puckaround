@@ -24,7 +24,6 @@ public struct SeatZones: Equatable, Sendable {
         let side = side(of: point)
         let sideSlots = slots.filter { $0.side == side }
         guard sideSlots.count > 1 else { return sideSlots.first }
-        // Two: left of center is the left lane, right of center the right.
         let lane: Lane = point.x < bounds.center.x ? .left : .right
         return sideSlots.first { $0.lane == lane } ?? sideSlots[0]
     }

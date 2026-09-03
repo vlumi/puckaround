@@ -54,17 +54,8 @@ struct NewMatchSheet: View {
         }
     }
 
-    /// The title, with the X to back out sitting in the corner beside it.
     private var header: some View {
-        ZStack {
-            Text(practice ? "New practice" : "New match", bundle: .module)
-                .font(.system(size: 22, weight: .black, design: .rounded))
-                .foregroundStyle(Neon.ink)
-            HStack {
-                Spacer()
-                NeonIconButton(systemName: "xmark", label: "Close", action: onClose)
-            }
-        }
+        NeonSheetHeader(title: practice ? "New practice" : "New match", onClose: onClose)
     }
 
     private var start: some View {

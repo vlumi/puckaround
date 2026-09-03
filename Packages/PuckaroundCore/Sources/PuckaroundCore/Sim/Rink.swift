@@ -107,7 +107,6 @@ public struct Rink: Equatable, Sendable {
     /// bleeds the rest. Below 1 so spin doesn't persist forever off the boards.
     static let discSpinKeptOnBounce = 0.8
 
-    /// The spin bite for a given puck shape.
     func spinBite(for shape: PuckShape) -> Double {
         if case .circle = shape { return Rink.discSpinBite }
         return Rink.spinBite
@@ -182,12 +181,15 @@ public struct Rink: Equatable, Sendable {
         self.rules = rules
         self.slots = table.format.slots
         self.rng = SeededRNG(seed: seed)
-        self.pucks = Rink.faceoffPucks(on: table)
-        self.bricks = table.stages.first?.bricks ?? []
-        self.bumpers = table.stages.first?.bumpers ?? table.bumpers
         self.mallets = slots.map { Mallet(position: table.malletZone(for: $0).center) }
-        self.score = Rink.scoreOrder.map { _ in 0 }
-        self.gamesWon = Rink.scoreOrder.map { _ in 0 }
+        // Placeholders only — Swift's definite initialization demands values
+        // before the call, but `newMatch()` is the single source of the
+        // starting state, so nothing real is written twice.
+        self.pucks = []
+        self.bricks = []
+        self.bumpers = []
+        self.score = []
+        self.gamesWon = []
         newMatch()
     }
 
@@ -224,11 +226,20 @@ public struct Rink: Equatable, Sendable {
     /// force field, each wearing its table-given shape — or, on a staged table,
     /// the opening stage's pucks.
     static func faceoffPucks(on table: Playfield) -> [Puck] {
-        let shapes = table.stages.first?.pucks ?? table.puckShapes
+        centerRow(of: table.stages.first?.pucks ?? table.puckShapes, on: table)
+    }
+
+    /// The center row a shape list parks (faceoff) or serves (stage rack) in —
+    /// one layout, so the two can't drift apart.
+    static func centerRow(of shapes: [PuckShape], on table: Playfield, velocity: Vec2 = .zero)
+        -> [Puck]
+    {
         let spacing = table.puckRadius * 2.6
         return shapes.indices.map { index in
             let offset = (Double(index) - Double(shapes.count - 1) / 2) * spacing
-            return Puck(position: table.center + Vec2(offset, 0), shape: shapes[index])
+            return Puck(
+                position: table.center + Vec2(offset, 0), velocity: velocity,
+                shape: shapes[index])
         }
     }
 
@@ -298,13 +309,8 @@ public struct Rink: Equatable, Sendable {
         bricks = stage.bricks
         bumpers = stage.bumpers
         let side = rules.serveTo ?? .bottom
-        let spacing = table.puckRadius * 2.6
-        pucks = stage.pucks.indices.map { index in
-            let offset = (Double(index) - Double(stage.pucks.count - 1) / 2) * spacing
-            return Puck(
-                position: table.center + Vec2(offset, 0),
-                velocity: -side.inward * (table.serveSpeed * pace), shape: stage.pucks[index])
-        }
+        pucks = Rink.centerRow(
+            of: stage.pucks, on: table, velocity: -side.inward * (table.serveSpeed * pace))
     }
 
     /// One tick: every mallet moves (striking any puck on its way), then the

@@ -78,7 +78,6 @@ public struct AppRoot: View {
         }
     }
 
-    /// The stored setup as one value.
     private var setup: Setup {
         Setup(
             pointsToWin: pointsToWin, gamesToWin: gamesToWin, puckShapeKey: puckShapeKey,
@@ -93,7 +92,6 @@ public struct AppRoot: View {
         Binding(get: { setup }, set: apply)
     }
 
-    /// Write a setup back to the individual stored fields.
     private func apply(_ s: Setup) {
         pointsToWin = s.pointsToWin
         gamesToWin = s.gamesToWin

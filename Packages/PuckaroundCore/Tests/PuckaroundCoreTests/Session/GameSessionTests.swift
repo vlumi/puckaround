@@ -73,11 +73,17 @@ final class GameSessionTests: XCTestCase {
         let held = s.rink.tick
         XCTAssertGreaterThan(held, 0, "play has started")
         s.paused = true
-        // A long time passes with the menu open — the sim must not step.
+        // A long time passes with the menu open — the sim must not step. The
+        // view may freeze its render timeline too, so no update need arrive
+        // while paused at all; this one only proves a stray one steps nothing.
         s.update(to: Rink.dt * 2 + 10)
         XCTAssertEqual(s.rink.tick, held, "a paused sim steps nothing")
-        // Resuming owes only real elapsed time since the resume, not the 10s gap.
+        // Resuming drops the anchor: the first update after it anchors the
+        // clock (no ticks, no matter how long the pause), and only time after
+        // THAT is owed — never the gap.
         s.paused = false
+        s.update(to: Rink.dt * 2 + 10)
+        XCTAssertEqual(s.rink.tick, held, "the resume frame only re-anchors")
         s.update(to: Rink.dt * 2 + 10 + Rink.dt * 3.5)
         XCTAssertEqual(s.rink.tick, held + 3, "three ticks' worth, not the whole paused gap")
     }

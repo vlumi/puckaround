@@ -15,8 +15,11 @@ struct TournamentView: View {
 
     /// The active evening, JSON-mirrored to storage on every change.
     @AppStorage("puckaround.tournament") private var saved = Data()
-    /// The remembered pool — read here for the players' kits.
+    /// The remembered pool — read here for the players' kits. Decoded once
+    /// into state (and on external writes), never per row: the interstitial
+    /// lists color every name, and a JSON decode per name was real work.
     @AppStorage("puckaround.playerNames") private var savedPool = Data()
+    @State private var pool: [NamedPlayer] = []
     @State private var evening: Evening?
     @State private var stage = Stage.lobby
 
@@ -44,6 +47,7 @@ struct TournamentView: View {
             }
         }
         .onAppear(perform: resume)
+        .onChangeCompat(of: savedPool) { pool = PlayerPool.decode($0) }
     }
 
     /// One pairing on the table. The pause menu's exit leads back to the
@@ -64,7 +68,6 @@ struct TournamentView: View {
 
     /// The pairing's clash-resolved kit colors, from the remembered pool.
     private func resolvedColors(_ e: Evening, _ pairing: Pairing) -> EndColors {
-        let pool = PlayerPool.decode(savedPool)
         let resolved = PlayerKit.resolve(
             bottom: PlayerPool.kit(for: pairing.bottom, in: pool),
             top: PlayerPool.kit(for: pairing.top, in: pool),
@@ -82,7 +85,7 @@ struct TournamentView: View {
 
     /// A name's home color, for the neutral lists between matches.
     private func kitColor(_ name: String) -> Color {
-        SeatPalette.neon(PlayerPool.kit(for: name, in: PlayerPool.decode(savedPool)).home)
+        SeatPalette.neon(PlayerPool.kit(for: name, in: pool).home)
     }
 
     /// Between matches: the last result, then the pairing (or the champion),
@@ -153,6 +156,7 @@ struct TournamentView: View {
 
     /// A saved evening resumes right at the interstitial.
     private func resume() {
+        pool = PlayerPool.decode(savedPool)
         guard evening == nil,
             let e = try? JSONDecoder().decode(Evening.self, from: saved)
         else { return }
@@ -179,15 +183,7 @@ extension TournamentView {
     /// The title, with an X that leaves for the title screen — the evening
     /// stays saved, and coming back resumes it.
     private var header: some View {
-        ZStack {
-            Text("Tournament", bundle: .module)
-                .font(.system(size: 22, weight: .black, design: .rounded))
-                .foregroundStyle(Neon.ink)
-            HStack {
-                Spacer()
-                NeonIconButton(systemName: "xmark", label: "Close", action: onExit)
-            }
-        }
+        NeonSheetHeader(title: "Tournament", onClose: onExit)
     }
 
     /// The scoreline of the match just played: winner bright, loser dim, and
@@ -324,10 +320,6 @@ extension TournamentView {
 
     /// The small uppercase label above a banner block.
     private func caption(_ key: LocalizedStringKey) -> some View {
-        Text(key, bundle: .module)
-            .font(.system(size: 11, weight: .semibold))
-            .foregroundStyle(Neon.inkSoft)
-            .textCase(.uppercase)
-            .kerning(2)
+        NeonCaption(title: key)
     }
 }
