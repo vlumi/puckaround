@@ -24,6 +24,12 @@ udid=$(xcrun simctl list devices available | grep -E "$pat" \
 xcrun simctl bootstatus "$udid" -b >/dev/null 2>&1 || true
 open -a Simulator
 
+# The pristine marketing status bar, same as `make shots` (9:41; the ISO
+# timestamp pins the iPad's date too). Left in place — this launcher is for
+# freehand captures; `xcrun simctl status_bar <udid> clear` undoes it.
+xcrun simctl status_bar "$udid" override --time "2007-01-09T09:41:00+0000" \
+    --batteryState charged --batteryLevel 100 --wifiBars 3 --dataNetwork wifi
+
 app="$(find .build-xcode/Build/Products/Debug-iphonesimulator \
     -maxdepth 1 -name '*.app' -print -quit 2>/dev/null)"
 [ -n "$app" ] && [ -d "$app" ] || { echo "Build the app first (make build-ios)." >&2; exit 1; }
