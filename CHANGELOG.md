@@ -14,6 +14,8 @@ The `## vX.Y.Z` heading is written by the release lane too, whenever a release c
 
 ### Unreleased (next build)
 
+### build 11 — 2026-09-03
+
 - **A cleaner-running table.** A fresh-eyes audit swept the whole app: an ended match no longer leaks its table (a retain cycle held every finished game's engine alive), the sound engine no longer stacks a live render node on every mute/unmute, the display loop rests at 60 Hz and sleeps entirely behind menus, a call or app-switch with a finger on the center ring no longer pops the menu, tournament lists stop re-reading the name pool per row, the Names card gained the dimmed backdrop every other sheet has (it left the shelf tappable beside it), and the sim shed its last per-tick allocations.
 - **A sideways table stops cropping its menus.** The title screen and About now scroll whenever the screen is shorter than they are — the landscape hold — instead of cutting off mid-button, and the arcade's attract board parks over the machine's half of the table in every orientation, off your mallet and your approach (landscape used to leave it mid-table over the center ring).
 - **Every pill answers across its whole face.** Outlined buttons — name chips, kit swatches, the setup's pickers, the arcade shelf's cards — registered taps only on their letters and borders, so the empty middle was a dead spot that felt random. They now hit anywhere on the pill, like the filled ones always did. Kit colors sit on a scrubbable strip — drag along it and release on the hue you want, the swatch swelling out from under your finger — the kit editor's verbs became the app's own icon buttons (shuffle, reset, forget), and the smallest targets everywhere grew to a finger's size.
