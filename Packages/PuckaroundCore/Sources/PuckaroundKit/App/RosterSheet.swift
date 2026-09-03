@@ -389,7 +389,8 @@ extension RosterSheet {
                 Circle().fill(SeatPalette.neon(player.kit.home)).frame(width: 9, height: 9)
                 Circle().fill(SeatPalette.neon(player.kit.away)).frame(width: 9, height: 9)
             }
-            .frame(width: 30, height: 40)
+            // Width buys hit area (the chip beside it flexes); the dots stay small.
+            .frame(width: 38, height: 40)
             .background(
                 RoundedRectangle(cornerRadius: 7)
                     .strokeBorder(
@@ -426,7 +427,7 @@ extension RosterSheet {
                 Circle().fill(SeatPalette.neon(currentDraftKit.home)).frame(width: 9, height: 9)
                 Circle().fill(SeatPalette.neon(currentDraftKit.away)).frame(width: 9, height: 9)
             }
-            .frame(width: 22, height: 44)
+            .frame(width: 32, height: 44)
             .background(
                 RoundedRectangle(cornerRadius: 7)
                     .strokeBorder(Neon.ink.opacity(editingDraft ? 0.9 : 0), lineWidth: 1.5)

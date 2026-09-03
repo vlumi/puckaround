@@ -94,7 +94,7 @@ struct SettingsSheet: View {
             Text(label, bundle: .module)
                 .font(.system(size: 14, weight: .bold, design: .rounded))
                 .foregroundStyle(selected ? Neon.ground : Neon.ink)
-                .frame(width: 56, height: 36)
+                .frame(width: 56, height: 44)
                 .background(
                     RoundedRectangle(cornerRadius: 10)
                         .fill(selected ? Neon.ink : Color.clear)

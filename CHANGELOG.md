@@ -14,7 +14,7 @@ The `## vX.Y.Z` heading is written by the release lane too, whenever a release c
 
 ### Unreleased (next build)
 
-- **Every pill answers across its whole face.** Outlined buttons — name chips, kit swatches, the setup's pickers, the arcade shelf's cards — registered taps only on their letters and borders, so the empty middle was a dead spot that felt random. They now hit anywhere on the pill, like the filled ones always did.
+- **Every pill answers across its whole face.** Outlined buttons — name chips, kit swatches, the setup's pickers, the arcade shelf's cards — registered taps only on their letters and borders, so the empty middle was a dead spot that felt random. They now hit anywhere on the pill, like the filled ones always did. Kit colors sit on a scrubbable strip — drag along it and release on the hue you want, the swatch swelling out from under your finger — the kit editor's verbs became the app's own icon buttons (shuffle, reset, forget), and the smallest targets everywhere grew to a finger's size.
 - **Manage names where you look for them.** The remembered pool — the names tournaments seat and arcade boards sign — is now tendable outside tournament night: Settings grew a Names section, and the arcade shelf a Names button, both opening the same manager — every name with its kit swatches, tap one to recolor it — pick from the palette, Shuffle a random kit, or Reset to the name's own colors — or forget it, type below to add. The name fields themselves stopped hiding: a filled well under a brighter border everywhere, and the arcade's sign-the-board pen now wears the board's cyan with a signature mark — and with no names remembered yet, it raises the keyboard itself.
 
 ### build 10 — 2026-09-02

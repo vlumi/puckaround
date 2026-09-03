@@ -196,7 +196,7 @@ struct PoolManager: View {
                 Circle().fill(SeatPalette.neon(currentDraftKit.home)).frame(width: 9, height: 9)
                 Circle().fill(SeatPalette.neon(currentDraftKit.away)).frame(width: 9, height: 9)
             }
-            .frame(width: 22, height: 44)
+            .frame(width: 32, height: 44)
             .background(
                 RoundedRectangle(cornerRadius: 7)
                     .strokeBorder(Neon.ink.opacity(editingDraft ? 0.9 : 0), lineWidth: 1.5)

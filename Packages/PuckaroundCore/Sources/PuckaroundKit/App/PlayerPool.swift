@@ -62,33 +62,29 @@ struct KitEditor: View {
         }
     }
 
-    /// The editor's verbs on one compact line: reroll, back to the name's own
-    /// colors — and, a stretch away from both, forgetting the name.
+    /// The editor's verbs as the app's own icon buttons — full-size circular
+    /// targets, no words to crowd or outgrow the row: reroll, back to the
+    /// name's own colors, and — a stretch away, in warning magenta — the way
+    /// to forget the name.
     private var actions: some View {
-        HStack(spacing: 18) {
-            actionButton("Shuffle", tint: Neon.ink.opacity(0.9)) {
+        HStack(spacing: 10) {
+            NeonIconButton(
+                systemName: "shuffle", label: "Shuffle", tint: Neon.ink.opacity(0.9)
+            ) {
                 onPick(.random(differingFrom: kit))
             }
             if let onReset {
-                actionButton("Reset", tint: Neon.ink.opacity(0.9), act: onReset)
+                NeonIconButton(
+                    systemName: "arrow.counterclockwise", label: "Reset",
+                    tint: Neon.ink.opacity(0.9), action: onReset)
             }
             Spacer()
             if let onForget {
-                actionButton("Forget name", tint: Neon.magenta.opacity(0.9), act: onForget)
+                NeonIconButton(
+                    systemName: "trash", label: "Forget name",
+                    tint: Neon.magenta.opacity(0.9), action: onForget)
             }
         }
-    }
-
-    private func actionButton(
-        _ label: LocalizedStringKey, tint: Color, act: @escaping () -> Void
-    ) -> some View {
-        Button(action: act) {
-            Text(label, bundle: .module)
-                .font(.system(size: 13, weight: .semibold, design: .rounded))
-                .foregroundStyle(tint)
-                .frame(height: 32)
-        }
-        .buttonStyle(.plain)
     }
 
     private func row(
@@ -101,21 +97,71 @@ struct KitEditor: View {
                 .textCase(.uppercase)
                 .kerning(1)
                 .frame(width: 42, alignment: .leading)
-            ForEach(0..<PlayerKit.paletteCount, id: \.self) { slot in
-                Button {
-                    pick(slot)
-                } label: {
-                    Circle()
-                        .fill(SeatPalette.neon(slot))
-                        .frame(width: 18, height: 18)
-                        .overlay(
-                            Circle().strokeBorder(
-                                Neon.ink.opacity(slot == selected ? 1 : 0), lineWidth: 2)
-                        )
-                        .padding(2)
-                }
-                .buttonStyle(.plain)
-            }
+            SwatchRow(label: label, selected: selected, pick: pick)
         }
+    }
+}
+
+/// The eight hues on one scrubbable strip: tap a swatch, or drag along the
+/// row — the hue under the finger swells and lifts clear of it — and release
+/// on the one you want. The circles stay small; the target is the whole
+/// 44-point strip, so precision is never asked of the finger. For VoiceOver
+/// the strip is one adjustable element: swipe up/down steps the hue.
+private struct SwatchRow: View {
+    let label: LocalizedStringKey
+    let selected: Int
+    let pick: (Int) -> Void
+
+    /// The swatch under the finger mid-scrub, if any.
+    @State private var hovering: Int?
+
+    var body: some View {
+        GeometryReader { geo in
+            HStack(spacing: 0) {
+                ForEach(0..<PlayerKit.paletteCount, id: \.self) { slot in
+                    swatch(slot)
+                }
+            }
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { hovering = slot(at: $0.location.x, width: geo.size.width) }
+                    .onEnded { value in
+                        pick(slot(at: value.location.x, width: geo.size.width))
+                        hovering = nil
+                    })
+        }
+        .frame(height: 44)
+        .animation(.easeOut(duration: 0.12), value: hovering)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text(label, bundle: .module))
+        .accessibilityValue(Text(verbatim: "\(selected + 1)/\(PlayerKit.paletteCount)"))
+        .accessibilityAdjustableAction { direction in
+            let step = direction == .increment ? 1 : PlayerKit.paletteCount - 1
+            pick((selected + step) % PlayerKit.paletteCount)
+        }
+    }
+
+    private func swatch(_ slot: Int) -> some View {
+        let lifted = hovering == slot
+        return Circle()
+            .fill(SeatPalette.neon(slot))
+            .frame(width: 18, height: 18)
+            .overlay(
+                Circle().strokeBorder(
+                    Neon.ink.opacity(slot == selected && hovering == nil ? 1 : 0),
+                    lineWidth: 2)
+            )
+            .scaleEffect(lifted ? 1.7 : 1)
+            .offset(y: lifted ? -20 : 0)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    /// Which swatch a touch at `x` lands on, clamped to the strip — a scrub
+    /// can wander past either end without losing its pick.
+    private func slot(at x: CGFloat, width: CGFloat) -> Int {
+        let count = PlayerKit.paletteCount
+        let raw = Int(x / max(width / CGFloat(count), 1))
+        return min(max(raw, 0), count - 1)
     }
 }

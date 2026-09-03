@@ -176,7 +176,7 @@ struct ArcadeAttract: View {
                         .lineLimit(1)
                         .foregroundStyle(SeatPalette.neon(player.kit.home))
                         .padding(.horizontal, 10)
-                        .frame(height: 36)
+                        .frame(height: 40)
                         .frame(maxWidth: .infinity)
                         .background(
                             RoundedRectangle(cornerRadius: 10)
