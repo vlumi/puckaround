@@ -14,7 +14,7 @@ Tune & fit resolved smaller than planned (2026-09-02): no tuning panel — the f
 
 ## Puck & table variety — *what changes how it plays*
 
-- [ ] **Shaped-puck follow-ons, if play asks for them.** Triangle-specific feel; **per-vertex goals** (today a goal needs the puck CENTER fully past the line, so a corner poked in early doesn't count — fine so far); more shapes only if they behave distinctly (a hexagon is basically a disc).
+- [ ] **Shaped-puck follow-ons, if play asks for them.** Triangle-specific feel; **per-vertex goals** (today the goal test is the puck's bounding circle — its center past a line offset by the radius, i.e. the whole circle in — so a polygon corner poked in early doesn't count; fine so far); more shapes only if they behave distinctly (a hexagon is basically a disc).
 - [ ] **Grip-spin that rides the wall** — the coupling that makes a low, wall-hugging shot with forward spin accelerate toward the goal. Its real home is the **ellipse table** (below): a curved wall can carry the puck along it, which a flat wall can't. Builds on the shipped disc spin. A later spike.
 - [ ] **More couch-table variants.** The arcade's furniture, multiplayer: bumpers on the couch table, a moving goal — each a variant beside solid/wrap, grouped under one picker (`Bumper` and the collision already exist; this is a setup seam).
 

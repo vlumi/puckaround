@@ -87,14 +87,16 @@ puckaround/
 │     build.sh / test.sh / run-ios.sh
 │     embed-commit-sha.sh           Stamps GitCommitSHA into the built Info.plist
 │     release-*.sh, distribute.sh   The release lane (RELEASING.md)
+│     shoot.sh, asc/                App Store screenshots + listing sync (make shots, asc-*)
 ├── Sources/iOS/                    Thin @main app shell (+ generated Info.plist, entitlements)
 ├── Sources/Shared/                 The asset catalog (AppIcon) + an empty app-level String Catalog
 └── Packages/PuckaroundCore/        Swift package — all the code
     ├── Sources/PuckaroundCore/     Pure logic — tested, coverage-gated; grouped by domain:
     │   ├── Math/                   Vec2, Rect, SeededRNG, Tick
-    │   ├── Sim/                    Rink (+Rink+Physics) the air-hockey sim, Puck, Mallet,
+    │   ├── Sim/                    Rink (+Physics, +Furniture) the air-hockey sim, Puck, Mallet,
     │   │                           PolygonCollision (shaped pucks), GameSession, SideWalls
-    │   ├── Table/                  Playfield + Goal geometry, Table (Side/Lane/MalletSlot/Format), PuckShape
+    │   ├── Table/                  Playfield (+ TableStage/Bumper/Brick/PuckFeed) + Goal geometry,
+    │   │                           Table (Side/Lane/MalletSlot/Format), PuckShape
     │   ├── Input/                  SeatInput + ControlSource, SeatZones, MalletControlSource,
     │   │                           PatternControlSource (the practice machine)
     │   ├── Arcade/                 ScoreAttack (one run's score & lives), Hiscores (the ten-line board)
@@ -104,16 +106,19 @@ puckaround/
     ├── Sources/PuckaroundKit/      SwiftUI + UIKit, depends on Core; coverage-ignored
     │   ├── App/                    AppRoot, MenuView + NewMatchSheet/SetupControls/Setup (the front door),
     │   │                           GameView + HockeyGame (one table), TournamentView + RosterSheet +
-    │   │                           PlayerPool (the couch), ArcadeView + ArcadeSpec (the arcade),
+    │   │                           BracketSheet + PlayerPool/PoolManager/NameEntry (the couch and its
+    │   │                           names), ArcadeView + ArcadeSpec + ArcadeCabinet (the arcade),
     │   │                           SettingsSheet + AboutSheet (the gear and the i), InterfaceTurn,
     │   │                           NeonUI, Compat (iOS 16 wrappers)
     │   ├── Feedback/               Haptics + SoundEngine — procedural, off the sim's GameEvent stream
-    │   ├── Input/                  MultiTouchSurface — every finger, id-tagged, to the control source
-    │   ├── Render/                 RinkRenderer (+Puck/+Faceoff/+Score/+Arcade, Canvas), BoardPlacement, Seat, SeatPalette
+    │   ├── Input/                  TouchRouting — every finger, id-tagged, to the control source
+    │   ├── Render/                 RinkRenderer (+Puck/+Faceoff/+Score/+Arcade, Canvas), RinkScene,
+    │   │                           BoardPlacement, Seat, SeatPalette
     │   ├── Icon/                   AppIconScene — the icon is drawn by the game's own code
     │   └── Resources/              Localizable.xcstrings (the Kit's strings)
     ├── Sources/PuckaroundIcon/     Dev tool: `make icon` renders the icon PNG (macOS-only)
-    └── Tests/PuckaroundCoreTests/  Grouped by domain (Math/, Seats/, Sim/, Input/, Session/, Render/; Support/ stages a rink)
+    └── Tests/PuckaroundCoreTests/  Grouped by domain (App/, Arcade/, Couch/, Input/, Math/, Render/,
+                                    Seats/, Session/, Shape/, Sim/; Support/ stages a rink)
 ```
 
 Both targets and the tests group **by domain, not by type**.
