@@ -16,8 +16,9 @@ one or two mallets a side (1v1, 1v2, 2v2).
 Put the phone (better: the iPad) flat on the table. Each of you takes an end.
 A puck slides on the ice between you; your finger drags your mallet, your
 mallet hits the puck, and the puck goes in the other goal or doesn't. The
-player scored on gets the puck back; first to seven wins. That's the whole
-game, and it's the one everybody already knows how to play.
+player scored on gets the puck back; first to seven (the default — 3 to 11,
+single game or best-of) wins. That's the whole game, and it's the one
+everybody already knows how to play.
 
 Each side fields one or two mallets, so a two-player duel, an uneven 1v2, or
 2v2 partners are all the same game — a pair of "one hand or two?" choices, not

@@ -40,7 +40,8 @@ SHOTS = [
      "Free play 1v1, mid-rally: puck in flight between the mallets, both "
      "scores lit. The premise in one frame."),
     ("doubles", False,
-     "A 2v2 match: four mallets in four neons, a lane each. The party shot."),
+     "A 2v2 match: four mallets in the two team neons, a lane each. The "
+     "party shot."),
     ("tournament", False,
      "A tournament in progress — standings or bracket with named chips, each "
      "in their own color. Stage a few remembered names first."),

@@ -75,10 +75,14 @@ because that is what makes it *air hockey* rather than a lively toy.
 
 **The table** (`Playfield`) is a walled rectangle in world units, a goal in each
 short wall, plus the constants: puck and mallet radii, goal width, wall
-restitution, surface drag, a speed cap (so no hit can carry the puck through a
-wall in one tick), a rest speed below which the puck stops instead of creeping
-on floating-point dust, the `puckShape` (below), and `sideWalls` (solid or
-wrap). One side's goal geometry is a `Goal` value (built by `Playfield.goal`):
+restitution, surface drag **plus a flat friction floor** (exponential drag
+carries the shot, the floor kills the slow tail — deceleration alone fades
+with speed and let a dying puck creep forever), a speed cap (so no hit can
+carry the puck through a wall in one tick), a rest speed below which the puck
+stops instead of creeping on floating-point dust, the serve speed (tuned so an
+untouched serve dies short of its own goal — the invariant is documented on
+`Playfield.duel`), the faceoff bubble radius, the `puckShape` (below), and
+`sideWalls` (solid or wrap). One side's goal geometry is a `Goal` value (built by `Playfield.goal`):
 its line, its **opening** (the drawn gap between the posts), and the narrower
 **scoring mouth** (the opening less a puck radius each side, since the whole
 disc must clear the posts). A goal counts only once the **whole puck is past the
@@ -142,9 +146,12 @@ assets — the icon is the same recipe (`AppIconScene`), and it must keep matchi
 `RinkRenderer`. A cabinet is a dark object, so there is no light variant. See
 `RinkRenderer` / `SeatPalette`.
 
-**Feedback is a pure event stream.** Each tick fills `Rink.events` —
-`malletHit` (with closing speed), `wallBounce`, `goal`, `gameOver` — cleared at
-the top of the next `advance`, so it always describes only the latest step.
+**Feedback is a pure event stream.** Each tick fills `Rink.events` — the hits
+(`malletHit` with closing speed, `wallBounce`, `puckHit`, and the arcade's
+`bumperHit`/`brickChipped`/`brickBroken`), the flow (`goal`, `gameWon`,
+`matchOver`, `faceoffCleared`), and the arcade's `puckBeamed`/`stageFailed` —
+cleared at the top of the next `advance`, so it always describes only the
+latest step.
 The sim raises them and knows nothing more; `PuckaroundKit`'s `Haptics`
 (`UIFeedbackGenerator`) and `SoundEngine` (one `AVAudioSourceNode` synthesizing
 short percussive envelopes, no assets) consume them off the render frame. Being
@@ -188,7 +195,9 @@ power-of-two sheet, byes for uneven counts, up to 32), and a `League` season
 head-to-head then sudden-death deciders, up to 10). All are pure, tested
 scheduling that survives the app quitting. Names are labels the Kit pins on the
 ends for the evening (`EndNames`, and a remembered tap-to-pick pool — no
-profiles, no history); the sim still never learns who is playing. Each name
+profiles, no history — tended by one manager, `PoolManager`, reachable from
+Settings and the arcade shelf: kits recolored, shuffled, reset, or forgotten
+wherever the names are used); the sim still never learns who is playing. Each name
 also wears a kit (`PlayerKit`, home + away slots into the Kit's eight-neon
 wardrobe): in named play the table's side furniture — mallet, goal, score,
 verdicts — takes the player's color (`EndColors`, clash-resolved so the home
@@ -201,14 +210,25 @@ their kit.
 second engine: a solo table is just a `Format` with an empty end (`Hands.none`
 — one ready starts play, and touches on the machine's half drive nothing),
 bumpers are table furniture (`Bumper` on `Playfield`: a mallet that never
-moves and kicks back, resolved in fixed index order like everything), bricks
-split across the seam (`Brick` on the table is the STARTING wall; the standing
-wall is `Rink` state, since bricks break — and racks fresh after every goal),
-and a run is `ScoreAttack` folding the same `GameEvent` stream the feedback
-layers feed on — the sim's own points target sits out of reach, so the cabinet, not
-the rink, ends a run. `Hiscores` is the ten-line board, signed from the same
-remembered pool. Each minigame has one canonical table spec (`ArcadeSpec`, in
-the Kit), so its board's scores actually compare.
+moves and kicks back, resolved in fixed index order like everything), and
+bricks split across the seam (`Brick` on the table describes the racks; the
+standing wall is `Rink` state, since bricks break). **Cabinets play in
+stages** (`TableStage` on the table: a wall, a bumper pattern, and the pucks
+that fly it): a scored puck leaves the table — nothing respawns — and the
+stage resolves when the last one is gone, cleared if anything found the
+machine's goal, failed (a life) if everything drained; clearing the last stage
+wraps to the first with `Rink.pace` stepped up, so the same racks play faster
+lap after lap. A survival table instead carries a `PuckFeed` — the feeder
+beams pucks in on a clock while the pace climbs continuously — and a puck
+doomed where nobody can reach it beams back to the serve (the mercy rule,
+using the drag model's closed-form glide bound). A run is `ScoreAttack`
+folding the same `GameEvent` stream the feedback layers feed on — the sim's
+own points target sits out of reach, so the cabinet, not the rink, ends a run.
+`Hiscores` is the ten-line board (each entry also carrying the stage the run
+died on), signed from the same remembered pool; the board floats over the
+machine's half during the faceoff (`ArcadeAttract` — grabbing the mallet is
+the start button). Each minigame has one canonical table spec (`ArcadeSpec`,
+in the Kit), so its board's scores actually compare.
 
 `SeatZones` maps a world point to the slot that owns it (its side's half, then
 its lane). **A touch belongs to the slot it grabbed for its whole life** — one
@@ -228,8 +248,10 @@ Not built. Nothing below describes existing code.
 **The couch's tail.** The whole couch shipped: the front door with its four
 modes (New match, tournaments in three shapes, practice, the arcade's three
 cabinets), per-person kit colors — cosmetic identity only; the sim stays
-side-based — and the app chrome (Settings, About). What remains before 1.0 is
-tuning the feel on real hardware; see ROADMAP.md.
+side-based — and the app chrome (Settings, About, the names manager). What
+remains before 1.0 is the store package (listing, screenshots, privacy/age
+answers), a final balancing pass on device, and the submission itself; see
+ROADMAP.md.
 
 **A curved table (the ellipse).** Slice goals and curved walls, and the payoff
 the flat table can't express: a forward-spun puck that rolls the wall toward the

@@ -41,8 +41,9 @@ Capture order (what `make shots` walks):
 1. **rally** — free play 1v1, mid-rally: puck in flight between the mallets,
    both scores lit. The premise in one frame — this is the shot that stops
    the scroll.
-2. **doubles** — a 2v2 match: four mallets in four neons, a lane each. The
-   party shot; proves "up to four hands" isn't a bullet point.
+2. **doubles** — a 2v2 match: four mallets in the two team neons (a doubles
+   side shares its color), a lane each. The party shot; proves "up to four
+   hands" isn't a bullet point.
 3. **tournament** — standings or bracket mid-tournament, named chips in their
    colors. Stage a few remembered names first so it reads as a real evening.
 4. **arcade-shelf** — the arcade shelf: three cabinet cards, icons left,
