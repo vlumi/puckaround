@@ -129,6 +129,9 @@ struct ArcadeView: View {
     @AppStorage("puckaround.hiscores.survival") private var survivalBoard = Data()
     @AppStorage("puckaround.playerNames") private var savedPool = Data()
     @State private var stage = Stage.index
+    /// The remembered-names manager, over the shelf — the boards sign with
+    /// these names, so the pool is tendable right where it's read.
+    @State private var showingNames = false
     /// A finished run that made the board, waiting for its signature.
     @State private var pendingScore: Int?
     /// The last run's score, shown on the next attract screen.
@@ -149,6 +152,9 @@ struct ArcadeView: View {
                 index
             case .playing(let machine, let seed):
                 game(machine, seed: seed).id(seed)
+            }
+            if showingNames {
+                NamesSheet(onClose: { showingNames = false })
             }
         }
     }
@@ -243,13 +249,18 @@ struct ArcadeView: View {
         .padding(16)
     }
 
+    /// The shelf's title row: the boards' names are managed from here too —
+    /// the same pool the tournament bench uses.
     private var header: some View {
         ZStack {
             Text("Arcade", bundle: .module)
                 .font(.system(size: 22, weight: .black, design: .rounded))
                 .foregroundStyle(Neon.ink)
-            HStack {
+            HStack(spacing: 6) {
                 Spacer()
+                NeonIconButton(systemName: "person.2", label: "Names") {
+                    showingNames = true
+                }
                 NeonIconButton(systemName: "xmark", label: "Close", action: onExit)
             }
         }
@@ -284,7 +295,9 @@ struct ArcadeView: View {
             .padding(12)
             .background(
                 RoundedRectangle(cornerRadius: 14)
-                    .strokeBorder(Neon.inkSoft.opacity(0.4), lineWidth: 1.5))
+                    .strokeBorder(Neon.inkSoft.opacity(0.4), lineWidth: 1.5)
+            )
+            .contentShape(RoundedRectangle(cornerRadius: 14))
         }
         .buttonStyle(.plain)
     }

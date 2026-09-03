@@ -16,6 +16,7 @@ struct ArcadeAttract: View {
     let onSkip: () -> Void
 
     @State private var newName = ""
+    @FocusState private var signFocused: Bool
 
     var body: some View {
         GeometryReader { geo in
@@ -175,38 +176,56 @@ struct ArcadeAttract: View {
                         .lineLimit(1)
                         .foregroundStyle(SeatPalette.neon(player.kit.home))
                         .padding(.horizontal, 10)
-                        .frame(height: 36)
+                        .frame(height: 40)
                         .frame(maxWidth: .infinity)
                         .background(
                             RoundedRectangle(cornerRadius: 10)
                                 .strokeBorder(
                                     SeatPalette.neon(player.kit.home).opacity(0.5),
-                                    lineWidth: 1.5))
+                                    lineWidth: 1.5)
+                        )
+                        .contentShape(RoundedRectangle(cornerRadius: 10))
                 }
                 .buttonStyle(.plain)
             }
         }
     }
 
+    /// The pen itself, dressed to be seen — a dim outline under a row of
+    /// glowing chips was invisible exactly when the pane was asking for it.
+    /// It wears the board's cyan with a signature mark, and with no chips to
+    /// tap it takes focus itself, keyboard ready.
     private var signField: some View {
-        TextField(text: $newName, prompt: Text("Add name", bundle: .module)) {
-            Text("Add name", bundle: .module)
+        HStack(spacing: 10) {
+            Image(systemName: "signature")
+                .font(.system(size: 15, weight: .bold))
+                .foregroundStyle(Neon.cyan)
+            TextField(text: $newName, prompt: Text("Your name", bundle: .module)) {
+                Text("Your name", bundle: .module)
+            }
+            .font(.system(size: 16, weight: .semibold, design: .rounded))
+            .foregroundStyle(Neon.ink)
+            .textFieldStyle(.plain)
+            .submitLabel(.done)
+            .focused($signFocused)
+            .onSubmit {
+                let name = newName.trimmingCharacters(in: .whitespaces)
+                guard !name.isEmpty, name.count <= RosterSheet.maxNameLength else { return }
+                newName = ""
+                onSign(name)
+            }
         }
-        .font(.system(size: 15, weight: .semibold, design: .rounded))
-        .foregroundStyle(Neon.ink)
-        .textFieldStyle(.plain)
-        .submitLabel(.done)
         .padding(.horizontal, 12)
-        .frame(height: 40)
+        .frame(height: 44)
         .background(
             RoundedRectangle(cornerRadius: 10)
-                .strokeBorder(Neon.inkSoft.opacity(0.6), lineWidth: 1.5)
+                .fill(Neon.cyan.opacity(0.08))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10)
+                        .strokeBorder(Neon.cyan.opacity(0.7), lineWidth: 1.5))
         )
-        .onSubmit {
-            let name = newName.trimmingCharacters(in: .whitespaces)
-            guard !name.isEmpty, name.count <= RosterSheet.maxNameLength else { return }
-            newName = ""
-            onSign(name)
+        .onAppear {
+            if pool.isEmpty { signFocused = true }
         }
     }
 

@@ -47,6 +47,7 @@ struct SetupControls: View {
                             .foregroundStyle(selected ? Neon.ground : Neon.ink)
                             .frame(width: 52, height: 48)
                             .background(pillBackground(selected: selected))
+                            .contentShape(RoundedRectangle(cornerRadius: 12))
                     }
                     .buttonStyle(.plain)
                 }
@@ -88,6 +89,7 @@ struct SetupControls: View {
                         .foregroundStyle(selected ? Neon.ground : tint)
                         .frame(width: 104, height: 44)
                         .background(pillBackground(selected: selected, tint: tint))
+                        .contentShape(RoundedRectangle(cornerRadius: 12))
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(Text(verbatim: count == 1 ? "1 player" : "2 players"))
@@ -109,6 +111,7 @@ struct SetupControls: View {
                             .foregroundStyle(selected ? Neon.ground : Neon.ink)
                             .frame(width: 52, height: 48)
                             .background(pillBackground(selected: selected))
+                            .contentShape(RoundedRectangle(cornerRadius: 12))
                     }
                     .buttonStyle(.plain)
                 }
@@ -131,6 +134,7 @@ struct SetupControls: View {
                             .foregroundStyle(selected ? Neon.ground : Neon.ink)
                             .frame(width: 88, height: 44)
                             .background(pillBackground(selected: selected))
+                            .contentShape(RoundedRectangle(cornerRadius: 12))
                     }
                     .buttonStyle(.plain)
                 }
@@ -155,6 +159,7 @@ struct SetupControls: View {
                             .foregroundStyle(selected ? Neon.ground : Neon.ink)
                             .frame(width: 62, height: 52)
                             .background(pillBackground(selected: selected))
+                            .contentShape(RoundedRectangle(cornerRadius: 12))
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel(Text(verbatim: key.label))
@@ -189,6 +194,9 @@ struct SetupControls: View {
                 .foregroundStyle(selected ? Neon.ground : Neon.ink)
                 .frame(width: 84, height: 44)
                 .background(pillBackground(selected: selected))
+                // An outlined pill's clear middle takes no hits on its own —
+                // this makes the whole face the target (NeonButton's fix).
+                .contentShape(RoundedRectangle(cornerRadius: 12))
         }
         .buttonStyle(.plain)
     }
@@ -203,6 +211,7 @@ struct SetupControls: View {
                 .foregroundStyle(selected ? Neon.ground : Neon.ink)
                 .frame(width: width, height: 52)
                 .background(pillBackground(selected: selected))
+                .contentShape(RoundedRectangle(cornerRadius: 12))
         }
         .buttonStyle(.plain)
     }

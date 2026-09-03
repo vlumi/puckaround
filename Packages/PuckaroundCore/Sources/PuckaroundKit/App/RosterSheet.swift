@@ -109,6 +109,9 @@ struct RosterSheet: View {
                     KitEditor(kit: pool[i].kit) { picked in
                         pool[i].kit = picked
                         savePool()
+                    } onReset: {
+                        pool[i].kit = .assigned(to: pool[i].name)
+                        savePool()
                     } onForget: {
                         pool.removeAll { $0.name == editing }
                         self.editing = nil
@@ -135,9 +138,14 @@ struct RosterSheet: View {
                 .focused($nameFocused)
                 .padding(.horizontal, 14)
                 .frame(height: 44)
+                // A faint well under a brighter border — the outline alone
+                // read as decoration, not as a place to type.
                 .background(
                     RoundedRectangle(cornerRadius: 12)
-                        .strokeBorder(Neon.inkSoft.opacity(0.6), lineWidth: 1.5)
+                        .fill(Neon.ink.opacity(0.06))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .strokeBorder(Neon.ink.opacity(0.7), lineWidth: 1.5))
                 )
                 .onSubmit(add)
                 if !draftName.isEmpty {
@@ -154,7 +162,8 @@ struct RosterSheet: View {
                     .foregroundStyle(Neon.magenta.opacity(0.85))
             }
             if editingDraft, !draftName.isEmpty {
-                KitEditor(kit: currentDraftKit) { draftKit = $0 }
+                KitEditor(
+                    kit: currentDraftKit, onPick: { draftKit = $0 }, onReset: { draftKit = nil })
             }
         }
         // An emptied field is the next person starting over: the pick clears
@@ -215,7 +224,11 @@ struct RosterSheet: View {
                         .overlay(
                             RoundedRectangle(cornerRadius: 12)
                                 .strokeBorder(
-                                    tint.opacity(selected ? 1 : 0.5), lineWidth: 1.5)))
+                                    tint.opacity(selected ? 1 : 0.5), lineWidth: 1.5))
+                )
+                // An outlined chip's clear middle takes no hits on its own —
+                // this makes the whole face the target (NeonButton's fix).
+                .contentShape(RoundedRectangle(cornerRadius: 12))
         }
         .buttonStyle(.plain)
     }
@@ -288,7 +301,9 @@ struct RosterSheet: View {
                         .overlay(
                             RoundedRectangle(cornerRadius: 12)
                                 .strokeBorder(
-                                    Neon.ink.opacity(selected ? 1 : 0.4), lineWidth: 1.5)))
+                                    Neon.ink.opacity(selected ? 1 : 0.4), lineWidth: 1.5))
+                )
+                .contentShape(RoundedRectangle(cornerRadius: 12))
         }
         .buttonStyle(.plain)
     }
@@ -374,11 +389,14 @@ extension RosterSheet {
                 Circle().fill(SeatPalette.neon(player.kit.home)).frame(width: 9, height: 9)
                 Circle().fill(SeatPalette.neon(player.kit.away)).frame(width: 9, height: 9)
             }
-            .frame(width: 30, height: 40)
+            // Width buys hit area (the chip beside it flexes); the dots stay small.
+            .frame(width: 38, height: 40)
             .background(
                 RoundedRectangle(cornerRadius: 7)
                     .strokeBorder(
-                        Neon.ink.opacity(editing == player.name ? 0.9 : 0), lineWidth: 1.5))
+                        Neon.ink.opacity(editing == player.name ? 0.9 : 0), lineWidth: 1.5)
+            )
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityLabel(Text("Kit", bundle: .module))
@@ -409,10 +427,12 @@ extension RosterSheet {
                 Circle().fill(SeatPalette.neon(currentDraftKit.home)).frame(width: 9, height: 9)
                 Circle().fill(SeatPalette.neon(currentDraftKit.away)).frame(width: 9, height: 9)
             }
-            .frame(width: 22, height: 44)
+            .frame(width: 32, height: 44)
             .background(
                 RoundedRectangle(cornerRadius: 7)
-                    .strokeBorder(Neon.ink.opacity(editingDraft ? 0.9 : 0), lineWidth: 1.5))
+                    .strokeBorder(Neon.ink.opacity(editingDraft ? 0.9 : 0), lineWidth: 1.5)
+            )
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityLabel(Text("Kit", bundle: .module))
