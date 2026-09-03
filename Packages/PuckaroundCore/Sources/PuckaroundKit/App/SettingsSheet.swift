@@ -2,9 +2,9 @@ import PuckaroundCore
 import SwiftUI
 
 /// **The app's own switches** — not match settings (those live in New match):
-/// the feedback toggles and the destructive resets, behind the title's gear.
-/// Resets arm on the first tap and fire on the second — deliberate, without
-/// a popup.
+/// the feedback toggles, the remembered names, and the destructive resets,
+/// behind the title's gear. Resets arm on the first tap and fire on the
+/// second — deliberate, without a popup.
 struct SettingsSheet: View {
     let onClose: () -> Void
 
@@ -25,29 +25,38 @@ struct SettingsSheet: View {
                     .padding(.horizontal, 24)
                     .padding(.top, 20)
                     .padding(.bottom, 8)
-                VStack(spacing: 24) {
-                    section("Feedback") {
-                        toggleRow("Sounds", isOn: $soundOn)
-                        toggleRow("Haptics", isOn: $hapticsOn)
-                    }
-                    section("Reset") {
-                        dangerButton(
-                            armed: $armedScores, idle: "Reset hiscores",
-                            confirm: "Tap again to reset hiscores"
-                        ) {
-                            bumperBoard = Data()
-                            brickBoard = Data()
-                            survivalBoard = Data()
+                // Names can outgrow a screen; the sections scroll as one.
+                ScrollView {
+                    VStack(spacing: 24) {
+                        section("Feedback") {
+                            toggleRow("Sounds", isOn: $soundOn)
+                            toggleRow("Haptics", isOn: $hapticsOn)
                         }
-                        dangerButton(
-                            armed: $armedNames, idle: "Forget all names",
-                            confirm: "Tap again to forget all names"
-                        ) {
-                            savedPool = Data()
+                        // The pool everything draws from — tournaments and
+                        // arcade boards alike — so this is where to look for
+                        // a name, whichever mode wrote it.
+                        section("Names") {
+                            PoolManager()
+                        }
+                        section("Reset") {
+                            dangerButton(
+                                armed: $armedScores, idle: "Reset hiscores",
+                                confirm: "Tap again to reset hiscores"
+                            ) {
+                                bumperBoard = Data()
+                                brickBoard = Data()
+                                survivalBoard = Data()
+                            }
+                            dangerButton(
+                                armed: $armedNames, idle: "Forget all names",
+                                confirm: "Tap again to forget all names"
+                            ) {
+                                savedPool = Data()
+                            }
                         }
                     }
+                    .padding(24)
                 }
-                .padding(24)
             }
             .frame(maxWidth: 440)
             .background(NeonCard())

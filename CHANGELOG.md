@@ -14,6 +14,8 @@ The `## vX.Y.Z` heading is written by the release lane too, whenever a release c
 
 ### Unreleased (next build)
 
+- **Manage names where you look for them.** The remembered pool — the names tournaments seat and arcade boards sign — is now tendable outside tournament night: Settings grew a Names section, and the arcade shelf a Names button, both opening the same manager — every name with its kit swatches, tap one to recolor or forget it, type below to add.
+
 ### build 10 — 2026-09-02
 
 - **No changes — the version becomes 1.0.0.** The same game as build 9; the marketing version steps up to match the App Store record ahead of submission, and any pre-submission fixes will follow as further 1.0.0 builds.
