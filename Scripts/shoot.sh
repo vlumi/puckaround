@@ -41,9 +41,14 @@ xcrun simctl bootstatus "$UDID" -b >/dev/null 2>&1 || true
 open -a Simulator
 
 # The pristine marketing status bar: Apple's classic 9:41, full battery, full
-# wifi — the ISO timestamp also pins the DATE the iPad's bar shows. Cleared
-# when the run ends, so the simulator goes back to telling the truth.
-xcrun simctl status_bar "$UDID" override --time "2007-01-09T09:41:00+0000" \
+# wifi — the ISO timestamp also pins the DATE the iPad's bar shows. simctl
+# demands the full fractional-seconds form AND renders the instant in the
+# simulator's local zone, so the offset must be the machine's own (with the
+# colon %z omits) for the bar to read 9:41. Cleared when the run ends, so the
+# simulator goes back to telling the truth.
+offset=$(date +%z)
+xcrun simctl status_bar "$UDID" override \
+    --time "2007-01-09T09:41:00.000${offset:0:3}:${offset:3}" \
     --batteryState charged --batteryLevel 100 --wifiBars 3 --dataNetwork wifi
 trap 'xcrun simctl status_bar "$UDID" clear >/dev/null 2>&1 || true' EXIT
 

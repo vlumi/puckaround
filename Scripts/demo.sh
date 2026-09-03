@@ -24,10 +24,14 @@ udid=$(xcrun simctl list devices available | grep -E "$pat" \
 xcrun simctl bootstatus "$udid" -b >/dev/null 2>&1 || true
 open -a Simulator
 
-# The pristine marketing status bar, same as `make shots` (9:41; the ISO
-# timestamp pins the iPad's date too). Left in place — this launcher is for
-# freehand captures; `xcrun simctl status_bar <udid> clear` undoes it.
-xcrun simctl status_bar "$udid" override --time "2007-01-09T09:41:00+0000" \
+# The pristine marketing status bar, same as `make shots`: 9:41 in the
+# machine's own zone (simctl renders the instant locally and demands the
+# fractional-seconds form; the ISO date pins the iPad's date display). Left
+# in place — this launcher is for freehand captures;
+# `xcrun simctl status_bar <udid> clear` undoes it.
+offset=$(date +%z)
+xcrun simctl status_bar "$udid" override \
+    --time "2007-01-09T09:41:00.000${offset:0:3}:${offset:3}" \
     --batteryState charged --batteryLevel 100 --wifiBars 3 --dataNetwork wifi
 
 app="$(find .build-xcode/Build/Products/Debug-iphonesimulator \
