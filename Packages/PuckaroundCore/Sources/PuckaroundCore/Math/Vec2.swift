@@ -49,18 +49,4 @@ public struct Vec2: Equatable, Hashable, Sendable, Codable {
 
     /// Rotated 90° left — a normal to this vector.
     public var perpendicular: Vec2 { Vec2(-y, x) }
-
-    /// Closest point to `self` on segment `a`–`b`.
-    public func closestPoint(onSegment a: Vec2, _ b: Vec2) -> Vec2 {
-        let ab = b - a
-        let denominator = ab.lengthSquared
-        guard denominator > 0 else { return a }
-        let t = max(0, min(1, (self - a).dot(ab) / denominator))
-        return a + ab * t
-    }
-
-    /// Distance from `self` to segment `a`–`b`.
-    public func distance(toSegment a: Vec2, _ b: Vec2) -> Double {
-        distance(to: closestPoint(onSegment: a, b))
-    }
 }

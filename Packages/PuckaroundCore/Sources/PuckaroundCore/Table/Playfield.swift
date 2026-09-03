@@ -9,7 +9,6 @@ public struct Playfield: Equatable, Codable, Sendable {
     /// The goal opening in singles (one defender). Doubles widens it — two
     /// defenders make a narrow goal trivial — via `doublesGoalWidth`.
     public var goalWidth: Double
-    /// The wider goal opening for doubles (two defenders per side).
     public var doublesGoalWidth: Double
     /// How many hands each side fields — decides each side's goal width and how
     /// many mallet lanes it splits into.
@@ -81,7 +80,9 @@ public struct Playfield: Equatable, Codable, Sendable {
         self.restSpeed = restSpeed
         self.faceoffBubbleRadius = faceoffBubbleRadius
         self.serveSpeed = serveSpeed
-        self.puckShapes = puckShapes
+        // A table with no puck would trap `Rink.puck` (and `puckShape`) — the
+        // config boundary guards it once, so the hot path never has to.
+        self.puckShapes = puckShapes.isEmpty ? [.circle] : puckShapes
         self.doublesGoalWidth = doublesGoalWidth ?? goalWidth * 2.2
         self.format = format
         self.sideWalls = sideWalls
@@ -138,9 +139,10 @@ public struct Playfield: Equatable, Codable, Sendable {
     public var puckField: Rect { bounds.insetBy(puckRadius) }
 
     /// Where a mallet slot's center may roam: its side's half of the table,
-    /// inset by the mallet's radius so it can kiss the center line but not cross,
-    /// and — in doubles — narrowed to its own left or right lane so two mallets
-    /// of a side don't fight over the middle.
+    /// inset by the mallet's radius so it can kiss the center line but not
+    /// cross, and — in doubles — narrowed to its own left or right lane. The
+    /// lanes meet at the middle seam (mallets never collide with each other),
+    /// so teammates can touch there but never roam each other's lane.
     public func malletZone(for slot: MalletSlot) -> Rect {
         let r = malletRadius
         let halfHeight = size.y / 2
@@ -213,7 +215,8 @@ public struct TableStage: Equatable, Codable, Sendable {
     public init(bricks: [Brick] = [], bumpers: [Bumper] = [], pucks: [PuckShape] = [.circle]) {
         self.bricks = bricks
         self.bumpers = bumpers
-        self.pucks = pucks
+        // A stage with no puck could never resolve — see `Playfield.puckShapes`.
+        self.pucks = pucks.isEmpty ? [.circle] : pucks
     }
 }
 
@@ -229,7 +232,9 @@ public struct PuckFeed: Equatable, Codable, Sendable {
 
     public init(every: Double, cap: Int, shapes: [PuckShape] = [.circle], ramp: Double = 0) {
         self.every = every
-        self.cap = cap
+        // A capacity below one would leave the table permanently empty after
+        // the first goal — the feeder could never restock.
+        self.cap = max(1, cap)
         self.shapes = shapes
         self.ramp = ramp
     }

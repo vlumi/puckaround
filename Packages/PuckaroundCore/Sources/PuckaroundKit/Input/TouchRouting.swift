@@ -57,7 +57,7 @@ final class TouchCaptureView: UIView {
 
     override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
         for touch in touches {
-            game?.touchEnded(id: touchID(touch))
+            game?.touchCancelled(id: touchID(touch))
         }
     }
 }

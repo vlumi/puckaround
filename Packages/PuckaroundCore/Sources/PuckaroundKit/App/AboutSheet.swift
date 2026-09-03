@@ -52,15 +52,7 @@ struct AboutSheet: View {
     }
 
     private var header: some View {
-        ZStack {
-            Text("About", bundle: .module)
-                .font(.system(size: 22, weight: .black, design: .rounded))
-                .foregroundStyle(Neon.ink)
-            HStack {
-                Spacer()
-                NeonIconButton(systemName: "xmark", label: "Close", action: onClose)
-            }
-        }
+        NeonSheetHeader(title: "About", onClose: onClose)
     }
 
     private var content: some View {

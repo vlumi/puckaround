@@ -46,7 +46,7 @@ struct SetupControls: View {
                             .font(.system(size: 20, weight: .bold, design: .rounded))
                             .foregroundStyle(selected ? Neon.ground : Neon.ink)
                             .frame(width: 52, height: 48)
-                            .background(pillBackground(selected: selected))
+                            .background(NeonPillBackground(selected: selected))
                             .contentShape(RoundedRectangle(cornerRadius: 12))
                     }
                     .buttonStyle(.plain)
@@ -88,7 +88,7 @@ struct SetupControls: View {
                         .frame(height: 24)
                         .foregroundStyle(selected ? Neon.ground : tint)
                         .frame(width: 104, height: 44)
-                        .background(pillBackground(selected: selected, tint: tint))
+                        .background(NeonPillBackground(selected: selected, tint: tint))
                         .contentShape(RoundedRectangle(cornerRadius: 12))
                 }
                 .buttonStyle(.plain)
@@ -110,7 +110,7 @@ struct SetupControls: View {
                             .font(.system(size: 20, weight: .bold, design: .rounded))
                             .foregroundStyle(selected ? Neon.ground : Neon.ink)
                             .frame(width: 52, height: 48)
-                            .background(pillBackground(selected: selected))
+                            .background(NeonPillBackground(selected: selected))
                             .contentShape(RoundedRectangle(cornerRadius: 12))
                     }
                     .buttonStyle(.plain)
@@ -133,7 +133,7 @@ struct SetupControls: View {
                             .font(.system(size: 15, weight: .bold, design: .rounded))
                             .foregroundStyle(selected ? Neon.ground : Neon.ink)
                             .frame(width: 88, height: 44)
-                            .background(pillBackground(selected: selected))
+                            .background(NeonPillBackground(selected: selected))
                             .contentShape(RoundedRectangle(cornerRadius: 12))
                     }
                     .buttonStyle(.plain)
@@ -158,7 +158,7 @@ struct SetupControls: View {
                             .frame(width: 30, height: 30)
                             .foregroundStyle(selected ? Neon.ground : Neon.ink)
                             .frame(width: 62, height: 52)
-                            .background(pillBackground(selected: selected))
+                            .background(NeonPillBackground(selected: selected))
                             .contentShape(RoundedRectangle(cornerRadius: 12))
                     }
                     .buttonStyle(.plain)
@@ -193,7 +193,7 @@ struct SetupControls: View {
                 .font(.system(size: 16, weight: .bold, design: .rounded))
                 .foregroundStyle(selected ? Neon.ground : Neon.ink)
                 .frame(width: 84, height: 44)
-                .background(pillBackground(selected: selected))
+                .background(NeonPillBackground(selected: selected))
                 // An outlined pill's clear middle takes no hits on its own —
                 // this makes the whole face the target (NeonButton's fix).
                 .contentShape(RoundedRectangle(cornerRadius: 12))
@@ -210,30 +210,14 @@ struct SetupControls: View {
                 .font(.system(size: 22, weight: .black, design: .rounded))
                 .foregroundStyle(selected ? Neon.ground : Neon.ink)
                 .frame(width: width, height: 52)
-                .background(pillBackground(selected: selected))
+                .background(NeonPillBackground(selected: selected))
                 .contentShape(RoundedRectangle(cornerRadius: 12))
         }
         .buttonStyle(.plain)
     }
 
-    /// A section's uppercase, kerned heading — the one label style the pickers
-    /// share.
     private func sectionLabel(_ key: LocalizedStringKey) -> some View {
-        Text(key, bundle: .module)
-            .font(.system(size: 15, weight: .semibold))
-            .foregroundStyle(Neon.inkSoft)
-            .textCase(.uppercase)
-            .kerning(2)
-    }
-
-    /// The pill behind a picker option: filled when selected, outlined when not.
-    /// `tint` colors it (defaulting to neutral ink for the mono pickers).
-    private func pillBackground(selected: Bool, tint: Color = Neon.ink) -> some View {
-        RoundedRectangle(cornerRadius: 12)
-            .fill(selected ? tint : Color.clear)
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .strokeBorder(tint.opacity(selected ? 1 : 0.4), lineWidth: 1.5))
+        NeonCaption(title: key, size: 15)
     }
 }
 

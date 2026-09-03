@@ -52,15 +52,18 @@ enum PolygonCollision {
 
     /// Resolve `body` against one `wall`, or nil if it isn't penetrating.
     static func resolve(_ body: Body, wall: Wall, restitution: Double) -> Result? {
-        let vertices = body.shape.worldVertices(
-            position: body.center, angle: body.angle, radius: body.radius)
-        guard !vertices.isEmpty else { return nil }
-
+        guard case .polygon(let unitVertices) = body.shape, !unitVertices.isEmpty else {
+            return nil
+        }
+        // Transform vertex by vertex instead of materializing worldVertices —
+        // this runs per wall per polygon per tick, and the array was the hot
+        // path's only allocation. Same expression, same order: bit-identical.
         var contact: (point: Vec2, depth: Double)?
-        for vertex in vertices {
-            let signed = vertex.dot(wall.normal) - wall.limit  // > 0 = outside the field
+        for vertex in unitVertices {
+            let world = body.center + (vertex * body.radius).rotated(by: body.angle)
+            let signed = world.dot(wall.normal) - wall.limit  // > 0 = outside the field
             if signed > (contact?.depth ?? 0) {
-                contact = (vertex, signed)
+                contact = (world, signed)
             }
         }
         guard let contact else { return nil }
