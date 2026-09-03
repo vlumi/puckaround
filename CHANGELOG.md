@@ -14,7 +14,7 @@ The `## vX.Y.Z` heading is written by the release lane too, whenever a release c
 
 ### Unreleased (next build)
 
-- **Manage names where you look for them.** The remembered pool — the names tournaments seat and arcade boards sign — is now tendable outside tournament night: Settings grew a Names section, and the arcade shelf a Names button, both opening the same manager — every name with its kit swatches, tap one to recolor or forget it, type below to add.
+- **Manage names where you look for them.** The remembered pool — the names tournaments seat and arcade boards sign — is now tendable outside tournament night: Settings grew a Names section, and the arcade shelf a Names button, both opening the same manager — every name with its kit swatches, tap one to recolor or forget it, type below to add. The name fields themselves stopped hiding: a filled well under a brighter border everywhere, and the arcade's sign-the-board pen now wears the board's cyan with a signature mark — and with no names remembered yet, it raises the keyboard itself.
 
 ### build 10 — 2026-09-02
 

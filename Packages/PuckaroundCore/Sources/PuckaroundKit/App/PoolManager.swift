@@ -118,9 +118,14 @@ struct PoolManager: View {
                 .focused($nameFocused)
                 .padding(.horizontal, 14)
                 .frame(height: 44)
+                // A faint well under a brighter border — the outline alone
+                // read as decoration, not as a place to type.
                 .background(
                     RoundedRectangle(cornerRadius: 12)
-                        .strokeBorder(Neon.inkSoft.opacity(0.6), lineWidth: 1.5)
+                        .fill(Neon.ink.opacity(0.06))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .strokeBorder(Neon.ink.opacity(0.7), lineWidth: 1.5))
                 )
                 .onSubmit(add)
                 if !draftName.isEmpty {
