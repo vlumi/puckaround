@@ -57,6 +57,9 @@ struct PoolManager: View {
                     KitEditor(kit: pool[i].kit) { picked in
                         pool[i].kit = picked
                         save()
+                    } onReset: {
+                        pool[i].kit = .assigned(to: pool[i].name)
+                        save()
                     } onForget: {
                         pool.removeAll { $0.name == editing }
                         self.editing = nil
@@ -146,7 +149,8 @@ struct PoolManager: View {
                     .foregroundStyle(Neon.magenta.opacity(0.85))
             }
             if editingDraft, !draftName.isEmpty {
-                KitEditor(kit: currentDraftKit) { draftKit = $0 }
+                KitEditor(
+                    kit: currentDraftKit, onPick: { draftKit = $0 }, onReset: { draftKit = nil })
             }
         }
         // An emptied field is the next person starting over: the pick clears

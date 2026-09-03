@@ -15,6 +15,19 @@ final class PlayerKitTests: XCTestCase {
         }
     }
 
+    /// Shuffles are well-formed and never hand back the kit they replace.
+    func testRandomKitIsWellFormedAndFresh() {
+        var previous = PlayerKit(home: 0, away: 1)
+        for _ in 0..<200 {
+            let kit = PlayerKit.random(differingFrom: previous)
+            XCTAssertTrue((0..<PlayerKit.paletteCount).contains(kit.home))
+            XCTAssertTrue((0..<PlayerKit.paletteCount).contains(kit.away))
+            XCTAssertNotEqual(kit.home, kit.away)
+            XCTAssertNotEqual(kit, previous)
+            previous = kit
+        }
+    }
+
     /// No clash: both ends wear their own home.
     func testDistinctHomesBothWearHome() {
         let resolved = PlayerKit.resolve(

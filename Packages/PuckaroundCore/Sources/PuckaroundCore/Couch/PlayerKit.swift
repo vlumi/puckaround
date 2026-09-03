@@ -29,6 +29,19 @@ public struct PlayerKit: Equatable, Codable, Sendable {
         return PlayerKit(home: home, away: (home + 1) % paletteCount)
     }
 
+    /// A fresh kit off the rack: random home, random distinct away — and
+    /// never the kit it replaces, so a shuffle always visibly shuffles. UI
+    /// flair only; nothing random here ever enters the sim.
+    public static func random(differingFrom old: PlayerKit? = nil) -> PlayerKit {
+        while true {
+            let home = Int.random(in: 0..<paletteCount)
+            var away = Int.random(in: 0..<paletteCount - 1)
+            if away >= home { away += 1 }
+            let kit = PlayerKit(home: home, away: away)
+            if kit != old { return kit }
+        }
+    }
+
     /// The away, guaranteed distinct from the home even if stored data says
     /// otherwise — resolution must never hand both ends one color.
     public var distinctAway: Int {

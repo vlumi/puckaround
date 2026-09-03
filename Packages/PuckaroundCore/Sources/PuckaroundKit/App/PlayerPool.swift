@@ -36,6 +36,9 @@ enum PlayerPool {
 struct KitEditor: View {
     let kit: PlayerKit
     let onPick: (PlayerKit) -> Void
+    /// Back to the name's own colors — the hash assignment (or, for the add
+    /// field's draft, back to following the typed name).
+    var onReset: (() -> Void)?
     /// Present for pool names: forgetting lives in here, deliberately a
     /// second tap away from the bench — an × crammed beside the tiny swatch
     /// was one stray thumb from wiping a friend.
@@ -55,16 +58,37 @@ struct KitEditor: View {
                 k.away = pick
                 onPick(k)
             }
+            actions
+        }
+    }
+
+    /// The editor's verbs on one compact line: reroll, back to the name's own
+    /// colors — and, a stretch away from both, forgetting the name.
+    private var actions: some View {
+        HStack(spacing: 18) {
+            actionButton("Shuffle", tint: Neon.ink.opacity(0.9)) {
+                onPick(.random(differingFrom: kit))
+            }
+            if let onReset {
+                actionButton("Reset", tint: Neon.ink.opacity(0.9), act: onReset)
+            }
+            Spacer()
             if let onForget {
-                Button(action: onForget) {
-                    Text("Forget name", bundle: .module)
-                        .font(.system(size: 13, weight: .semibold, design: .rounded))
-                        .foregroundStyle(Neon.magenta.opacity(0.9))
-                        .frame(height: 32)
-                }
-                .buttonStyle(.plain)
+                actionButton("Forget name", tint: Neon.magenta.opacity(0.9), act: onForget)
             }
         }
+    }
+
+    private func actionButton(
+        _ label: LocalizedStringKey, tint: Color, act: @escaping () -> Void
+    ) -> some View {
+        Button(action: act) {
+            Text(label, bundle: .module)
+                .font(.system(size: 13, weight: .semibold, design: .rounded))
+                .foregroundStyle(tint)
+                .frame(height: 32)
+        }
+        .buttonStyle(.plain)
     }
 
     private func row(
