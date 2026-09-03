@@ -17,42 +17,17 @@ struct ArcadeAttract: View {
 
     @State private var newName = ""
     @FocusState private var signFocused: Bool
+    /// The turn the table itself follows (0 portrait, ±90 landscape, 180
+    /// upside down) — the panes park over the machine's half in each.
+    @State private var turn: Double = InterfaceTurn.degrees
 
     var body: some View {
         GeometryReader { geo in
-            // Where the playfield actually sits: portrait letterboxes a
-            // width-fit 100×160 board, and the overlay lays out around it.
-            let fieldTop = max(0, (geo.size.height - geo.size.width * 1.6) / 2)
-            let fieldHeight = geo.size.width * 1.6
             ZStack {
                 // While the pen is out nothing competes with it: no board in
                 // the background, just the field.
                 if pendingScore == nil {
-                    // The board holds ONE place — inside the field, below the
-                    // goal and its guardian furniture — whether or not a last
-                    // run shows. Sheer, with dark-glowing text: the field
-                    // stays visible through it. It carries no controls, so it
-                    // takes no touches — the center-ring menu works through it.
-                    VStack(spacing: 0) {
-                        Spacer().frame(height: fieldTop + fieldHeight * 0.17)
-                        card(opacity: 0.55) {
-                            boardRows
-                                .shadow(color: Neon.ground.opacity(0.9), radius: 2)
-                        }
-                        .frame(maxWidth: 280)
-                        Spacer()
-                    }
-                    .allowsHitTesting(false)
-                    // The last run takes the letterbox band above the field.
-                    if let lastScore {
-                        VStack(spacing: 0) {
-                            card(opacity: 0.7, pad: 8) { lastRun(lastScore) }
-                                .frame(maxWidth: 220)
-                                .frame(height: max(fieldTop, 56))
-                            Spacer()
-                        }
-                        .allowsHitTesting(false)
-                    }
+                    attractPanes(in: geo.size)
                 }
                 // The pen demands the middle of the screen, fully solid — and
                 // it leaves the moment a name lands, handing back the field.
@@ -63,6 +38,88 @@ struct ArcadeAttract: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .padding(.horizontal, 24)
+        }
+        .onDeviceOrientationChange { turn = InterfaceTurn.degrees }
+    }
+
+    /// The board (and last run) over the MACHINE's half of the table —
+    /// wherever the current turn put that half, so the panes stay clear of
+    /// the player's mallet and approach. They carry no controls and take no
+    /// touches — the center-ring menu works through them.
+    @ViewBuilder
+    private func attractPanes(in size: CGSize) -> some View {
+        switch Int(turn) {
+        case 90, -90:
+            // Landscape: the machine's end is a side half — board-top lands
+            // where the clockwise quarter turn sends it (−90 left, +90 right).
+            // The panes anchor just INSIDE the machine's wall (the rink is
+            // centered at BoardPlacement's 12-point margin) and grow only
+            // toward the middle, capped short of the center line — never off
+            // the rink, never over the player's mallet.
+            let scale = min((size.width - 24) / 160, (size.height - 24) / 100)
+            let wallInset = max(0, (size.width - 160 * scale) / 2 + 14 - 24)
+            let trailing = turn > 0
+            machineStack(cap: min(260, 80 * scale - 28), trailing: trailing)
+                .frame(maxWidth: .infinity, alignment: trailing ? .trailing : .leading)
+                .padding(trailing ? .trailing : .leading, wallInset)
+                .allowsHitTesting(false)
+        case 180, -180:
+            // Upside down: the machine defends the screen-bottom end.
+            VStack(spacing: 16) {
+                Color.clear.frame(maxHeight: .infinity)
+                machineStack(cap: 280, trailing: false).frame(maxHeight: .infinity)
+            }
+            .allowsHitTesting(false)
+        default:
+            portraitPanes(in: size)
+        }
+    }
+
+    /// Sideways or flipped, there is no letterbox band: the last run and the
+    /// board stack together, both flush against the wall-side edge. `cap` is
+    /// how far the board may grow toward the middle of the table.
+    private func machineStack(cap: CGFloat, trailing: Bool) -> some View {
+        VStack(alignment: trailing ? .trailing : .leading, spacing: 10) {
+            if let lastScore {
+                card(opacity: 0.7, pad: 8) { lastRun(lastScore) }
+                    .frame(maxWidth: min(cap, 220))
+            }
+            card(opacity: 0.55) {
+                boardRows
+                    .shadow(color: Neon.ground.opacity(0.9), radius: 2)
+            }
+            .frame(maxWidth: cap)
+        }
+    }
+
+    /// Portrait: the board holds ONE place — inside the field, below the
+    /// goal and its guardian furniture — whether or not a last run shows.
+    /// Sheer, with dark-glowing text: the field stays visible through it.
+    /// The last run takes the letterbox band above the field.
+    @ViewBuilder
+    private func portraitPanes(in size: CGSize) -> some View {
+        // Where the playfield actually sits: portrait letterboxes a
+        // width-fit 100×160 board, and the overlay lays out around it.
+        let fieldTop = max(0, (size.height - size.width * 1.6) / 2)
+        let fieldHeight = size.width * 1.6
+        VStack(spacing: 0) {
+            Spacer().frame(height: fieldTop + fieldHeight * 0.17)
+            card(opacity: 0.55) {
+                boardRows
+                    .shadow(color: Neon.ground.opacity(0.9), radius: 2)
+            }
+            .frame(maxWidth: 280)
+            Spacer()
+        }
+        .allowsHitTesting(false)
+        if let lastScore {
+            VStack(spacing: 0) {
+                card(opacity: 0.7, pad: 8) { lastRun(lastScore) }
+                    .frame(maxWidth: 220)
+                    .frame(height: max(fieldTop, 56))
+                Spacer()
+            }
+            .allowsHitTesting(false)
         }
     }
 

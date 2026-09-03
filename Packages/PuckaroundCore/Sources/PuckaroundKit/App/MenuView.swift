@@ -24,26 +24,12 @@ struct MenuView: View {
     var body: some View {
         ZStack {
             Neon.ground.ignoresSafeArea()
-            VStack(spacing: 32) {
-                wordmark
-                // The modes read by who they're for: the couch, then one pair
-                // of hands — so the solo shelf is easy to spot.
-                VStack(spacing: 24) {
-                    group("Together") {
-                        NeonButton(title: "New match", tint: Neon.cyan, prominent: true) {
-                            showingNewMatch = true
-                        }
-                        NeonButton(title: "Tournament", action: onTournament)
-                    }
-                    group("Solo") {
-                        NeonButton(title: "Practice") { showingPractice = true }
-                        NeonButton(title: "Arcade", action: onArcade)
-                    }
-                }
-                .frame(maxWidth: 280)
-                .padding(.horizontal, 40)
+            // A sideways phone is shorter than this stack — scroll there,
+            // stay centered wherever it fits.
+            ViewThatFits(in: .vertical) {
+                menu
+                ScrollView(showsIndicators: false) { menu }
             }
-            .padding(24)
             // The app's own corners: About and Settings, the sibling apps'
             // pattern — never match settings, which live in New match.
             VStack {
@@ -84,6 +70,30 @@ struct MenuView: View {
                 AboutSheet(onClose: { showingAbout = false })
             }
         }
+    }
+
+    /// The wordmark over the mode buttons — the whole front door.
+    private var menu: some View {
+        VStack(spacing: 32) {
+            wordmark
+            // The modes read by who they're for: the couch, then one pair
+            // of hands — so the solo shelf is easy to spot.
+            VStack(spacing: 24) {
+                group("Together") {
+                    NeonButton(title: "New match", tint: Neon.cyan, prominent: true) {
+                        showingNewMatch = true
+                    }
+                    NeonButton(title: "Tournament", action: onTournament)
+                }
+                group("Solo") {
+                    NeonButton(title: "Practice") { showingPractice = true }
+                    NeonButton(title: "Arcade", action: onArcade)
+                }
+            }
+            .frame(maxWidth: 280)
+            .padding(.horizontal, 40)
+        }
+        .padding(24)
     }
 
     /// A captioned cluster of modes, in the sheets' small-caps caption style.

@@ -34,8 +34,16 @@ struct AboutSheet: View {
                     .padding(.horizontal, 24)
                     .padding(.top, 20)
                     .padding(.bottom, 8)
-                content
-                    .padding(24)
+                // A sideways phone is shorter than the card — scroll there,
+                // hug the content wherever it fits.
+                ViewThatFits(in: .vertical) {
+                    content
+                        .padding(24)
+                    ScrollView(showsIndicators: false) {
+                        content
+                            .padding(24)
+                    }
+                }
             }
             .frame(maxWidth: 440)
             .background(NeonCard())
