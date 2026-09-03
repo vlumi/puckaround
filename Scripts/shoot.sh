@@ -10,8 +10,9 @@
 # The default devices are chosen for their PIXEL SIZE — the one ASC accepts
 # per platform (screenshots.py enforces it): iPhone Pro Max 1320×2868, iPad
 # Pro 13-inch 2064×2752. Override with DEVICE= only if you know the size fits.
-# There is no demo mode: the app runs on the simulator's real local state, so
-# stage names/scores before the run (see Scripts/asc/SCREENSHOTS.md).
+# The app launches in DEMO mode: every store routed to an ephemeral suite
+# seeded with the fixed screenshot cast (names, a mid-run bracket, full
+# boards) — the simulator's real data is never shown or touched.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -59,7 +60,7 @@ for lang in "${langs[@]}"; do
     echo "━━━ $PLATFORM / $lang — launching ━━━"
     xcrun simctl terminate "$UDID" "$BUNDLE" >/dev/null 2>&1 || true
     xcrun simctl install "$UDID" "$app"
-    xcrun simctl launch "$UDID" "$BUNDLE" -AppleLanguages "($lang)" >/dev/null
+    xcrun simctl launch "$UDID" "$BUNDLE" -puckaround-demo -AppleLanguages "($lang)" >/dev/null
     sleep 3  # let the launch settle before the first stage prompt
 
     i=0
