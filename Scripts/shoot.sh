@@ -40,6 +40,13 @@ echo "Booting ${name}…"
 xcrun simctl bootstatus "$UDID" -b >/dev/null 2>&1 || true
 open -a Simulator
 
+# The pristine marketing status bar: Apple's classic 9:41, full battery, full
+# wifi — the ISO timestamp also pins the DATE the iPad's bar shows. Cleared
+# when the run ends, so the simulator goes back to telling the truth.
+xcrun simctl status_bar "$UDID" override --time "2007-01-09T09:41:00+0000" \
+    --batteryState charged --batteryLevel 100 --wifiBars 3 --dataNetwork wifi
+trap 'xcrun simctl status_bar "$UDID" clear >/dev/null 2>&1 || true' EXIT
+
 # Find the built .app by glob — the product name is "Puck Around", and this
 # survives renames (same trick as run-ios.sh).
 app="$(find .build-xcode/Build/Products/Debug-iphonesimulator \
