@@ -43,11 +43,11 @@ SHOTS = [
      "A 2v2 match: four mallets in the two team neons, a lane each. The "
      "party shot."),
     ("tournament", False,
-     "A tournament in progress — standings or bracket with named chips, each "
-     "in their own color. Stage a few remembered names first."),
+     "Tap Tournament: the demo resumes its seeded bracket (quarterfinals "
+     "played, a semifinal in the books). No staging."),
     ("arcade-shelf", False,
-     "The arcade shelf: three cabinet cards, icons left, hiscores right. "
-     "Sign some scores beforehand so the boards aren't empty."),
+     "The arcade shelf: three cabinet cards, icons left, hiscores right — "
+     "the demo's boards come pre-filled. No staging."),
     ("brick-wall", False,
      "Brick Wall mid-stage: a part-broken wall, HUD showing stage - score - "
      "lives. Not the faceoff — the puck live, bricks chipped."),

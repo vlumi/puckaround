@@ -2,10 +2,13 @@
 
 The carousel's job: make someone scrolling past their 500th arcade game stop
 on *"wait — both of them play on the same phone?"* Lead with the premise (two
-mallets, one screen), then breadth: the party formats, the arcade. Manual
-capture against the real app — there's no demo mode, so **stage the state
-first**: play a rally to a decent score, remember a few names, sign some
-hiscores. The sim is deterministic but the staging is yours.
+mallets, one screen), then breadth: the party formats, the arcade. Capture
+runs in **demo mode** (`-puckaround-demo`, see `DemoMode`): an ephemeral
+store seeded with the fixed cast — eight names each wearing a different neon,
+a bracket tournament one match from the final, and full hiscore boards on all
+three cabinets — so nothing needs typing, the shots are reproducible, and the
+simulator's real data is never shown or touched. Only the live-play framing
+(a rally mid-flight, a part-broken wall) is still yours to stage.
 
 **Gameplay and functional UI only — no title menu.** Show the table, not the
 packaging.
@@ -25,8 +28,8 @@ asc-screenshots-apply`, and the tree is **committed** — the store set is
 versioned with the app.
 
 Manual fallback (freehand capture, then rename by capture order):
-`make run-iphone` to just launch, then
-`make shots-organize DIR=<folder> PLATFORM=iphone`.
+`make demo-iphone` (or `demo-ipad`) launches the seeded demo without the
+guide, then `make shots-organize DIR=<folder> PLATFORM=iphone`.
 
 ## Sizes
 
@@ -44,10 +47,11 @@ Capture order (what `make shots` walks):
 2. **doubles** — a 2v2 match: four mallets in the two team neons (a doubles
    side shares its color), a lane each. The party shot; proves "up to four
    hands" isn't a bullet point.
-3. **tournament** — standings or bracket mid-tournament, named chips in their
-   colors. Stage a few remembered names first so it reads as a real evening.
+3. **tournament** — tap Tournament: the demo resumes its seeded bracket
+   (quarterfinals played, a semifinal in the books), every name in its own
+   neon. No staging.
 4. **arcade-shelf** — the arcade shelf: three cabinet cards, icons left,
-   hiscores right. Sign some scores beforehand so the boards aren't empty.
+   hiscores right — the demo's boards come pre-filled. No staging.
 5. **brick-wall** — Brick Wall mid-stage: part-broken wall, HUD showing
    stage · score · lives. The puck live, bricks chipped — not the faceoff.
 6. **survival** — the feed running: three pucks live, mixed shapes, score

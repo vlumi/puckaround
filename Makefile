@@ -84,6 +84,16 @@ shots:  ## Guided screenshot capture: PLATFORM=iphone|ipad [LANGS=en] [OUT=shots
 shots-organize:  ## Rename raw freehand screenshots by capture order: DIR=<folder> PLATFORM=iphone|ipad [LANGS=en]
 	@Scripts/asc/run.sh organize $${PLATFORM:-iphone} $(DIR) $(if $(LANGS),--langs=$(LANGS),)
 
+# The demo launchers seed the screenshot stage (names, tournament, boards) in
+# an ephemeral suite — freehand poking without staging or touching real data.
+.PHONY: demo-iphone
+demo-iphone: build-ios  ## Launch the iPhone simulator in demo mode (seeded screenshot state)
+	@PLATFORM=iphone Scripts/demo.sh
+
+.PHONY: demo-ipad
+demo-ipad: build-ios  ## Launch the iPad simulator in demo mode (seeded screenshot state)
+	@PLATFORM=ipad Scripts/demo.sh
+
 # The runner self-manages a venv (deps in Scripts/asc/requirements.txt);
 # listing.json is the source of truth for the listing text.
 .PHONY: asc-listing
