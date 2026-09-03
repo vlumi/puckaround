@@ -19,12 +19,24 @@ public final class GameSession {
     private let inputFor: (MalletSlot, Tick) -> SeatInput
     private var lastTime: TimeInterval?
     private var owed: Double = 0
+    /// Carries each tick's inputs — stored so the 60 Hz loop reuses one
+    /// dictionary instead of allocating a fresh one per tick. `Rink.advance`
+    /// only reads it by key in `slots` order, so reuse can't touch determinism.
+    private var inputs: [MalletSlot: SeatInput] = [:]
 
-    /// While paused the sim holds: `update` re-anchors the clock each frame but
-    /// steps nothing, so no wall time is owed and resuming never bursts to catch
-    /// up. The render loop keeps running (the table still draws); only the sim
-    /// is frozen.
-    public var paused = false
+    /// While paused the sim holds and steps nothing. Unpausing drops the clock
+    /// anchor, so the first update after a resume anchors instead of owing the
+    /// whole pause — the render loop may have been frozen right along with the
+    /// sim (the view pauses its timeline under a menu), and either way resuming
+    /// must never burst to catch up.
+    public var paused = false {
+        didSet {
+            if !paused {
+                lastTime = nil
+                owed = 0
+            }
+        }
+    }
 
     public init(rink: Rink, inputFor: @escaping (MalletSlot, Tick) -> SeatInput) {
         self.rink = rink
@@ -53,7 +65,7 @@ public final class GameSession {
 
     /// Exactly one tick, inputs gathered from every mallet.
     public func advance() {
-        var inputs: [MalletSlot: SeatInput] = [:]
+        inputs.removeAll(keepingCapacity: true)
         for slot in rink.slots {
             inputs[slot] = inputFor(slot, rink.tick)
         }

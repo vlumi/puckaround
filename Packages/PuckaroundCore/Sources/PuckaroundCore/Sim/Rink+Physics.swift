@@ -39,8 +39,9 @@ extension Rink {
     private func clampedOutOfBubble(_ p: Vec2, side: Side) -> Vec2 {
         let keepOut = table.faceoffBubbleRadius + table.malletRadius
         let offset = p - table.center
-        guard offset.length < keepOut else { return p }
-        let direction = offset.length > 0 ? offset.normalized : -side.inward
+        let distance = offset.length
+        guard distance < keepOut else { return p }
+        let direction = distance > 0 ? Vec2(offset.x / distance, offset.y / distance) : -side.inward
         return table.center + direction * keepOut
     }
 
@@ -53,8 +54,9 @@ extension Rink {
         let reach = table.puckRadius + table.malletRadius
         let mallet = malletSeenAcrossSeam(by: pucks[index].position, from: center)
         let offset = pucks[index].position - mallet
-        guard offset.length < reach else { return }
-        let normal = offset.length > 0 ? offset.normalized : Vec2(0, -1)
+        let distance = offset.length
+        guard distance < reach else { return }
+        let normal = distance > 0 ? Vec2(offset.x / distance, offset.y / distance) : Vec2(0, -1)
         let clear = pushedClear(of: mallet, along: normal, reach: reach)
         pucks[index].position = clear.position
 
@@ -226,7 +228,8 @@ extension Rink {
                 let offset = pucks[j].position - pucks[i].position
                 let distance = offset.length
                 guard distance < reach else { continue }
-                let normal = distance > 0 ? offset.normalized : Vec2(0, -1)
+                let normal =
+                    distance > 0 ? Vec2(offset.x / distance, offset.y / distance) : Vec2(0, -1)
                 let overlap = reach - distance
                 pucks[i].position -= normal * (overlap / 2)
                 pucks[j].position += normal * (overlap / 2)
@@ -309,7 +312,8 @@ extension Rink {
     /// Reflects the puck off its x-wall: a goal post inside an opening (keeping it
     /// in the goal, no bounce event), or a solid side wall on the open field.
     private mutating func bounceXWalls(_ p: inout Vec2, _ v: inout Vec2) -> Bool {
-        if let goal = goalRecess(p), !goal.admitsMouth(p.x) {
+        let recess = goalRecess(p)
+        if let goal = recess, !goal.admitsMouth(p.x) {
             if p.x < goal.postLeft {
                 reflect(&p.x, &v.x, off: goal.postLeft, from: .below)
             } else if p.x > goal.postRight {
@@ -317,7 +321,7 @@ extension Rink {
             }
             return true
         }
-        guard goalRecess(p) == nil, table.sideWalls == .solid else { return false }
+        guard recess == nil, table.sideWalls == .solid else { return false }
         let field = table.puckField
         if p.x < field.minX {
             events.append(.wallBounce(speed: abs(v.x)))
@@ -356,44 +360,43 @@ extension Rink {
         }
     }
 
-    /// A polygon resolves against each active wall in a fixed order (deterministic
-    /// tie-break), taking a rigid impulse that both reflects and spins it.
+    /// A polygon resolves against each active wall in a fixed order
+    /// (deterministic tie-break), taking a rigid impulse that both reflects and
+    /// spins it. The active walls — goal posts inside a recess (else the solid
+    /// side walls), plus each short wall away from its opening — are chosen by
+    /// the tick-start position and resolved inline, so the hot path builds no
+    /// array for them.
     private mutating func bouncePolygonOffWalls(at index: Int) {
-        for wall in activeWalls(for: pucks[index].position) {
-            let puck = pucks[index]
-            let body = PolygonCollision.Body(
-                shape: puck.shape, center: puck.position, angle: puck.angle,
-                radius: table.puckRadius, velocity: puck.velocity,
-                angularVelocity: puck.angularVelocity)
-            guard
-                let hit = PolygonCollision.resolve(body, wall: wall, restitution: table.restitution)
-            else { continue }
-            pucks[index].position += hit.positionShift
-            pucks[index].velocity = hit.velocity
-            pucks[index].angularVelocity = hit.angularVelocity
-            if hit.impactSpeed > 0 { events.append(.wallBounce(speed: hit.impactSpeed)) }
+        let field = table.puckField
+        let p = pucks[index].position
+        if let goal = goalRecess(p) {
+            resolvePolygon(at: index, wall: .init(normal: Vec2(-1, 0), limit: -goal.postLeft))
+            resolvePolygon(at: index, wall: .init(normal: Vec2(1, 0), limit: goal.postRight))
+        } else if table.sideWalls == .solid {
+            resolvePolygon(at: index, wall: .init(normal: Vec2(-1, 0), limit: -field.minX))
+            resolvePolygon(at: index, wall: .init(normal: Vec2(1, 0), limit: field.maxX))
+        }
+        if !table.goal(.top).admitsOpening(p.x) {
+            resolvePolygon(at: index, wall: .init(normal: Vec2(0, -1), limit: -field.minY))
+        }
+        if !table.goal(.bottom).admitsOpening(p.x) {
+            resolvePolygon(at: index, wall: .init(normal: Vec2(0, 1), limit: field.maxY))
         }
     }
 
-    /// The walls a polygon at `p` can hit this tick: goal posts inside a recess
-    /// (else the solid side walls), plus each short wall away from its opening.
-    private func activeWalls(for p: Vec2) -> [PolygonCollision.Wall] {
-        let field = table.puckField
-        var walls: [PolygonCollision.Wall] = []
-        if let goal = goalRecess(p) {
-            walls.append(.init(normal: Vec2(-1, 0), limit: -goal.postLeft))
-            walls.append(.init(normal: Vec2(1, 0), limit: goal.postRight))
-        } else if table.sideWalls == .solid {
-            walls.append(.init(normal: Vec2(-1, 0), limit: -field.minX))
-            walls.append(.init(normal: Vec2(1, 0), limit: field.maxX))
-        }
-        if !table.goal(.top).admitsOpening(p.x) {
-            walls.append(.init(normal: Vec2(0, -1), limit: -field.minY))
-        }
-        if !table.goal(.bottom).admitsOpening(p.x) {
-            walls.append(.init(normal: Vec2(0, 1), limit: field.maxY))
-        }
-        return walls
+    private mutating func resolvePolygon(at index: Int, wall: PolygonCollision.Wall) {
+        let puck = pucks[index]
+        let body = PolygonCollision.Body(
+            shape: puck.shape, center: puck.position, angle: puck.angle,
+            radius: table.puckRadius, velocity: puck.velocity,
+            angularVelocity: puck.angularVelocity)
+        guard
+            let hit = PolygonCollision.resolve(body, wall: wall, restitution: table.restitution)
+        else { return }
+        pucks[index].position += hit.positionShift
+        pucks[index].velocity = hit.velocity
+        pucks[index].angularVelocity = hit.angularVelocity
+        if hit.impactSpeed > 0 { events.append(.wallBounce(speed: hit.impactSpeed)) }
     }
 }
 

@@ -252,16 +252,9 @@ struct ArcadeView: View {
     /// The shelf's title row: the boards' names are managed from here too —
     /// the same pool the tournament bench uses.
     private var header: some View {
-        ZStack {
-            Text("Arcade", bundle: .module)
-                .font(.system(size: 22, weight: .black, design: .rounded))
-                .foregroundStyle(Neon.ink)
-            HStack(spacing: 6) {
-                Spacer()
-                NeonIconButton(systemName: "person.2", label: "Names") {
-                    showingNames = true
-                }
-                NeonIconButton(systemName: "xmark", label: "Close", action: onExit)
+        NeonSheetHeader(title: "Arcade", onClose: onExit) {
+            NeonIconButton(systemName: "person.2", label: "Names") {
+                showingNames = true
             }
         }
     }

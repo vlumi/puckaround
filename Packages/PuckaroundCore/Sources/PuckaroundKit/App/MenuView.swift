@@ -16,8 +16,14 @@ struct MenuView: View {
     /// Open the arcade shelf — solo minigames and their boards.
     let onArcade: () -> Void
 
-    @State private var showingNewMatch = false
-    @State private var showingPractice = false
+    /// The setup modal in flight, if any — one sheet, two doors: a match or a
+    /// practice differ only in the flag and which start they fire.
+    private enum SetupKind {
+        case match
+        case practice
+    }
+
+    @State private var settingUp: SetupKind?
     @State private var showingSettings = false
     @State private var showingAbout = false
 
@@ -43,25 +49,19 @@ struct MenuView: View {
                 Spacer()
             }
             .padding(16)
-            if showingNewMatch {
+            if let kind = settingUp {
                 NewMatchSheet(
-                    initial: setup,
+                    initial: setup, practice: kind == .practice,
                     onStart: { chosen in
                         setup = chosen
-                        showingNewMatch = false
-                        onPlay()
+                        settingUp = nil
+                        if kind == .practice {
+                            onPractice()
+                        } else {
+                            onPlay()
+                        }
                     },
-                    onClose: { showingNewMatch = false })
-            }
-            if showingPractice {
-                NewMatchSheet(
-                    initial: setup, practice: true,
-                    onStart: { chosen in
-                        setup = chosen
-                        showingPractice = false
-                        onPractice()
-                    },
-                    onClose: { showingPractice = false })
+                    onClose: { settingUp = nil })
             }
             if showingSettings {
                 SettingsSheet(onClose: { showingSettings = false })
@@ -81,12 +81,12 @@ struct MenuView: View {
             VStack(spacing: 24) {
                 group("Together") {
                     NeonButton(title: "New match", tint: Neon.cyan, prominent: true) {
-                        showingNewMatch = true
+                        settingUp = .match
                     }
                     NeonButton(title: "Tournament", action: onTournament)
                 }
                 group("Solo") {
-                    NeonButton(title: "Practice") { showingPractice = true }
+                    NeonButton(title: "Practice") { settingUp = .practice }
                     NeonButton(title: "Arcade", action: onArcade)
                 }
             }
@@ -101,11 +101,7 @@ struct MenuView: View {
         _ key: LocalizedStringKey, @ViewBuilder body: () -> some View
     ) -> some View {
         VStack(spacing: 12) {
-            Text(key, bundle: .module)
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(Neon.inkSoft)
-                .textCase(.uppercase)
-                .kerning(2)
+            NeonCaption(title: key)
             body()
         }
     }

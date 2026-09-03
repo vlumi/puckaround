@@ -50,8 +50,9 @@ public struct League: Equatable, Codable, Sendable {
         public let losses: Int
     }
 
-    /// The table, best first — by wins, ties in schedule order. Losses only
-    /// break the visual monotony of an uneven played count, never the order.
+    /// The table, best first — by wins, ties in schedule order. The tie order
+    /// is load-bearing (it becomes the sudden-death queue), so it sorts on an
+    /// explicit schedule index — Swift documents no sort stability to lean on.
     public var standings: [Standing] {
         var order: [String] = []
         for f in fixtures where !order.contains(f.bottom) { order.append(f.bottom) }
@@ -63,9 +64,12 @@ public struct League: Equatable, Codable, Sendable {
             losses[r.loser, default: 0] += 1
         }
         return
-            order
-            .map { Standing(name: $0, wins: wins[$0] ?? 0, losses: losses[$0] ?? 0) }
-            .sorted { $0.wins > $1.wins }
+            order.enumerated()
+            .map {
+                (index: $0, row: Standing(name: $1, wins: wins[$1] ?? 0, losses: losses[$1] ?? 0))
+            }
+            .sorted { $0.row.wins != $1.row.wins ? $0.row.wins > $1.row.wins : $0.index < $1.index }
+            .map(\.row)
     }
 
     /// The current match ended: the given end's player won by the given

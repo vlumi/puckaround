@@ -21,7 +21,7 @@ struct SettingsSheet: View {
         ZStack {
             Color.black.opacity(0.85).ignoresSafeArea().onTapGesture(perform: onClose)
             VStack(spacing: 0) {
-                header
+                NeonSheetHeader(title: "Settings", onClose: onClose)
                     .padding(.horizontal, 24)
                     .padding(.top, 20)
                     .padding(.bottom, 8)
@@ -64,52 +64,21 @@ struct SettingsSheet: View {
         }
     }
 
-    private var header: some View {
-        ZStack {
-            Text("Settings", bundle: .module)
-                .font(.system(size: 22, weight: .black, design: .rounded))
-                .foregroundStyle(Neon.ink)
-            HStack {
-                Spacer()
-                NeonIconButton(systemName: "xmark", label: "Close", action: onClose)
-            }
-        }
-    }
-
     private func toggleRow(_ label: LocalizedStringKey, isOn: Binding<Bool>) -> some View {
         HStack(spacing: 10) {
             Text(label, bundle: .module)
                 .font(.system(size: 15, weight: .bold, design: .rounded))
                 .foregroundStyle(Neon.ink)
             Spacer()
-            choice("On", selected: isOn.wrappedValue) { isOn.wrappedValue = true }
-            choice("Off", selected: !isOn.wrappedValue) { isOn.wrappedValue = false }
+            NeonChoicePill(title: "On", selected: isOn.wrappedValue, width: 56) {
+                isOn.wrappedValue = true
+            }
+            NeonChoicePill(title: "Off", selected: !isOn.wrappedValue, width: 56) {
+                isOn.wrappedValue = false
+            }
         }
     }
 
-    private func choice(
-        _ label: LocalizedStringKey, selected: Bool, act: @escaping () -> Void
-    ) -> some View {
-        Button(action: act) {
-            Text(label, bundle: .module)
-                .font(.system(size: 14, weight: .bold, design: .rounded))
-                .foregroundStyle(selected ? Neon.ground : Neon.ink)
-                .frame(width: 56, height: 44)
-                .background(
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill(selected ? Neon.ink : Color.clear)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 10)
-                                .strokeBorder(
-                                    Neon.ink.opacity(selected ? 1 : 0.4), lineWidth: 1.5))
-                )
-                .contentShape(RoundedRectangle(cornerRadius: 10))
-        }
-        .buttonStyle(.plain)
-    }
-
-    /// A destructive action that arms on the first tap and fires on the
-    /// second — deliberate without being a popup.
     private func dangerButton(
         armed: Binding<Bool>, idle: LocalizedStringKey, confirm: LocalizedStringKey,
         fire: @escaping () -> Void
@@ -128,11 +97,7 @@ struct SettingsSheet: View {
         -> some View
     {
         VStack(spacing: 12) {
-            Text(key, bundle: .module)
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(Neon.inkSoft)
-                .textCase(.uppercase)
-                .kerning(2)
+            NeonCaption(title: key, size: 15)
             body()
         }
     }

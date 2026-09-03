@@ -287,11 +287,7 @@ struct ArcadeAttract: View {
     }
 
     private func caption(_ key: LocalizedStringKey) -> some View {
-        Text(key, bundle: .module)
-            .font(.system(size: 11, weight: .semibold))
-            .foregroundStyle(Neon.inkSoft)
-            .textCase(.uppercase)
-            .kerning(2)
+        NeonCaption(title: key)
     }
 }
 

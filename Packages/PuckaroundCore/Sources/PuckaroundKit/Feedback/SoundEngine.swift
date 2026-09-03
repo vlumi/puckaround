@@ -78,6 +78,11 @@ final class SoundEngine {
 
     private let engine = AVAudioEngine()
     private let state = State()
+    /// The one source node, attached lazily on the first start and reused —
+    /// an attach per start would stack live render blocks, each draining the
+    /// same trigger queue (stale voice banks stealing hits) and each costing
+    /// CPU every buffer, one more per mute/unmute forever.
+    private var source: AVAudioSourceNode?
     private var running = false
     var enabled = true
 
@@ -90,14 +95,17 @@ final class SoundEngine {
         try? AVAudioSession.sharedInstance().setCategory(.ambient, options: [.mixWithOthers])
         try? AVAudioSession.sharedInstance().setActive(true)
         #endif
-        let format = engine.outputNode.outputFormat(forBus: 0)
-        let sampleRate = format.sampleRate > 0 ? format.sampleRate : 44100
-        let node = makeSourceNode(sampleRate: sampleRate)
-        engine.attach(node)
-        engine.connect(
-            node, to: engine.mainMixerNode,
-            format: AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1))
-        engine.mainMixerNode.outputVolume = 0.6
+        if source == nil {
+            let format = engine.outputNode.outputFormat(forBus: 0)
+            let sampleRate = format.sampleRate > 0 ? format.sampleRate : 44100
+            let node = makeSourceNode(sampleRate: sampleRate)
+            engine.attach(node)
+            engine.connect(
+                node, to: engine.mainMixerNode,
+                format: AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1))
+            engine.mainMixerNode.outputVolume = 0.6
+            source = node
+        }
         running = (try? engine.start()) != nil
     }
 
@@ -105,6 +113,11 @@ final class SoundEngine {
         guard running else { return }
         engine.stop()
         running = false
+        #if os(iOS)
+        // Hand the session back — sound is off, no reason to hold it active.
+        try? AVAudioSession.sharedInstance().setActive(
+            false, options: .notifyOthersOnDeactivation)
+        #endif
     }
 
     /// Fire the sounds for one tick's events.

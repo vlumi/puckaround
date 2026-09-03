@@ -119,51 +119,65 @@ final class HockeyGame: ObservableObject {
         // drop the earlier ones' hits — but at 60 Hz a frame is one tick in the
         // common case, and the tick guard keeps a paused frame silent.
         if session.rink.tick != lastFedTick {
-            haptics.play(session.rink.events)
-            sound.play(session.rink.events)
             lastFedTick = session.rink.tick
-            arcade?.ingest(session.rink.events)
-            if session.rink.phase == .playing { arcade?.survive() }
-            if let run = arcade, run.isOver, !arcadeOverReported {
-                // The run is over: freeze the table under the final position
-                // and tell the shelf once, off the view-evaluation stack.
-                arcadeOverReported = true
-                session.paused = true
-                controls.releaseAll()
-                let report = onArcadeOver
-                let score = run.score
-                let stage =
-                    session.rink.table.stages.isEmpty ? nil : session.rink.wallLevel + 1
-                DispatchQueue.main.async { report?(score, stage) }
-            }
-            if session.rink.events.contains(.faceoffCleared) {
-                faceoffBurstStart = time  // the field bursts — kick off the visual
-            }
-            for case .puckBeamed(let from) in session.rink.events {
-                beamStart = (time, from)  // the rescue beam — telegraph it
-            }
-            for case .matchOver(let winner) in session.rink.events {
-                let rink = session.rink
-                let best = rink.rules.gamesToWin > 1
-                let won = best ? rink.gamesWon(of: winner) : rink.score(of: winner)
-                let lost =
-                    best
-                    ? rink.gamesWon(of: winner.opponent) : rink.score(of: winner.opponent)
-                // Async: frame(at:) runs inside view evaluation, where handlers
-                // must not mutate SwiftUI state.
-                let report = onMatchOver
-                DispatchQueue.main.async { report?(winner, won, lost) }
-            }
+            consumeTick(at: time)
         }
-        let burst = faceoffBurstStart.map { min(1, (time - $0) / RinkScene.burstDuration) }
-        let beam: BeamGhost? = beamStart.flatMap { start in
-            let progress = (time - start.time) / RinkScene.beamDuration
-            return progress < 1 ? BeamGhost(from: start.from, progress: progress) : nil
+        // A finished animation clears its anchor, so idle frames stop
+        // re-deriving a done burst or beam forever after.
+        if let start = faceoffBurstStart, time - start >= RinkScene.burstDuration {
+            faceoffBurstStart = nil
+        }
+        if let start = beamStart, time - start.time >= RinkScene.beamDuration {
+            beamStart = nil
+        }
+        let burst = faceoffBurstStart.map { (time - $0) / RinkScene.burstDuration }
+        let beam = beamStart.map {
+            BeamGhost(from: $0.from, progress: (time - $0.time) / RinkScene.beamDuration)
         }
         return RinkScene(
             rink: session.rink, placement: placement, reducedMotion: reducedMotion, time: time,
-            faceoffBurst: (burst ?? 1) < 1 ? burst : nil, names: endNames, colors: endColors,
+            faceoffBurst: burst, names: endNames, colors: endColors,
             arcade: arcade, beam: beam)
+    }
+
+    /// One freshly-stepped tick's consequences: feedback, the arcade run's
+    /// bookkeeping, the animation anchors, and the deferred reports. Split
+    /// from `frame(at:)` for the length limit; same per-tick contract.
+    private func consumeTick(at time: TimeInterval) {
+        haptics.play(session.rink.events)
+        sound.play(session.rink.events)
+        arcade?.ingest(session.rink.events)
+        if session.rink.phase == .playing { arcade?.survive() }
+        if let run = arcade, run.isOver, !arcadeOverReported {
+            // The run is over: freeze the table under the final position
+            // and tell the shelf once, off the view-evaluation stack.
+            arcadeOverReported = true
+            session.paused = true
+            controls.releaseAll()
+            let report = onArcadeOver
+            let score = run.score
+            let stage =
+                session.rink.table.stages.isEmpty ? nil : session.rink.wallLevel + 1
+            DispatchQueue.main.async { report?(score, stage) }
+        }
+        if session.rink.events.contains(.faceoffCleared) {
+            faceoffBurstStart = time
+        }
+        for case .puckBeamed(let from) in session.rink.events {
+            beamStart = (time, from)
+        }
+        for case .matchOver(let winner) in session.rink.events {
+            let rink = session.rink
+            let best = rink.rules.gamesToWin > 1
+            let won = best ? rink.gamesWon(of: winner) : rink.score(of: winner)
+            let lost =
+                best
+                ? rink.gamesWon(of: winner.opponent) : rink.score(of: winner.opponent)
+            // Async: this runs inside view evaluation, where handlers must
+            // not mutate SwiftUI state.
+            let report = onMatchOver
+            DispatchQueue.main.async { report?(winner, won, lost) }
+        }
     }
 
     /// When the last faceoff cleared, so the burst ring can be animated from it.
@@ -189,11 +203,12 @@ final class HockeyGame: ObservableObject {
     /// the tournament records it and takes the table back. The view sets this.
     var onMatchOver: ((Side, Int, Int) -> Void)?
 
-    /// A touch that began in the center ring and hasn't moved yet — a pending
-    /// menu tap. It only becomes the menu if it ends without moving; the moment
-    /// it moves it is ordinary play (grab/drive a mallet), so a drag THROUGH the
-    /// ring never gets stolen by the menu.
-    private var pendingMenuTouch: (id: TouchID, at: CGPoint)?
+    /// Touches that began in the center ring and haven't moved yet — pending
+    /// menu taps, one slot per finger so a second tap can't orphan the first.
+    /// One only becomes the menu if it ends without moving; the moment it moves
+    /// it is ordinary play (grab/drive a mallet), so a drag THROUGH the ring
+    /// never gets stolen by the menu.
+    private var pendingMenuTouches: [TouchID: CGPoint] = [:]
     /// How far a touch may drift and still count as a tap (screen points).
     private static let tapSlop: CGFloat = 10
 
@@ -201,19 +216,19 @@ final class HockeyGame: ObservableObject {
         // A touch starting in the center ring is a candidate menu tap — held
         // back from the game until we know it's a tap, not the start of a drag.
         if hitsCenterRing(p) {
-            pendingMenuTouch = (id, p)
+            pendingMenuTouches[id] = p
             return
         }
         startPlay(id: id, at: p)
     }
 
     func touchMoved(id: TouchID, at p: CGPoint) {
-        if let pending = pendingMenuTouch, pending.id == id {
+        if let start = pendingMenuTouches[id] {
             // Moved far enough to be a drag, not a tap: it's play after all —
             // hand it to the game from where it began, then continue.
-            if hypot(p.x - pending.at.x, p.y - pending.at.y) > HockeyGame.tapSlop {
-                pendingMenuTouch = nil
-                startPlay(id: id, at: pending.at)
+            if hypot(p.x - start.x, p.y - start.y) > HockeyGame.tapSlop {
+                pendingMenuTouches[id] = nil
+                startPlay(id: id, at: start)
                 let world = world(fromScreen: p)
                 controls.touchMoved(id: id, at: world, malletAt: malletPosition(near: world))
             }
@@ -224,12 +239,19 @@ final class HockeyGame: ObservableObject {
     }
 
     func touchEnded(id: TouchID) {
-        if let pending = pendingMenuTouch, pending.id == id {
+        if pendingMenuTouches.removeValue(forKey: id) != nil {
             // Ended without moving: a tap on the center ring → open the menu.
-            pendingMenuTouch = nil
             onMenuTap?()
             return
         }
+        controls.touchEnded(id: id)
+    }
+
+    /// A touch the SYSTEM took away (a call, the app switcher) — never a tap,
+    /// so a pending ring touch just clears instead of opening the menu the
+    /// player didn't ask for; a play touch ends like any other.
+    func touchCancelled(id: TouchID) {
+        if pendingMenuTouches.removeValue(forKey: id) != nil { return }
         controls.touchEnded(id: id)
     }
 

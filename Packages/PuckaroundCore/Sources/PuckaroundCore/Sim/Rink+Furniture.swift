@@ -15,8 +15,9 @@ extension Rink {
         for bumper in bumpers {
             let reach = table.puckRadius + bumper.radius
             let offset = pucks[index].position - bumper.position
-            guard offset.length < reach else { continue }
-            let normal = offset.length > 0 ? offset.normalized : Vec2(0, -1)
+            let distance = offset.length
+            guard distance < reach else { continue }
+            let normal = distance > 0 ? Vec2(offset.x / distance, offset.y / distance) : Vec2(0, -1)
             pucks[index].position = bumper.position + normal * reach
             let closing = pucks[index].velocity.dot(normal)
             guard closing < 0 else { continue }
@@ -49,9 +50,7 @@ extension Rink {
     private mutating func collideBrick(at p: Vec2, puckAt index: Int) -> Bool {
         let r = table.puckRadius
         for brickIndex in bricks.indices {
-            let rect = bricks[brickIndex].rect
-            let closest = Vec2(
-                min(max(p.x, rect.minX), rect.maxX), min(max(p.y, rect.minY), rect.maxY))
+            let closest = bricks[brickIndex].rect.clamping(p)
             let offset = p - closest
             guard offset.lengthSquared < r * r else { continue }
             let normal =
@@ -61,7 +60,6 @@ extension Rink {
             let closing = pucks[index].velocity.dot(normal)
             guard closing < 0 else { return true }
             pucks[index].velocity -= normal * ((1 + table.restitution) * closing)
-            // A sturdy brick chips and holds; the last hit removes it.
             if bricks[brickIndex].hits > 1 {
                 bricks[brickIndex].hits -= 1
                 events.append(.brickChipped(speed: -closing))
@@ -84,13 +82,7 @@ extension Rink {
         guard phase == .playing else { return }
         let puck = pucks[index]
         for side in Side.allCases where rescues(into: side) {
-            // The manned mallet, kissing the center line, reaches a puck-radius
-            // over it; past that only the furniture and the goal can act.
-            let beyond =
-                side == .top
-                ? puck.position.y < table.center.y - table.puckRadius
-                : puck.position.y > table.center.y + table.puckRadius
-            guard beyond else { continue }
+            guard beyondReach(puck.position, into: side) else { continue }
             // On a multi-puck stage the rescue waits while any OTHER puck
             // could still knock this one loose — that's gameplay. But pucks
             // stranded dead beyond reach TOGETHER are a frozen table, and
@@ -115,13 +107,21 @@ extension Rink {
         for other in pucks.indices where other != index {
             let puck = pucks[other]
             if puck.isMoving { return false }
-            let beyond =
-                side == .top
-                ? puck.position.y < table.center.y - table.puckRadius
-                : puck.position.y > table.center.y + table.puckRadius
-            if !beyond { return false }
+            if !beyondReach(puck.position, into: side) { return false }
         }
         return true
+    }
+
+    /// The y past which `side`'s far half is beyond the manned mallet's reach —
+    /// a mallet kissing the center line reaches a puck radius over it; past
+    /// that only the furniture and the goal can act. The one reach line, so
+    /// the rescue, the stranded test, and the doom bound can't drift apart.
+    private func reachLine(into side: Side) -> Double {
+        side == .top ? table.center.y - table.puckRadius : table.center.y + table.puckRadius
+    }
+
+    private func beyondReach(_ p: Vec2, into side: Side) -> Bool {
+        side == .top ? p.y < reachLine(into: side) : p.y > reachLine(into: side)
     }
 
     /// How far a puck can still glide, exactly: under drag d and the flat
@@ -150,10 +150,7 @@ extension Rink {
     /// listed — they only bleed speed.
     private func doomDistance(from p: Vec2, into side: Side) -> Double {
         let field = table.puckField
-        var nearest =
-            side == .top
-            ? (table.center.y - table.puckRadius) - p.y
-            : p.y - (table.center.y + table.puckRadius)
+        var nearest = side == .top ? reachLine(into: side) - p.y : p.y - reachLine(into: side)
         let goal = table.goal(side)
         let wallY = side == .top ? field.minY : field.maxY
         let onMouth = Vec2(min(max(p.x, goal.postLeft), goal.postRight), wallY)
@@ -171,10 +168,7 @@ extension Rink {
             nearest = min(nearest, surface)
         }
         for brick in bricks {
-            let rect = brick.rect
-            let closest = Vec2(
-                min(max(p.x, rect.minX), rect.maxX), min(max(p.y, rect.minY), rect.maxY))
-            nearest = min(nearest, p.distance(to: closest) - table.puckRadius)
+            nearest = min(nearest, p.distance(to: brick.rect.clamping(p)) - table.puckRadius)
         }
         return nearest
     }
