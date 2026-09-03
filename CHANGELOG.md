@@ -14,6 +14,8 @@ The `## vX.Y.Z` heading is written by the release lane too, whenever a release c
 
 ### Unreleased (next build)
 
+### build 12 — 2026-09-03
+
 - **The bracket wears the players' colors.** The drawn knockout sheet colored every name neutral with the live pair in the classic magenta/cyan, as if nobody owned a kit — now every name glows in its player's own neon (the eliminated dimmed in theirs, the champion shining in theirs), and the live pairing wears the exact resolved colors its table will wear, matching the VS. banner above.
 - **Sheets hug their content.** On a roomy screen (the iPad) the New match, Tournament, Arcade, Names, Settings, and About cards now wrap snugly around what's in them instead of stretching floor to ceiling with the buttons pinned far apart; where the screen is shorter than the card, they scroll exactly as before.
 
