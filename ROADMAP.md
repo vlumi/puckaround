@@ -1,6 +1,6 @@
 # Roadmap
 
-The implementation plan, as **named milestones in rough order** — and *only open work*. This file is *expected to churn*: milestones get reshaped as prototyping answers questions, and everything before 1.0 is beta by definition (TestFlight from the first cut). As work ships it leaves this file — brief summaries go to the [README version history](README.md#version-history), full detail to [CHANGELOG.md](CHANGELOG.md), and settled rules and design decisions to [ARCHITECTURE.md](ARCHITECTURE.md). This file is only *when*, not *why*.
+The implementation plan, as **named milestones in rough order** — and *only open work*. This file is *expected to churn*: milestones get reshaped as prototyping answers questions. As work ships it leaves this file — brief summaries go to the [README version history](README.md#version-history), full detail to [CHANGELOG.md](CHANGELOG.md), and settled rules and design decisions to [ARCHITECTURE.md](ARCHITECTURE.md). This file is only *when*, not *why*.
 
 **No hard line wraps** — one paragraph or bullet, one line; editors soft-wrap and rendered Markdown ignores the breaks anyway.
 
@@ -8,7 +8,7 @@ The implementation plan, as **named milestones in rough order** — and *only op
 
 Guiding order: **the mallet is the game**, and **what comes early is whatever answers a question that changes the plan**.
 
-Shipped so far (in TestFlight, detail in [CHANGELOG.md](CHANGELOG.md)): 1v1/1v2/2v2 air hockey with the faceoff/rematch flow, best-of matches, round/square/triangle pucks with spin and up to three at once, wrap-wall tables, "?" randoms, tournaments in three shapes on remembered names wearing per-person kit colors, practice against the machine, the arcade's three staged score-attack cabinets with hiscore boards, landscape play, sound + haptics, and the app chrome (New match modal, Settings, About). What's left is below.
+Shipped — **1.0.0 released on the App Store, 2026-09-09** (detail in [CHANGELOG.md](CHANGELOG.md)): 1v1/1v2/2v2 air hockey with the faceoff/rematch flow, best-of matches, round/square/triangle pucks with spin and up to three at once, wrap-wall tables, "?" randoms, tournaments in three shapes on remembered names wearing per-person kit colors, practice against the machine, the arcade's three staged score-attack cabinets with hiscore boards, landscape play, sound + haptics, and the app chrome (New match modal, Settings, About, the names manager). What's open is below.
 
 Tune & fit resolved smaller than planned (2026-09-02): no tuning panel — the felt nag was the puck dying mid-ice, fixed by easing the constants directly (drag, serve glide, rest threshold); iPad sizing is settled by decision (as big as possible — exactly what the fit already does, side margins only where aspect demands); pace levels are parked below, doubted.
 
@@ -24,14 +24,6 @@ The launch trio shipped — Bumper Field, Brick Wall, Survival: staged score-att
 
 - [ ] **Stage furniture, further.** Moving bumpers (a fixed deterministic pattern, like the practice machine's sweep), per-stage warp walls (needs `sideWalls` to become rink state the way bumpers and bricks are), bumpers set into the boards. The stage seam (`TableStage`) is ready to carry them.
 - Unscheduled sub-idea: a daily seeded challenge — the deterministic sim hands everyone the same table that day for free.
-
-## Release & submission — *1.0 by definition*
-
-The lane is in place (see [RELEASING.md](RELEASING.md)) and builds are shipping to TestFlight.
-
-- [ ] The App Store Connect listing: text, screenshots, and the privacy/age answers.
-- [ ] Final balancing pass — constants by hand with the device in the loop, then settle the defaults.
-- [ ] Submit, await review, release.
 
 ## Backlog (unversioned)
 

@@ -5,12 +5,11 @@ one or two mallets a side (1v1, 1v2, 2v2). Local multiplayer only — the device
 *is* the table. This file is how to *work
 on* the repo, for humans and AI agents alike.
 
-**The repo is past first feel and building out the couch.** The core plays well
-on glass (mallet, drag, bounce all proven on device), and singles/doubles/1v2,
-shaped and spinning pucks, wrap-wall tables, and a front door have shipped. The
-work now is the multiplayer table and the pickers around it — kept lean, feel
-first. [ROADMAP.md](ROADMAP.md) has the order, and its *Settled* section records
-what has been decided.
+**The repo has shipped: 1.0 is on the App Store** (2026-09). The couch is
+built — formats, shaped and spinning pucks, wrap-wall tables, tournaments,
+practice, the three-cabinet arcade, the app chrome — and the work now is
+post-release iteration on the roadmap's open lines, kept lean, feel first.
+[ROADMAP.md](ROADMAP.md) has the order.
 
 Separate project from its siblings [Skid Jam](https://github.com/vlumi/skid) (a
 couch racer), [Donpa Squad](https://github.com/vlumi/donpa) (Minesweeper),
