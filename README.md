@@ -6,7 +6,8 @@
 Air hockey for iPhone and iPad — people around **one device**, a goal each end,
 one or two mallets a side (1v1, 1v2, 2v2).
 
-> **Status: in TestFlight, pre-1.0.** "Puckaround" is the short repo/target
+> **Status: released — [1.0 on the App Store](https://apps.apple.com/app/id6805850544).**
+> "Puckaround" is the short repo/target
 > name; the game ships as **Puck Around**. How it's built:
 > [ARCHITECTURE.md](ARCHITECTURE.md). How to work on it: [AGENTS.md](AGENTS.md).
 > What's next: [ROADMAP.md](ROADMAP.md).
@@ -34,8 +35,8 @@ Planned arc:
   the drag, the bounce), so building on it is fair game now.
 - **The couch** — singles/doubles, shaped and spinning pucks, wrap-wall tables,
   tournaments on remembered names in their own colors, practice against the
-  machine, a three-cabinet solo arcade, and a front door have all shipped;
-  what's left is polish on the way to 1.0.
+  machine, a three-cabinet solo arcade, and a front door — all shipped, as
+  **1.0 on the App Store**.
 - **A curved table** — an ellipse with slice goals, where a spun puck can ride
   the wall toward the goal. A later spike.
 
@@ -52,8 +53,9 @@ Planned arc:
 
 ## Version history
 
-Pre-1.0, iterating in TestFlight. See [CHANGELOG.md](CHANGELOG.md) for what's
-landed on `main` and [ROADMAP.md](ROADMAP.md) for what's next.
+**1.0.0 released on the App Store, 2026-09-09.** See
+[CHANGELOG.md](CHANGELOG.md) for what's landed on `main` and
+[ROADMAP.md](ROADMAP.md) for what's next.
 
 ## License
 
